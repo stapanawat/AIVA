@@ -87,6 +87,19 @@ ${contextText || 'No specific document content uploaded yet. Answer general shop
     return response.text || 'ขออภัยด้วยค่ะ ไม่สามารถประมวลผลคำตอบได้ในขณะนี้';
   } catch (error) {
     console.error('[Gemini Service Error]:', error);
+    
+    // Check specific Google GenAI error status codes
+    const status = error?.status || error?.code || error?.status_code;
+    const msg = error?.message || '';
+    
+    if (status === 503 || msg.includes('high demand') || msg.includes('UNAVAILABLE')) {
+      return 'ขออภัยด้วยนะคะ ขณะนี้มีผู้ใช้งานระบบ AI หนาแน่นชั่วคราว เดี๋ยวจะมีแอดมินเข้ามาช่วยเหลือดูแลโดยตรงทันทีค่ะ';
+    }
+    
+    if (status === 429 || msg.includes('depleted') || msg.includes('RESOURCE_EXHAUSTED')) {
+      return 'ขออภัยด้วยนะคะ โควตาการใช้งานของระบบตอบกลับอัตโนมัติหมดชั่วคราว เดี๋ยวจะมีแอดมินเข้ามาช่วยเหลือดูแลโดยตรงทันทีค่ะ';
+    }
+    
     return 'ขออภัยด้วยนะคะ ระบบตอบกลับของทางร้านขัดข้องชั่วคราว เดี๋ยวจะมีแอดมินเข้ามาช่วยเหลือดูแลโดยตรงทันทีค่ะ';
   }
 };
