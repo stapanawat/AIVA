@@ -17,4 +17,8 @@ router.get('/google/callback', authController.googleCallback);
 router.get('/line', authController.lineLogin);
 router.get('/line/callback', authController.lineCallback);
 
+// Facebook Login routes
+router.get('/facebook', authController.facebookLogin);
+router.get('/facebook/callback', authController.facebookCallback);
+
 module.exports = router;

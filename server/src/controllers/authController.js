@@ -512,6 +512,159 @@ const lineCallback = async (req, res, next) => {
   }
 };
 
+const facebookLogin = (req, res) => {
+  const clientId = process.env.FACEBOOK_CLIENT_ID;
+  const redirectUri = process.env.FACEBOOK_CALLBACK_URL;
+  const state = Math.random().toString(36).substring(2);
+  const scope = 'email,public_profile';
+  
+  const fbAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+  
+  res.redirect(fbAuthUrl);
+};
+
+const facebookCallback = async (req, res, next) => {
+  try {
+    const { code, error } = req.query;
+    if (error) {
+      return res.status(400).json({ error: `Facebook Login error: ${error}` });
+    }
+    if (!code) {
+      return res.status(400).json({ error: 'Authorization code is missing.' });
+    }
+
+    const fbClientId = process.env.FACEBOOK_CLIENT_ID;
+    const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
+    const redirectUri = process.env.FACEBOOK_CALLBACK_URL;
+
+    // Exchange code for token
+    const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`);
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      console.error('[Facebook OAuth Error]', tokenData);
+      return res.status(400).json({ error: tokenData.error?.message || 'Failed to exchange authorization code.' });
+    }
+
+    const { access_token } = tokenData;
+
+    // Get user profile info
+    const profileResponse = await fetch(`https://graph.facebook.com/me?fields=id,name,email&access_token=${access_token}`);
+    const profileData = await profileResponse.json();
+
+    if (!profileResponse.ok) {
+      return res.status(400).json({ error: 'Failed to retrieve Facebook user profile.' });
+    }
+
+    // Facebook email might be null if not verified, fallback to id-based mock email
+    const email = profileData.email || `${profileData.id}@facebook.com`;
+    const name = profileData.name || 'Facebook User';
+
+    // Find or create user
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        clientsOwned: { select: { id: true } },
+        teamAccess: { select: { clientId: true } }
+      }
+    });
+
+    if (!user) {
+      // Create user
+      user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '',
+          name,
+          role: 'CLIENT_OWNER',
+          status: 'ACTIVE'
+        },
+        include: {
+          clientsOwned: { select: { id: true } },
+          teamAccess: { select: { clientId: true } }
+        }
+      });
+
+      // Create a default client workspace for this owner
+      const client = await prisma.client.create({
+        data: {
+          name: `${user.name}'s Brand`,
+          ownerId: user.id,
+          plan: 'BASIC',
+          billingCycle: 'monthly',
+        }
+      });
+
+      await prisma.teamMember.create({
+        data: {
+          clientId: client.id,
+          userId: user.id,
+          role: 'ADMIN'
+        }
+      });
+      
+      // Reload user relationships
+      user = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          clientsOwned: { select: { id: true } },
+          teamAccess: { select: { clientId: true } }
+        }
+      });
+    }
+
+    if (user.status === 'SUSPENDED') {
+      return res.status(401).json({ error: 'Your account has been suspended.' });
+    }
+
+    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+
+    if (clientId) {
+      const knowledgeCount = await prisma.knowledge.count({ where: { clientId } });
+      if (knowledgeCount === 0) {
+        await prisma.knowledge.create({
+          data: {
+            clientId,
+            type: 'TEXT',
+            title: 'ข้อมูลร้านค้า AIVA Shop',
+            content: 'ร้าน AIVA Shop ขายเดรสสีแดงรุ่น Ruby ไซส์ S และ M ราคา 1,290 บาท จัดส่งฟรีทั่วประเทศ โอนเงินบัญชีกสิกรไทย 012-345-6789 ชื่อบัญชี บจก. สแปร์เอ็กซ์ ทางร้านมีนโยบายเปลี่ยนสินค้าได้ภายใน 7 วันหากไซส์ไม่พอดี โดยลูกค้าต้องส่งรูปป้ายแท็กมาเช็คกับแอดมินก่อน',
+            tokens: 200,
+            status: 'TRAINED'
+          }
+        });
+      }
+    }
+
+    const userWithClient = { ...user, clientId };
+
+    // Generate tokens
+    const accessToken = tokenService.generateAccessToken(userWithClient);
+    const refreshToken = await tokenService.generateRefreshToken(user.id);
+
+    // Set refresh token in cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    // Redirect to frontend settings or dashboard
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const userJson = JSON.stringify({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      clientId
+    });
+    
+    res.redirect(`${frontendUrl}?token=${accessToken}&user=${encodeURIComponent(userJson)}`);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -520,6 +673,8 @@ module.exports = {
   googleLogin,
   googleCallback,
   lineLogin,
-  lineCallback
+  lineCallback,
+  facebookLogin,
+  facebookCallback
 };
 
