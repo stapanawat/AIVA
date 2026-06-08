@@ -1,0 +1,173 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  role          String         // "SUPER_ADMIN", "PARTNER_MAIN", "PARTNER_SUB", "CLIENT_OWNER", "CLIENT_ADMIN", "CLIENT_STAFF"
+  name          String
+  phone         String?
+  status        String         @default("ACTIVE") // "ACTIVE", "SUSPENDED"
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  clientsOwned  Client[]       @relation("ClientOwner")
+  teamAccess    TeamMember[]
+  referrals     Referral[]
+  payouts       Payout[]
+  refreshTokens RefreshToken[]
+}
+
+model Client {
+  id                 String       @id @default(uuid())
+  name               String       // brandName
+  ownerId            String
+  plan               String       @default("BASIC") // "BASIC", "PRO", "ADVANCED"
+  billingCycle       String       @default("monthly") // "monthly", "halfYear", "yearly"
+  currentPeriodEnd   DateTime     @default(now())
+  status             String       @default("ACTIVE") // "ACTIVE", "PAST_DUE", "CANCELLED"
+  stripeCustomerId   String?
+  stripeSubscriptionId String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  
+  // Relations
+  owner              User         @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  teamMembers        TeamMember[]
+  knowledgeEntries   Knowledge[]
+  chats              Chat[]
+  leads              Lead[]
+  branches           Branch[]
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  clientId  String
+  userId    String
+  role      String   @default("STAFF") // "ADMIN", "STAFF"
+  createdAt DateTime @default(now())
+  
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([clientId, userId])
+}
+
+model Knowledge {
+  id        String   @id @default(uuid())
+  clientId  String
+  type      String   // "FILE", "URL", "TEXT"
+  title     String
+  sourceUrl String?
+  content   String
+  fileSize  Int?     @default(0)
+  tokens    Int      @default(0)
+  status    String   @default("TRAINED") // "PENDING", "TRAINED", "FAILED"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Chat {
+  id              String    @id @default(uuid())
+  clientId        String
+  customerName    String
+  customerContact String?
+  platform        String    @default("WEB") // "LINE", "WEB", "FACEBOOK"
+  status          String    @default("BOT_HANDLING") // "BOT_HANDLING", "ADMIN_HANDLING", "CLOSED"
+  leadScore       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  messages        Message[]
+  leads           Lead[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  sender    String   // "BOT", "CUSTOMER", "AGENT"
+  content   String
+  createdAt DateTime @default(now())
+  
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+model Lead {
+  id        String   @id @default(uuid())
+  clientId  String
+  chatId    String?
+  name      String
+  contact   String
+  intent    String?
+  value     Float    @default(0)
+  stage     String   @default("NEW") // "NEW", "CONTACTED", "OFFER", "WON", "LOST"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  chat      Chat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+}
+
+model Branch {
+  id          String   @id @default(uuid())
+  clientId    String
+  name        String
+  managerName String
+  status      String   @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  createdAt   DateTime @default(now())
+  
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Referral {
+  id        String   @id @default(uuid())
+  partnerId String
+  name      String   // Campaign Name
+  code      String   @unique
+  clicks    Int      @default(0)
+  signups   Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  partner   User     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+}
+
+model Payout {
+  id          String    @id @default(uuid())
+  partnerId   String
+  amount      Float
+  status      String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  requestedAt DateTime  @default(now())
+  paidAt      DateTime?
+  
+  partner     User      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id         String   @id @default(uuid())
+  title      String
+  content    String
+  targetTier String   @default("ALL") // "ALL", "GOLD_ONLY", "SILVER_AND_UP"
+  createdAt  DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
