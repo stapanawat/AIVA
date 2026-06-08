@@ -246,10 +246,45 @@ const inviteTeamMember = async (req, res, next) => {
       return res.status(400).json({ error: 'Email and name are required.' });
     }
 
-    // Check if user already exists
+    // 1. Get client details to check active subscription plan limits
+    const client = await prisma.client.findUnique({
+      where: { id: clientId }
+    });
+
+    const plan = client ? client.plan : 'BASIC';
+    const maxUsers = plan === 'BASIC' ? 1 : plan === 'PRO' ? 5 : 20;
+
+    // 2. Count current team members
+    const currentMemberCount = await prisma.teamMember.count({
+      where: { clientId }
+    });
+
+    // 3. Check if user already exists
     let user = await prisma.user.findUnique({
       where: { email }
     });
+
+    let isAlreadyMember = false;
+    if (user) {
+      const existingMember = await prisma.teamMember.findUnique({
+        where: {
+          clientId_userId: {
+            clientId,
+            userId: user.id
+          }
+        }
+      });
+      if (existingMember) {
+        isAlreadyMember = true;
+      }
+    }
+
+    // 4. Enforce plan limit if adding a new member
+    if (!isAlreadyMember && currentMemberCount >= maxUsers) {
+      return res.status(403).json({
+        error: `ขออภัยค่ะ คุณใช้โควต้าพนักงานในทีมเต็มแล้วสำหรับแพ็กเกจ ${plan} (สูงสุด ${maxUsers} คน) กรุณาอัปเกรดแพ็กเกจเพื่อเพิ่มสมาชิกเพิ่มค่ะ`
+      });
+    }
 
     if (!user) {
       // Create mock user if they don't exist
