@@ -1,9 +1,93 @@
 import React, { useState, useEffect } from 'react';
+import { USE_MOCK } from '../config';
+
+const questionsData = [
+  {
+    q: '1. คุณมีฐานลูกค้าที่เป็นเจ้าของธุรกิจ (SME, ร้านค้าออนไลน์, คลินิก) อยู่ในมือประมาณกี่ราย?',
+    options: [
+      { t: 'ไม่มีเลย กำลังจะเริ่มต้นหาลูกค้าใหม่', s: 0 },
+      { t: '1 - 10 ราย (ลูกค้าคนรู้จัก)', s: 5 },
+      { t: 'มากกว่า 20 รายขึ้นไป (เป็นเอเจนซี่ / ผู้ให้คำปรึกษา)', s: 10 }
+    ]
+  },
+  {
+    q: '2. คุณเคยมีประสบการณ์ขายสินค้าประเภท ซอฟต์แวร์, ระบบ POS, หรือ IT Solutions ให้ธุรกิจหรือไม่?',
+    options: [
+      { t: 'ไม่เคยเลย ขายแต่สินค้าทั่วไป', s: 0 },
+      { t: 'เคยแนะนำบ้าง แต่ไม่ได้ทำเป็นอาชีพหลัก', s: 5 },
+      { t: 'เชี่ยวชาญมาก ขายซอฟต์แวร์ให้องค์กรเป็นหลัก', s: 10 }
+    ]
+  },
+  {
+    q: '3. ช่องทางหลักที่คุณวางแผนจะใช้โปรโมท AIVA คืออะไร?',
+    options: [
+      { t: 'โพสต์ลง Facebook ส่วนตัว', s: 2 },
+      { t: 'ยิงแอดโฆษณาออนไลน์ (FB Ads / TikTok)', s: 7 },
+      { t: 'เข้าพบลูกค้าองค์กร หรือจัดสัมมนา B2B', s: 10 }
+    ]
+  },
+  {
+    q: '4. ในมุมมองของคุณ ปัญหาหลักของคนขายของออนไลน์ที่ "AI พนักงานขาย" จะเข้าไปช่วยแก้ได้คืออะไร?',
+    options: [
+      { t: 'ลดการจ้างแอดมินหลายกะ และตอบลูกค้าได้ 24 ชม.', s: 10 },
+      { t: 'ทำให้แชทดูทันสมัย', s: 2 },
+      { t: 'ไม่แน่ใจ ต้องลองใช้ดูก่อน', s: 0 }
+    ]
+  },
+  {
+    q: '5. คำว่า "SaaS" (Software as a Service) หมายถึงอะไร?',
+    options: [
+      { t: 'การขายโปรแกรมแบบขาดตัว จ่ายครั้งเดียวจบ', s: 0 },
+      { t: 'การให้บริการซอฟต์แวร์ผ่านระบบคลาวด์ คิดค่าบริการรายเดือน/รายปี', s: 10 },
+      { t: 'การรับจ้างเขียนเว็บไซต์ให้ธุรกิจ', s: 0 }
+    ]
+  },
+  {
+    q: '6. อะไรคือ "MRR" ในธุรกิจระบบ Subscription?',
+    options: [
+      { t: 'Monthly Recurring Revenue (รายได้ประจำที่ได้ทุกเดือนจากลูกค้า)', s: 10 },
+      { t: 'Maximum Retail Rate (ราคาสูงสุดที่ขายได้)', s: 0 },
+      { t: 'Minimum Referral Requirement (ยอดขั้นต่ำของตัวแทน)', s: 0 }
+    ]
+  },
+  {
+    q: '7. หากลูกค้าบ่นว่า "AI ชอบตอบเป็นหุ่นยนต์ ดูไม่จริงใจ" คุณจะแก้ปัญหาอย่างไร?',
+    options: [
+      { t: 'บอกลูกค้าว่ามันเป็นแค่หุ่นยนต์ ต้องทำใจ', s: 0 },
+      { t: 'แนะนำให้ลูกค้านำข้อมูลประวัติแชทเก่ามาสอน AI ด้วยฟีเจอร์ AIVA Persona เพื่อให้ตอบเหมือนคนขึ้น', s: 10 },
+      { t: 'แนะนำให้ลูกค้ากลับไปใช้คนตอบแทน', s: 0 }
+    ]
+  },
+  {
+    q: '8. ฟีเจอร์ใดของ AIVA ที่ตอบโจทย์การ "กู้คืนยอดขาย (Recover Revenue)" มากที่สุด?',
+    options: [
+      { t: 'ระบบส่ง QR Code จ่ายเงิน', s: 0 },
+      { t: 'AIVA Smart Follow-up (ระบบทวงตะกร้า/ทวงลูกค้าที่เงียบหาย)', s: 10 },
+      { t: 'การเลือกสีหน้าต่างแชท', s: 0 }
+    ]
+  },
+  {
+    q: '9. หากมีลูกค้าองค์กรต้องการเชื่อมต่อ AIVA เข้ากับระบบสต็อก (ERP) ของบริษัท คุณควรแนะนำฟีเจอร์ใด?',
+    options: [
+      { t: 'ให้อัปโหลดไฟล์ PDF ใหม่ทุกวัน', s: 0 },
+      { t: 'ฟีเจอร์ API & Webhook Integration ในแพ็กเกจ Advanced', s: 10 },
+      { t: 'บอกว่าทำไม่ได้ AIVA ทำได้แค่ตอบแชท', s: 0 }
+    ]
+  },
+  {
+    q: '10. คุณพร้อมที่จะให้คำปรึกษา (Consult) และช่วยลูกค้าวางระบบ AIVA เบื้องต้นหรือไม่?',
+    options: [
+      { t: 'ไม่พร้อม อยากส่งแค่ลิงก์แล้วรับเงินเลย', s: 0 },
+      { t: 'พร้อม แต่ขอให้ AIVA มีคู่มือให้ศึกษา', s: 8 },
+      { t: 'พร้อมมาก ยินดีเข้าไปช่วยลูกค้าวางระบบจนใช้งานได้จริง', s: 10 }
+    ]
+  }
+];
 
 export default function LandingPage({ onLogin, onOpenCheckout, onContactSales }) {
 
   const [billingCycle, setBillingCycle] = useState('monthly');
-  const [activeModal, setActiveModal] = useState(null); // 'auth', 'checkout', 'contactSales'
+  const [activeModal, setActiveModal] = useState(null); // 'auth', 'checkout', 'contactSales', 'assessment'
   const [checkoutPlan, setCheckoutPlan] = useState('Pro');
   const [taxType, setTaxType] = useState('personal');
   const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'bank', 'promptpay'
@@ -20,6 +104,46 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   const [salesPhone, setSalesPhone] = useState('');
   const [salesNotes, setSalesNotes] = useState('');
   const [isSalesSubmitting, setIsSalesSubmitting] = useState(false);
+
+  // Quiz / Assessment States
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizResult, setQuizResult] = useState(null); // null, { passed: boolean, totalScore: number }
+  const [isQuizSubmitting, setIsQuizSubmitting] = useState(false);
+
+  const handleAnswerQuestion = (qIndex, score) => {
+    setQuizAnswers(prev => ({ ...prev, [qIndex]: score }));
+  };
+
+  const handleSubmitQuiz = () => {
+    const totalQuestions = questionsData.length;
+    const answeredCount = Object.keys(quizAnswers).length;
+
+    if (answeredCount < totalQuestions) {
+      alert(`กรุณาตอบคำถามให้ครบทุกข้อ (ขาดอีก ${totalQuestions - answeredCount} ข้อ)`);
+      return;
+    }
+
+    setIsQuizSubmitting(true);
+    setTimeout(() => {
+      let totalScore = 0;
+      for (let key in quizAnswers) {
+        totalScore += quizAnswers[key];
+      }
+      setIsQuizSubmitting(false);
+      setQuizResult({
+        passed: totalScore >= 50,
+        totalScore
+      });
+    }, 1500);
+  };
+
+  const handleCloseAssessment = () => {
+    setActiveModal(null);
+    setTimeout(() => {
+      setQuizAnswers({});
+      setQuizResult(null);
+    }, 300);
+  };
 
   // Pricing Data
   const pricingData = {
@@ -56,6 +180,10 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   };
 
   const handleSocialLogin = () => {
+    if (!USE_MOCK) {
+      alert('กรุณาเข้าสู่ระบบด้วย Google, LINE หรือ Facebook');
+      return;
+    }
     setIsAuthLoading(true);
     setTimeout(() => {
       setIsAuthLoading(false);
@@ -78,10 +206,10 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
   const handlePay = async () => {
     const nameInput = document.getElementById('input-name');
-    const emailInput = document.querySelector('input[placeholder="example@email.com"]');
+    const emailInput = document.getElementById('input-email');
     
-    const name = nameInput ? nameInput.value.trim() : 'Anonymous Client';
-    const email = emailInput ? emailInput.value.trim() : `client_${Date.now()}@aiva.com`;
+    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : 'Anonymous Client';
+    const email = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : `client_${Date.now()}@aiva.com`;
     
     setActiveModal(null);
     setProcessingState('loading');
@@ -110,12 +238,17 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
       setGeneratedCustId(data.user.id);
       setProcessingState('success');
     } catch (err) {
-      console.warn('Backend not running, falling back to mock registration:', err);
-      const randomId = Math.floor(100000 + Math.random() * 900000);
-      setGeneratedCustId(`C${randomId}`);
-      setTimeout(() => {
-        setProcessingState('success');
-      }, 2000);
+      console.warn('Registration error:', err);
+      if (USE_MOCK) {
+        const randomId = Math.floor(100000 + Math.random() * 900000);
+        setGeneratedCustId(`C${randomId}`);
+        setTimeout(() => {
+          setProcessingState('success');
+        }, 2000);
+      } else {
+        alert(`สมัครสมาชิกล้มเหลว: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (${err.message})`);
+        setProcessingState(null);
+      }
     }
   };
 
@@ -244,37 +377,53 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
         </div>
     </section>
 
-    {/* How it works Section */}
-    <section id="how-it-works" className="py-20 bg-white relative z-10 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-                <h2 className="text-3xl font-black text-slate-900 mb-4">เริ่มต้นใช้งานง่ายๆ ใน 4 ขั้นตอน</h2>
-                <p className="text-slate-500">ไม่ต้องเขียนโค้ด ไม่ต้องตั้งค่าซับซ้อน AIVA พร้อมเรียนรู้ธุรกิจของคุณทันที</p>
+    {/* How it works (4 Steps) */}
+    <section id="how-it-works" className="py-24 bg-white relative z-10 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">เริ่มต้นสร้างยอดขายอัตโนมัติใน 4 ขั้นตอน</h2>
+                <p className="text-lg text-slate-600">ไม่ต้องเขียนโค้ด ไม่ต้องมีประสบการณ์ ก็สามารถมี AI Sales ช่วยขายได้ทันที</p>
             </div>
-            
-            <div className="relative">
-                <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center relative group hover:border-indigo-200 hover:shadow-md transition-all">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">1</div>
-                        <h3 className="font-bold text-slate-900 mb-2">เชื่อมต่อช่องทาง</h3>
-                        <p className="text-sm text-slate-500">ผูก AIVA เข้ากับ LINE OA, Facebook หรือ Website ของคุณ</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* Step 1 */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div className="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">1</div>
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i className="w-6 h-6 text-indigo-600" data-lucide="link"></i>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center relative group hover:border-indigo-200 hover:shadow-md transition-all">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">2</div>
-                        <h3 className="font-bold text-slate-900 mb-2">สอน AI (Knowledge)</h3>
-                        <p className="text-sm text-slate-500">อัปโหลด PDF, Catalog หรือพิมพ์ข้อมูลธุรกิจให้ AI เรียนรู้</p>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3 relative z-10">เชื่อมต่อช่องทาง</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed relative z-10">ล็อกอินและเชื่อมต่อ AIVA เข้ากับ LINE OA หรือ Facebook Page ของคุณด้วยการคลิกเพียงไม่กี่ครั้ง</p>
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div className="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">2</div>
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i className="w-6 h-6 text-indigo-600" data-lucide="book-open-check"></i>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center relative group hover:border-indigo-200 hover:shadow-md transition-all">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">3</div>
-                        <h3 className="font-bold text-slate-900 mb-2">ปล่อย AI ทำงาน</h3>
-                        <p className="text-sm text-slate-500">AIVA จะเริ่มตอบคำถามและดูแลลูกค้าแทนคุณ 24 ชั่วโมง</p>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3 relative z-10">สอน AI ด้วยข้อมูลคุณ</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed relative z-10">อัปโหลดไฟล์แคตตาล็อกสินค้า (PDF) หรือใส่ลิงก์เว็บไซต์ AIVA จะเรียนรู้และพร้อมตอบคำถามทันที</p>
+                </div>
+
+                {/* Step 3 */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div className="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">3</div>
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i className="w-6 h-6 text-indigo-600" data-lucide="settings-2"></i>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center relative group hover:border-emerald-200 hover:shadow-md transition-all">
-                        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl group-hover:bg-emerald-500 group-hover:text-white transition-colors">4</div>
-                        <h3 className="font-bold text-slate-900 mb-2">ดูยอดขายที่เติบโต</h3>
-                        <p className="text-sm text-slate-500">เช็คสถิติ ให้ AI ทวงตะกร้า และกู้คืนยอดขายผ่าน Dashboard</p>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3 relative z-10">ปรับแต่งสไตล์การคุย</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed relative z-10">ตั้งค่าให้ AI พูดคุยด้วยน้ำเสียงแบบเป็นกันเอง, น่ารัก (ใส่คะ/ขา), หรือเป็นทางการ เพื่อให้เข้ากับแบรนด์ของคุณ</p>
+                </div>
+
+                {/* Step 4 */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div className="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">4</div>
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i className="w-6 h-6 text-indigo-600" data-lucide="rocket"></i>
                     </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3 relative z-10">เริ่มรับออเดอร์</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed relative z-10">เปิดระบบให้ AIVA ทำงานแทนคุณ ตอบแชท ทวงตะกร้า และสรุปยอดขายให้คุณดูผ่าน Dashboard แบบเรียลไทม์</p>
                 </div>
             </div>
         </div>
@@ -628,7 +777,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
                 {/* Right: Links */}
                 <div className="flex flex-wrap justify-center gap-6 text-sm font-medium">
-                    <a href="#" className="text-indigo-400 hover:text-indigo-300 transition">Partner Program</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); setActiveModal('assessment'); }} className="text-indigo-400 hover:text-indigo-300 transition">Partner Program</a>
                     <a href="#" className="hover:text-white transition">เงื่อนไขการให้บริการ</a>
                     <a href="#" className="hover:text-white transition">นโยบายความเป็นส่วนตัว</a>
                 </div>
@@ -752,7 +901,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                             
                             <div>
                                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">อีเมล</label>
-                                <input type="email" placeholder="example@email.com" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+                                <input type="email" id="input-email" placeholder="example@email.com" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
                             </div>
 
                             <div>
@@ -762,12 +911,12 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
                             <div id="branch-field" className={`sm:col-span-2 ${taxType === 'corporate' ? '' : 'hidden'}`}>
                                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">สำนักงานใหญ่ / สาขา</label>
-                                <input type="text" placeholder="เช่น สำนักงานใหญ่" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+                                <input type="text" id="input-branch" placeholder="เช่น สำนักงานใหญ่" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
                             </div>
 
                             <div className="sm:col-span-2">
                                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">ที่อยู่ (สำหรับออกใบกำกับภาษี)</label>
-                                <textarea rows="2" placeholder="ระบุที่อยู่ให้ครบถ้วน" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"></textarea>
+                                <textarea rows="2" id="input-address" placeholder="ระบุที่อยู่ให้ครบถ้วน" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"></textarea>
                             </div>
                         </div>
                     </div>
@@ -781,20 +930,40 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         </h3>
 
                         {/* Payment Tabs */}
-                        <div className="flex p-1 bg-slate-100 rounded-xl mb-5">
-                            <button onClick={() => setPaymentMethod('card')} id="tab-card" className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold bg-white shadow-sm rounded-lg text-slate-800 transition-all">
+                        <div className="flex p-1 bg-slate-100 rounded-xl mb-5 relative select-none">
+                            {/* Sliding Indicator */}
+                            <div 
+                                className="absolute top-1 bottom-1 left-1 bg-white shadow-sm rounded-lg transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                                style={{
+                                    width: 'calc((100% - 8px) / 3)',
+                                    transform: `translateX(${paymentMethod === 'card' ? '0' : paymentMethod === 'bank' ? '100%' : '200%'})`
+                                }}
+                            />
+                            <button 
+                                onClick={() => setPaymentMethod('card')} 
+                                id="tab-card" 
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold z-10 transition-colors duration-200 ${paymentMethod === 'card' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
                                 <i data-lucide="credit-card" className="w-3.5 h-3.5"></i> บัตรเครดิต
                             </button>
-                            <button onClick={() => setPaymentMethod('bank')} id="tab-bank" className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all">
+                            <button 
+                                onClick={() => setPaymentMethod('bank')} 
+                                id="tab-bank" 
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold z-10 transition-colors duration-200 ${paymentMethod === 'bank' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
                                 <i data-lucide="smartphone" className="w-3.5 h-3.5"></i> แอปธนาคาร
                             </button>
-                            <button onClick={() => setPaymentMethod('promptpay')} id="tab-promptpay" className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all">
+                            <button 
+                                onClick={() => setPaymentMethod('promptpay')} 
+                                id="tab-promptpay" 
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold z-10 transition-colors duration-200 ${paymentMethod === 'promptpay' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
                                 <i data-lucide="qr-code" className="w-3.5 h-3.5"></i> PromptPay
                             </button>
                         </div>
 
                         {/* Card Form */}
-                        <div id="form-card" className="space-y-3 animate-in fade-in duration-300 block">
+                        <div id="form-card" className={`space-y-3 animate-in fade-in duration-300 ${paymentMethod === 'card' ? 'block' : 'hidden'}`}>
                             <div className="space-y-1">
                                 <label className="block text-[11px] font-semibold text-slate-700">ชื่อบนบัตร (Card Holder Name)</label>
                                 <div className="relative">
@@ -822,7 +991,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         </div>
 
                         {/* Mobile Banking Options (Compact Fit View) */}
-                        <div id="form-bank" className={`animate-in fade-in duration-300 ${paymentMethod === 'bank' ? 'grid grid-cols-3 sm:grid-cols-4 gap-2' : 'hidden'}`}>
+                        <div id="form-bank" className={`animate-in fade-in duration-300 ${paymentMethod === 'bank' ? 'block' : 'hidden'}`}>
                             <p className="text-xs text-center text-slate-500 mb-3">คลิกแอปธนาคารเพื่อเปิดและชำระเงิน</p>
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                 <button onClick={handlePay} className="border border-slate-200 hover:border-[#00A950] hover:bg-[#00A950]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
@@ -928,11 +1097,111 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         <textarea rows="3" placeholder="เช่น ต้องการใช้กับ 10 สาขา..." value={salesNotes} onChange={(e) => setSalesNotes(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"></textarea>
                     </div>
                     
-                    <button type="submit" id="btn-submit-sales" type="submit" disabled={isSalesSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mt-4">
+                    <button type="submit" id="btn-submit-sales" disabled={isSalesSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mt-4">
                         {isSalesSubmitting ? <><i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> กำลังส่งข้อมูล...</> : <>ส่งข้อมูลติดต่อ <i data-lucide="send" className="w-4 h-4"></i></>}
                     </button>
                 </form>
             </div>
+        </div>
+    </div>
+
+    {/* PARTNER ASSESSMENT MODAL */}
+    <div id="assessment-modal" className={`fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center p-4 ${activeModal === 'assessment' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] shadow-2xl transform scale-95 transition-all duration-300 flex flex-col relative overflow-hidden">
+            
+            {/* Close Button */}
+            <button onClick={handleCloseAssessment} className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-800/10 text-slate-400 hover:text-slate-600 transition-colors z-20">
+                <i data-lucide="x" className="w-5 h-5"></i>
+            </button>
+
+            {/* Header */}
+            <div className="bg-slate-900 pt-10 pb-8 px-8 text-center relative shrink-0">
+                <div className="w-12 h-12 border border-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 bg-white/5 backdrop-blur-sm">
+                    <i data-lucide="briefcase" className="w-6 h-6 text-indigo-400"></i>
+                </div>
+                <h2 className="text-2xl font-black text-white mb-2">AIVA Partner Assessment</h2>
+                <p className="text-sm text-slate-400">แบบประเมินเบื้องต้น เพื่อเข้าร่วมเป็นตัวแทนจำหน่ายอย่างเป็นทางการ</p>
+            </div>
+
+            {/* Quiz Container or Result */}
+            {quizResult === null ? (
+              <>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-white">
+                    <p className="text-sm text-slate-600 font-bold mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+                        <span>ทำแบบทดสอบ 10 ข้อ (ผ่านเกณฑ์ 50%)</span>
+                        <span className="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md text-xs">เวลาประมาณ 3 นาที</span>
+                    </p>
+
+                    <div className="space-y-8 pb-4">
+                        {questionsData.map((qData, qIndex) => (
+                          <div key={qIndex} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                              <p className="font-bold text-slate-900 mb-4 leading-relaxed">{qData.q}</p>
+                              <div className="space-y-2">
+                                  {qData.options.map((opt, oIndex) => {
+                                      const isChecked = quizAnswers[qIndex] === opt.s;
+                                      return (
+                                        <label key={oIndex} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-indigo-300 transition-colors">
+                                            <input 
+                                                type="radio" 
+                                                name={`q${qIndex}`} 
+                                                checked={isChecked}
+                                                className="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500" 
+                                                onChange={() => handleAnswerQuestion(qIndex, opt.s)} 
+                                            />
+                                            <span className="text-sm text-slate-700">{opt.t}</span>
+                                        </label>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Footer Action */}
+                <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
+                    <button 
+                        onClick={handleSubmitQuiz} 
+                        disabled={isQuizSubmitting}
+                        className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                    >
+                        {isQuizSubmitting ? (
+                          <><i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> กำลังส่งแบบประเมิน...</>
+                        ) : (
+                          <>ส่งแบบประเมิน <i data-lucide="arrow-right" className="w-4 h-4"></i></>
+                        )}
+                    </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 p-8 flex flex-col items-center justify-center bg-white text-center">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${quizResult.passed ? 'bg-emerald-100 text-emerald-500' : 'bg-rose-100 text-rose-500'}`}>
+                      <i data-lucide={quizResult.passed ? 'check-circle-2' : 'x-circle'} className="w-12 h-12"></i>
+                  </div>
+                  <h3 className={`text-2xl font-black mb-2 ${quizResult.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {quizResult.passed ? 'ยินดีด้วย คุณผ่านเกณฑ์!' : 'เสียใจด้วย คุณยังไม่ผ่านเกณฑ์'}
+                  </h3>
+                  <p className="text-lg font-bold text-slate-600 mb-4">
+                      คะแนนของคุณ: <span className={quizResult.passed ? 'text-emerald-500' : 'text-rose-500'}>{quizResult.totalScore}/100</span>
+                  </p>
+                  <p className="text-sm text-slate-500 mb-8 max-w-md">
+                      {quizResult.passed 
+                        ? 'คุณมีวิสัยทัศน์และศักยภาพที่พร้อมสำหรับการเป็นตัวแทนจำหน่าย AIVA ขั้นตอนต่อไปคือการสมัครสร้างบัญชี Partner อย่างเป็นทางการครับ'
+                        : 'ขอขอบคุณที่ให้ความสนใจ AIVA Partner Program แต่อาจจะยังไม่ใช่จังหวะที่เหมาะสมในตอนนี้ คุณสามารถศึกษาข้อมูลเพิ่มเติมเกี่ยวกับ SaaS และ B2B Sales แล้วกลับมาทำแบบประเมินใหม่ได้ในอนาคตครับ'}
+                  </p>
+                  <div className="w-full max-w-sm">
+                      {quizResult.passed ? (
+                          <button onClick={() => { handleCloseAssessment(); onLogin(); }} className="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                              ไปที่หน้าสมัคร Partner <i data-lucide="arrow-right" className="w-4 h-4"></i>
+                          </button>
+                      ) : (
+                          <button onClick={handleCloseAssessment} className="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3.5 rounded-xl transition-all">
+                              กลับสู่หน้าหลัก
+                          </button>
+                      )}
+                  </div>
+              </div>
+            )}
         </div>
     </div>
 
@@ -968,7 +1237,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             </div>
 
             <div className="flex flex-col w-full gap-3">
-                <button onClick={() => { setProcessingState(null); onLogin(); }} className="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
+                <button id="btn-goto-platform" onClick={() => { setProcessingState(null); onLogin(); }} className="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
                     เข้าสู่ระบบ AIVA Platform <i data-lucide="arrow-right" className="w-4 h-4"></i>
                 </button>
                 <button onClick={(e) => { e.currentTarget.innerText = 'ดาวน์โหลดสำเร็จแล้ว'; e.currentTarget.style.backgroundColor = '#ecfdf5'; }} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-sm flex items-center justify-center gap-2">

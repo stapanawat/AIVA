@@ -1,39 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { USE_MOCK } from '../config';
-import InvoiceDocument from '../components/InvoiceDocument';
+import React, { useState } from 'react';
 import { 
-  MOCK_PARTNERS, MOCK_CUSTOMERS, MOCK_PAYOUT_DATA, MOCK_TICKETS, MOCK_ANNOUNCEMENTS
-} from '../data/mockData';
-import { 
-  LayoutDashboard, Users, CreditCard, Calculator, FolderUp, LifeBuoy, ShieldAlert, LogOut,
+  LayoutDashboard, Users, CreditCard, FolderUp, LifeBuoy, ShieldAlert, LogOut,
   TrendingUp, AlertCircle, CheckCircle2, DollarSign, FileText, Lock, RefreshCw,
   Search, Menu, X, ChevronDown, Download, Trash2, UploadCloud, PieChart, 
   Activity, Sparkles, Lightbulb, Eye, EyeOff, Bot, Briefcase, ChevronRight, 
   XCircle, Bell, Wallet, Clock, Settings, Mail, Network, Megaphone, Send, Target,
-  BrainCircuit, BarChart2, MessageSquare, Radar, Zap, ListChecks
+  BrainCircuit, BarChart2, MessageSquare, Calculator, ListChecks, Radar, Zap
 } from 'lucide-react';
-
-// Custom brand icons since they are removed from lucide-react v4
-const Facebook = (props) => (
-  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-  </svg>
-);
-
-const Youtube = (props) => (
-  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-  </svg>
-);
-
-const Instagram = (props) => (
-  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-  </svg>
-);
 
 // ==========================================
 // AUTH SCREEN (SUPER ADMIN)
@@ -41,39 +14,13 @@ const Instagram = (props) => (
 function AdminAuth({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setIsLoading(true);
-    try {
-      const email = e.target.querySelector('input[type="text"]').value;
-      const password = e.target.querySelector('input[type="password"]').value;
-      
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'เข้าสู่ระบบล้มเหลว');
-        setIsLoading(false);
-        return;
-      }
-      
-      localStorage.setItem('aiva_access_token', data.accessToken);
-      localStorage.setItem('aiva_user', JSON.stringify(data.user));
+    setTimeout(() => {
       setIsLoading(false);
       onLogin();
-    } catch (err) {
-      if (USE_MOCK) {
-        console.warn('Backend not running, falling back to mock authentication:', err);
-        setTimeout(() => { setIsLoading(false); onLogin(); }, 1200);
-      } else {
-        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง');
-        setIsLoading(false);
-      }
-    }
+    }, 1000);
   };
 
   return (
@@ -124,19 +71,9 @@ function AdminAuth({ onLogin }) {
 // ==========================================
 // MAIN SUPER ADMIN APP
 // ==========================================
-export default function SuperAdmin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('aiva_access_token'));
-  const PAYOUT_DATA = MOCK_PAYOUT_DATA;
-
-  // --- API STATE BINDINGS ---
-  const [partners, setPartners] = useState(USE_MOCK ? MOCK_PARTNERS : []);
-  const [customers, setCustomers] = useState(USE_MOCK ? MOCK_CUSTOMERS : []);
-  const [payoutsData, setPayoutsData] = useState(USE_MOCK ? MOCK_PAYOUT_DATA : {});
-  const [announcements, setAnnouncements] = useState(USE_MOCK ? MOCK_ANNOUNCEMENTS : []);
-  const [tickets, setTickets] = useState(USE_MOCK ? MOCK_TICKETS : []);
-  const [broadcastForm, setBroadcastForm] = useState({ title: '', type: 'Campaign', target: 'ALL', content: '' });
-  const [activeTab, setActiveTab] = useState('partners');
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState('insights');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // States for search/filters
@@ -158,262 +95,65 @@ export default function SuperAdmin() {
   const [goalResult, setGoalResult] = useState(null);
 
   // --- MOCK DATA ---
-    const fetchPartners = async () => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      if (!token) return;
-      const res = await fetch('/api/admin/partners', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const merged = USE_MOCK ? [...MOCK_PARTNERS] : [];
-        data.forEach(dbPartner => {
-          const idx = merged.findIndex(p => p.id === dbPartner.id);
-          if (idx > -1) {
-            merged[idx] = { ...merged[idx], ...dbPartner };
-          } else {
-            merged.push(dbPartner);
-          }
-        });
-        setPartners(merged);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch partners from server:', err);
-    }
+  const MOCK_PARTNERS = [
+    { 
+      id: 'P88942', name: 'สมชาย ใจดี', email: 'somchai@globaltech.com', type: 'บุคคลธรรมดา', tier: 'Gold (25%)', rev: 125400, clients: 48, kyc: 'Approved',
+      subPartners: [
+        { id: 'SP1001', name: 'สมหญิง รักดี', rev: 45000, clients: 12 },
+        { id: 'SP1002', name: 'บจก. เอสเอ็มอี โซลูชั่น', rev: 32000, clients: 8 }
+      ]
+    },
+    { 
+      id: 'P11223', name: 'บจก. มาร์เก็ตติ้ง จำกัด', email: 'contact@mktg.co.th', type: 'นิติบุคคล', tier: 'Bronze (15%)', rev: 12000, clients: 5, kyc: 'Pending',
+      subPartners: []
+    },
+    { id: 'P99887', name: 'มาลี สวยงาม', email: 'malee.s@gmail.com', type: 'บุคคลธรรมดา', tier: 'Bronze (15%)', rev: 0, clients: 0, kyc: 'Rejected', subPartners: [] },
+    { 
+      id: 'P44556', name: 'ธนาพล ยอดเยี่ยม', email: 'thanapol@yahoo.com', type: 'บุคคลธรรมดา', tier: 'Silver (18%)', rev: 85000, clients: 22, kyc: 'Approved',
+      subPartners: [
+        { id: 'SP1003', name: 'เอกราช เก่งกล้า', rev: 15000, clients: 3 }
+      ]
+    },
+  ];
+
+  const MOCK_CUSTOMERS = [
+    { id: 'A849201', name: 'คุณสมชาย ใจดี', business: 'บริษัท โกลบอลเทค จำกัด', partner: 'P88942', plan: 'Advanced', mrr: 11900, usage: 85, status: 'Active' },
+    { id: 'A592014', name: 'พญ. วลัยลักษณ์', business: 'สมชาย คลินิก เวชกรรม', partner: 'P88942', plan: 'Pro', mrr: 4900, usage: 42, status: 'Active' },
+    { id: 'A110293', name: 'คุณกิตติ สุขใจ', business: 'ร้านกาแฟ สุขใจ', partner: 'P11223', plan: 'Basic', mrr: 990, usage: 5, status: 'Pending' },
+    { id: 'A992834', name: 'อ. วิทยา พัฒนา', business: 'โรงเรียนพัฒนาศึกษา', partner: 'DIRECT', plan: 'Pro', mrr: 4900, usage: 92, status: 'Active' },
+    { id: 'A772183', name: 'บจก. อสังหาทูเดย์', business: 'อสังหาทูเดย์ พร็อพเพอร์ตี้', partner: 'DIRECT', plan: 'Advanced', mrr: 11900, usage: 60, status: 'Active' },
+  ];
+
+  const PAYOUT_DATA = {
+    '2026-06': { netTotal: 124500, whtTotal: 3850, count: 45, hold: 2, list: [
+      { partnerId: 'P88942', name: 'สมชาย ใจดี', type: 'บุคคล', tier: 'Gold(25%)', kyc: 'Approved', sales: 215000, comm: 53750, wht: 1612.5, net: 52137.5, status: 'Ready' },
+      { partnerId: 'P11223', name: 'บริษัท มาร์เก็ตติ้ง จำกัด', type: 'นิติบุคคล', tier: 'Bronze(15%)', kyc: 'Pending', sales: 12000, comm: 1800, wht: 54, net: 1746, status: 'Hold' },
+      { partnerId: 'P44556', name: 'ธนาพล ยอดเยี่ยม', type: 'บุคคล', tier: 'Silver(18%)', kyc: 'Approved', sales: 85000, comm: 15300, wht: 459, net: 14841, status: 'Paid' },
+    ]},
+    '2026-05': { netTotal: 78327, whtTotal: 2476, count: 38, hold: 7, list: [
+      { partnerId: 'P88942', name: 'สมชาย ใจดี', type: 'บุคคล', tier: 'Gold(25%)', kkcy: 'Approved', sales: 160000, comm: 40000, wht: 1200, net: 38800, status: 'Paid' },
+      { partnerId: 'P11223', name: 'บริษัท มาร์เก็ตติ้ง จำกัด', type: 'นิติบุคคล', tier: 'Bronze(15%)', kyc: 'Pending', sales: 5000, comm: 750, wht: 22.5, net: 727.5, status: 'Hold' },
+    ]}
   };
 
-  const fetchPayouts = async () => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      if (!token) return;
-      const res = await fetch('/api/admin/payouts', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const list = USE_MOCK ? [...MOCK_PAYOUT_DATA['2026-06'].list] : [];
-        data.forEach(p => {
-          const formatted = {
-            id: p.id,
-            partnerId: p.partner.id,
-            name: p.partner.name,
-            type: 'บุคคล',
-            tier: p.partner.id === 'P88942' ? 'Gold(25%)' : 'Bronze(15%)',
-            kyc: 'Approved',
-            sales: p.amount / 0.25,
-            comm: p.amount,
-            wht: p.amount * 0.03,
-            net: p.amount * 0.97,
-            status: p.status === 'APPROVED' ? 'Paid' : p.status === 'REJECTED' ? 'Hold' : 'Ready'
-          };
-          const idx = list.findIndex(item => item.partnerId === formatted.partnerId);
-          if (idx > -1) {
-            list[idx] = { ...list[idx], ...formatted };
-          } else {
-            list.push(formatted);
-          }
-        });
-        const netTotal = list.reduce((sum, item) => sum + item.net, 0);
-        const whtTotal = list.reduce((sum, item) => sum + item.wht, 0);
-        const count = list.length;
-        const hold = list.filter(item => item.status === 'Hold').length;
+  const MOCK_TICKETS = [
+    { id: 'TK-1002', sender: 'CUSTOMER', name: 'โรงเรียนพัฒนาศึกษา', issue: 'AI ตอบข้อมูลโปรโมชั่นผิด', type: 'Bug', status: 'In Progress', time: '2 ชม. ที่แล้ว' },
+    { id: 'TK-1003', sender: 'PARTNER', name: 'สมชาย ใจดี (P88942)', issue: 'สอบถามเรื่องเอกสาร 50 ทวิ ของเดือนที่แล้ว', type: 'Billing', status: 'Pending', time: '5 ชม. ที่แล้ว' },
+    { id: 'TK-1004', sender: 'CUSTOMER', name: 'ร้านกาแฟ สุขใจ', issue: 'อยากให้ AI ส่งรูปเมนูให้ลูกค้าได้ด้วย', type: 'Feature', status: 'Resolved', time: '1 วันที่แล้ว' },
+  ];
 
-        setPayoutsData(prev => ({
-          ...prev,
-          '2026-06': { netTotal, whtTotal, count, hold, list }
-        }));
-      }
-    } catch (err) {
-      console.warn('Failed to fetch payouts from server:', err);
-    }
-  };
-
-  const handleUpdateKyc = async (partnerId, status) => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      const res = await fetch(`/api/admin/partners/${partnerId}/kyc`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        fetchPartners();
-      } else {
-        const errData = await res.json();
-        alert(errData.error || 'Failed to update KYC status');
-      }
-    } catch (err) {
-      console.warn('Backend offline, fallback KYC update locally:', err);
-      setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, kyc: status } : p));
-    }
-  };
-
-  const handleApprovePayout = async (payoutId) => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      const res = await fetch(`/api/admin/payouts/${payoutId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action: 'approve' })
-      });
-      if (res.ok) {
-        fetchPayouts();
-      } else {
-        const errData = await res.json();
-        alert(errData.error || 'Failed to approve payout');
-      }
-    } catch (err) {
-      console.error('Error approving payout:', err);
-    }
-  };
-
-  const fetchAnnouncements = async () => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      if (!token) return;
-      const res = await fetch('/api/admin/announcements', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const merged = USE_MOCK ? [...MOCK_ANNOUNCEMENTS] : [];
-        data.forEach(dbAnc => {
-          const idx = merged.findIndex(a => a.id === dbAnc.id);
-          if (idx > -1) {
-            merged[idx] = { ...merged[idx], ...dbAnc };
-          } else {
-            merged.unshift(dbAnc);
-          }
-        });
-        setAnnouncements(merged);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch announcements:', err);
-    }
-  };
-
-  const fetchTickets = async () => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      if (!token) return;
-      const res = await fetch('/api/admin/tickets', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const merged = USE_MOCK ? [...MOCK_TICKETS] : [];
-        data.forEach(dbTkt => {
-          const idx = merged.findIndex(t => t.id === dbTkt.id);
-          if (idx > -1) {
-            merged[idx] = { ...merged[idx], ...dbTkt };
-          } else {
-            merged.unshift(dbTkt);
-          }
-        });
-        setTickets(merged);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch tickets:', err);
-    }
-  };
-
-  const fetchCustomers = async () => {
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      if (!token) return;
-      const res = await fetch('/api/admin/customers', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const merged = USE_MOCK ? [...MOCK_CUSTOMERS] : [];
-        data.forEach(dbCust => {
-          const idx = merged.findIndex(c => c.id === dbCust.id);
-          if (idx > -1) {
-            merged[idx] = { ...merged[idx], ...dbCust };
-          } else {
-            merged.push(dbCust);
-          }
-        });
-        setCustomers(merged);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch customers:', err);
-    }
-  };
-
-  const handleCreateAnnouncement = async () => {
-    if (!broadcastForm.title.trim() || !broadcastForm.content.trim()) {
-      alert('กรุณากรอกหัวข้อและรายละเอียดให้ครบถ้วน');
-      return;
-    }
-    try {
-      const token = localStorage.getItem('aiva_access_token');
-      const res = await fetch('/api/admin/broadcast', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: broadcastForm.title,
-          content: broadcastForm.content,
-          targetTier: broadcastForm.target
-        })
-      });
-      if (res.ok) {
-        alert('สร้างประกาศสำเร็จ!');
-        fetchAnnouncements();
-        setBroadcastForm({ title: '', type: 'Campaign', target: 'ALL', content: '' });
-      } else {
-        const errData = await res.json();
-        alert(errData.error || 'Failed to create announcement');
-      }
-    } catch (err) {
-      console.warn('Backend offline, adding announcement locally:', err);
-      const newAnc = {
-        id: 'A-' + Date.now(),
-        title: broadcastForm.title,
-        content: broadcastForm.content,
-        type: broadcastForm.type,
-        target: broadcastForm.target,
-        views: 0,
-        status: 'Active',
-        date: new Date().toLocaleDateString('th-TH')
-      };
-      setAnnouncements(prev => [newAnc, ...prev]);
-      setBroadcastForm({ title: '', type: 'Campaign', target: 'ALL', content: '' });
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchPartners();
-      fetchPayouts();
-      fetchAnnouncements();
-      fetchTickets();
-      fetchCustomers();
-    }
-  }, [isAuthenticated]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('aiva_access_token');
-    localStorage.removeItem('aiva_user');
-    setIsAuthenticated(false);
-  };
+  const MOCK_ANNOUNCEMENTS = [
+    { id: 'ANC-001', title: 'แคมเปญพิเศษ Q3: ทำยอดทะลุ 5 แสนรับโบนัส 5%', type: 'Campaign', audience: 'PARTNER', target: 'All Partners', date: '05/06/2026', views: 84, status: 'Active' },
+    { id: 'ANC-004', title: 'Flash Sale: อัปเกรดเป็น Advanced ลด 20% นาน 3 เดือน', type: 'Promotion', audience: 'CUSTOMER', target: 'Pro & Basic Plans', date: '03/06/2026', views: 1250, status: 'Active' },
+    { id: 'ANC-002', title: 'อัปเดตฟีเจอร์ Multi-PDF Upload พร้อมใช้งานแล้ว', type: 'Product Update', audience: 'BOTH', target: 'All Users', date: '01/06/2026', views: 3420, status: 'Active' },
+    { id: 'ANC-003', title: 'เชิญร่วมสัมมนา AIVA Partner Summit 2026', type: 'Event', audience: 'PARTNER', target: 'Gold & Silver', date: '25/05/2026', views: 45, status: 'Ended' },
+  ];
 
   // --- CALCULATIONS FOR PARTNER TAB ---
-  const mainPartnerCount = (partners || []).length;
-  const mainPartnerRev = (partners || []).reduce((sum, p) => sum + (p.rev || 0), 0);
-  const subPartnerCount = (partners || []).reduce((sum, p) => sum + (p.subPartners?.length || 0), 0);
-  const subPartnerRev = (partners || []).reduce((sum, p) => sum + (p.subPartners || []).reduce((spSum, sp) => spSum + (sp.rev || 0), 0), 0);
+  const mainPartnerCount = MOCK_PARTNERS.length;
+  const mainPartnerRev = MOCK_PARTNERS.reduce((sum, p) => sum + (p.rev || 0), 0);
+  const subPartnerCount = MOCK_PARTNERS.reduce((sum, p) => sum + (p.subPartners?.length || 0), 0);
+  const subPartnerRev = MOCK_PARTNERS.reduce((sum, p) => sum + (p.subPartners || []).reduce((spSum, sp) => spSum + (sp.rev || 0), 0), 0);
   const totalPartnerCount = mainPartnerCount + subPartnerCount;
   const totalPartnerRev = mainPartnerRev + subPartnerRev;
 
@@ -450,7 +190,7 @@ export default function SuperAdmin() {
 
   if (!isAuthenticated) return <AdminAuth onLogin={() => setIsAuthenticated(true)} />;
 
-  const currentPayouts = payoutsData[payoutMonth] || payoutsData['2026-06'] || { netTotal: 0, whtTotal: 0, count: 0, hold: 0, list: [] };
+  const currentPayouts = PAYOUT_DATA[payoutMonth] || PAYOUT_DATA['2026-06'];
 
   return (
     <div className="flex h-screen bg-[#0F172A] text-slate-300 font-sans overflow-hidden" style={{ fontFamily: "'Anuphan', sans-serif" }}>
@@ -1136,7 +876,7 @@ export default function SuperAdmin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
-                      {partners.filter(p => p.name.includes(partnerSearch) || p.id.includes(partnerSearch.toUpperCase())).map((partner, i) => (
+                      {MOCK_PARTNERS.filter(p => p.name.includes(partnerSearch) || p.id.includes(partnerSearch.toUpperCase())).map((partner, i) => (
                         <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-3 py-3 text-center">
                              <span className="text-[10px] font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1.5 rounded">{partner.id}</span>
@@ -1234,7 +974,7 @@ export default function SuperAdmin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
-                      {customers.filter(c => c.name.includes(customerSearch) || c.id.includes(customerSearch.toUpperCase())).map((cust, i) => (
+                      {MOCK_CUSTOMERS.filter(c => c.name.includes(customerSearch) || c.id.includes(customerSearch.toUpperCase())).map((cust, i) => (
                         <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-4 py-3"><span className="text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">{cust.id.replace('A', '')}</span></td>
                           <td className="px-4 py-3">
@@ -1267,29 +1007,7 @@ export default function SuperAdmin() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <button 
-                                onClick={() => {
-                                  setSelectedInvoice({
-                                    invoiceNo: `SPX-2026-${cust.id.replace('A', '')}`,
-                                    date: new Date().toLocaleDateString('th-TH'),
-                                    customerInfo: {
-                                      invoiceNo: `SPX-2026-${cust.id.replace('A', '')}`,
-                                      date: new Date().toLocaleDateString('th-TH'),
-                                      customerName: cust.business || cust.name,
-                                      billToAddress: "เลขที่บัญชีและสถานที่ติดต่อของบริษัทลูกค้า",
-                                      customerTaxId: "0105560000000",
-                                      shipToAddress: "เลขที่บัญชีและสถานที่ติดต่อของบริษัทลูกค้า",
-                                    },
-                                    items: [
-                                      { no: 1, description: `AIVA ${cust.plan} Subscription Fee`, qty: 1, unitPrice: cust.mrr, amount: cust.mrr }
-                                    ]
-                                  });
-                                }}
-                                className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                              >
-                                <FileText className="w-3.5 h-3.5" />
-                                Invoice
-                              </button>
+                            <button className="text-xs font-bold text-slate-400 hover:text-indigo-400 hover:underline">View</button>
                           </td>
                         </tr>
                       ))}
@@ -1322,7 +1040,7 @@ export default function SuperAdmin() {
 
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">หัวข้อประกาศ (Title)</label>
-                       <input type="text" value={broadcastForm.title} onChange={e => setBroadcastForm({...broadcastForm, title: e.target.value})} placeholder="เช่น แคมเปญโบนัส Q4..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+                       <input type="text" placeholder="เช่น แคมเปญโบนัส Q4..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">ประเภท (Type)</label>
@@ -1346,7 +1064,7 @@ export default function SuperAdmin() {
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">รายละเอียด / โค้ดส่วนลด</label>
-                       <textarea value={broadcastForm.content} onChange={e => setBroadcastForm({...broadcastForm, content: e.target.value})} rows="3" placeholder="พิมพ์รายละเอียด หรือใส่รหัส Promo Code..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"></textarea>
+                       <textarea rows="3" placeholder="พิมพ์รายละเอียด หรือใส่รหัส Promo Code..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"></textarea>
                      </div>
                      <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm mt-2 flex items-center justify-center gap-2">
                        <Send className="w-4 h-4"/> กดส่ง (Broadcast)
@@ -1365,7 +1083,7 @@ export default function SuperAdmin() {
                          <tr><th className="px-4 py-2.5">หัวข้อ / วันที่</th><th className="px-4 py-2.5">ประเภท</th><th className="px-4 py-2.5">กลุ่มเป้าหมาย</th><th className="px-4 py-2.5 text-center">ยอดการมองเห็น</th><th className="px-4 py-2.5 text-center">สถานะ</th></tr>
                        </thead>
                        <tbody className="divide-y divide-slate-800/50">
-                         {announcements.map((anc,i) => (
+                         {MOCK_ANNOUNCEMENTS.map((anc,i) => (
                            <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                              <td className="px-4 py-3">
                                <div className="flex items-center gap-1.5 mb-1">
@@ -1595,7 +1313,7 @@ export default function SuperAdmin() {
                            <tr><th className="px-4 py-3 w-16">ID</th><th className="px-4 py-3">ผู้แจ้ง / ปัญหา</th><th className="px-4 py-3 text-center w-24">ประเภท</th><th className="px-4 py-3 text-center w-32">จัดการสถานะ</th></tr>
                          </thead>
                          <tbody className="divide-y divide-slate-800/50">
-                           {tickets.map((t,i) => (
+                           {MOCK_TICKETS.map((t,i) => (
                              <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                                <td className="px-4 py-3 text-[10px] font-mono text-slate-500">{t.id}</td>
                                <td className="px-4 py-3">
@@ -1696,18 +1414,6 @@ export default function SuperAdmin() {
 
         </div>
       </main>
-
-      {/* OVERLAY MODAL: Invoice / Tax Invoice / Receipt */}
-      {selectedInvoice && (
-        <div className="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex justify-center items-start pt-10 pb-10 px-4">
-          <div className="relative w-full max-w-4xl animate-in zoom-in duration-200 text-left">
-            <InvoiceDocument 
-              invoiceData={selectedInvoice} 
-              onClose={() => setSelectedInvoice(null)} 
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

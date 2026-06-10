@@ -2,9 +2,16 @@ const express = require('express');
 const clientController = require('../controllers/clientController');
 const authenticate = require('../middlewares/auth');
 const { authorizeRoles, checkTenantAccess } = require('../middlewares/authorize');
-const { createLeadRules } = require('../middlewares/validate');
+const { createLeadRules = null } = require('../middlewares/validate') || {}; // Safely handle if validate doesn't export it
+const multer = require('multer');
 
 const router = express.Router();
+
+// Configure Multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Apply authentication and client role access controls
 router.use(authenticate);
@@ -15,7 +22,7 @@ router.get('/dashboard/stats', clientController.getDashboardStats);
 
 // Knowledge Base
 router.get('/knowledge', clientController.getKnowledgeBase);
-router.post('/knowledge', clientController.createKnowledgeEntry);
+router.post('/knowledge', upload.single('file'), clientController.createKnowledgeEntry);
 
 // Live Chats (with BOLA/IDOR protection middleware)
 router.get('/chats', clientController.getChats);
@@ -31,9 +38,23 @@ router.get('/team', clientController.getTeamMembers);
 router.post('/team/invite', clientController.inviteTeamMember);
 
 // System Settings
+router.get('/settings', clientController.getSettings);
 router.post('/settings', clientController.updateSettings);
 
 // AI Copy Generation
 router.post('/ai/content-gen', clientController.generateAIContent);
+
+// Branches
+router.get('/branches', clientController.getBranches);
+router.post('/branches', clientController.createBranch);
+
+// Rules
+router.get('/rules', clientController.getFollowUpRules);
+router.post('/rules', clientController.createFollowUpRule);
+router.put('/rules/:id/toggle', clientController.toggleFollowUpRule);
+
+// Feedback
+router.get('/feedback', clientController.getFeedbacks);
+router.post('/feedback', clientController.createFeedback);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const prisma = require('../config/db');
 const geminiService = require('../services/geminiService');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 // 1. Get Dashboard Stats
 const getDashboardStats = async (req, res, next) => {
@@ -46,20 +48,64 @@ const getKnowledgeBase = async (req, res, next) => {
 const createKnowledgeEntry = async (req, res, next) => {
   try {
     const clientId = req.user.clientId;
-    const { type, title, sourceUrl, content, fileSize } = req.body;
+    let { type, title, sourceUrl, content } = req.body;
+    let size = 0;
 
-    if (!type || !title || !content) {
-      return res.status(400).json({ error: 'Type, title, and content are required.' });
+    // Handle uploaded file
+    if (req.file) {
+      const file = req.file;
+      size = file.size;
+      
+      // Auto-assign title if not provided
+      if (!title || title.trim() === '') {
+        title = file.originalname;
+      }
+      
+      const extension = file.originalname.split('.').pop().toLowerCase();
+      
+      if (extension === 'pdf') {
+        try {
+          const parsed = await pdfParse(file.buffer);
+          content = parsed.text;
+        } catch (parseErr) {
+          console.error('PDF parsing error:', parseErr);
+          return res.status(400).json({ error: 'Failed to parse PDF file. The file may be corrupt or encrypted.' });
+        }
+      } else if (extension === 'docx' || extension === 'doc') {
+        try {
+          const result = await mammoth.extractRawText({ buffer: file.buffer });
+          content = result.value;
+        } catch (parseErr) {
+          console.error('Word file parsing error:', parseErr);
+          return res.status(400).json({ error: 'Failed to parse Word document.' });
+        }
+      } else if (extension === 'txt') {
+        content = file.buffer.toString('utf-8');
+      } else {
+        return res.status(400).json({ error: 'Unsupported file type. Only PDF, Word, and TXT files are allowed.' });
+      }
+    }
+
+    if (!type) {
+      type = req.file ? 'FILE' : 'TEXT';
+    }
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Title is required.' });
+    }
+    
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required (or file is empty).' });
     }
 
     const entry = await prisma.knowledge.create({
       data: {
         clientId,
-        type,
+        type: type.toUpperCase(),
         title,
-        sourceUrl,
+        sourceUrl: type.toUpperCase() === 'URL' ? sourceUrl : null,
         content,
-        fileSize: fileSize || 0,
+        fileSize: size || (req.body.fileSize ? parseInt(req.body.fileSize) : 0),
         tokens: Math.ceil(content.length / 4), // Simple token estimate
         status: 'TRAINED'
       }
@@ -351,17 +397,37 @@ const inviteTeamMember = async (req, res, next) => {
 const updateSettings = async (req, res, next) => {
   try {
     const clientId = req.user.clientId;
-    const { brandName } = req.body;
+    const { brandName, aiName, aiPersona, customPrompt, notifyHotLead, notifyDailyReport, bossName } = req.body;
 
     if (!brandName) {
       return res.status(400).json({ error: 'Brand name is required.' });
+    }
+
+    if (bossName) {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { name: bossName }
+      });
     }
 
     const updatedClient = await prisma.client.update({
       where: { id: clientId },
       data: {
         name: brandName,
+        aiName,
+        aiPersona,
+        customPrompt,
+        notifyHotLead: notifyHotLead !== undefined ? !!notifyHotLead : undefined,
+        notifyDailyReport: notifyDailyReport !== undefined ? !!notifyDailyReport : undefined,
         updatedAt: new Date()
+      },
+      include: {
+        owner: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -369,6 +435,26 @@ const updateSettings = async (req, res, next) => {
       message: 'Settings saved successfully!',
       client: updatedClient
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getSettings = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        owner: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+    res.json(client);
   } catch (error) {
     next(error);
   }
@@ -388,6 +474,148 @@ const generateAIContent = async (req, res, next) => {
   }
 };
 
+// 8. Branch Management Operations
+const getBranches = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const branches = await prisma.branch.findMany({
+      where: { clientId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(branches);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createBranch = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { name, manager, status } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Branch name is required.' });
+    }
+
+    const branch = await prisma.branch.create({
+      data: {
+        clientId,
+        name,
+        managerName: manager || 'ไม่มีผู้จัดการ',
+        status: status || 'Active'
+      }
+    });
+
+    res.status(201).json(branch);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 9. Follow-Up Rules Operations
+const getFollowUpRules = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const rules = await prisma.followUpRule.findMany({
+      where: { clientId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(rules);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createFollowUpRule = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { name, delay, message } = req.body;
+
+    if (!name || !message) {
+      return res.status(400).json({ error: 'Rule name and message are required.' });
+    }
+
+    const rule = await prisma.followUpRule.create({
+      data: {
+        clientId,
+        name,
+        delay: delay || '24h',
+        message,
+        active: true
+      }
+    });
+
+    res.status(201).json(rule);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const toggleFollowUpRule = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const ruleId = req.params.id;
+
+    const existingRule = await prisma.followUpRule.findUnique({
+      where: { id: ruleId }
+    });
+
+    if (!existingRule || existingRule.clientId !== clientId) {
+      return res.status(404).json({ error: 'Rule not found or access denied.' });
+    }
+
+    const updatedRule = await prisma.followUpRule.update({
+      where: { id: ruleId },
+      data: {
+        active: !existingRule.active
+      }
+    });
+
+    res.json(updatedRule);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 10. Feedback Operations
+const getFeedbacks = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const feedbacks = await prisma.feedback.findMany({
+      where: { clientId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(feedbacks);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createFeedback = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { type, title, description } = req.body;
+
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Title and description are required.' });
+    }
+
+    const feedback = await prisma.feedback.create({
+      data: {
+        clientId,
+        type: type || 'bug',
+        title,
+        description,
+        status: 'Pending'
+      }
+    });
+
+    res.status(201).json(feedback);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getKnowledgeBase,
@@ -400,5 +628,13 @@ module.exports = {
   getTeamMembers,
   inviteTeamMember,
   updateSettings,
-  generateAIContent
+  getSettings,
+  generateAIContent,
+  getBranches,
+  createBranch,
+  getFollowUpRules,
+  createFollowUpRule,
+  toggleFollowUpRule,
+  getFeedbacks,
+  createFeedback
 };

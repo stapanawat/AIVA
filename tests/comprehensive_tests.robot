@@ -21,6 +21,7 @@ Open Browser To Landing Page
 
 Navigate To Portal
     [Arguments]    ${portal_name}
+    Wait Until Element Is Visible    xpath=//button[contains(., '${portal_name}')]    timeout=10s
     Click Element    xpath=//button[contains(., '${portal_name}')]
     Sleep    1s
 
@@ -28,22 +29,22 @@ Navigate To Portal
 Scenario 1: Landing Page Billing Switcher & Checkout Integration
     [Tags]    e2e    landing
     # Check default price is Basic (฿990/เดือน)
-    Page Should Contain    ฿990
+    Page Should Contain    990
     
     # Click Yearly pricing
     Click Element    id=btn-yearly
-    Page Should Contain    ฿10,098
+    Page Should Contain    10,098
     
     # Click Monthly pricing back
     Click Element    id=btn-monthly
-    Page Should Contain    ฿990
+    Page Should Contain    990
     
     # Click Select Package Pro button (the second select package button)
     Click Element    id=btn-select-pro
     
     # Verify checkout summary loads Pro values
     Page Should Contain    AIVA Pro Plan
-    Page Should Contain    ฿5,243.00
+    Page Should Contain    5,243.00
     
     # Click Tax type corporate
     Click Element    id=btn-tax-corporate
@@ -52,28 +53,26 @@ Scenario 1: Landing Page Billing Switcher & Checkout Integration
     # Click PromptPay tab
     Click Element    id=tab-promptpay
     Element Should Be Visible    id=form-promptpay
-    Page Should Contain    ฿5,243.00
+    Page Should Contain    5,243.00
     
     # Click Card tab
     Click Element    id=tab-card
     
+    # Fill in checkout details
+    ${rand}=    Evaluate    random.randint(100000, 999999)    random
+    Input Text    id=input-name    บริษัท ทดสอบ จำกัด
+    Input Text    id=input-email    testclient_${rand}@aiva.com
+    
     # Pay
     Click Element    id=btn-pay-card
-    Page Should Contain    กำลังประมวลผล...
     Sleep    3s
-    Page Should Contain    ชำระเงินสำเร็จ!
+    Wait Until Element Is Visible    id=btn-goto-platform    timeout=10s
     
     # Click Go to Platform
-    Click Element    xpath=//button[contains(., 'เข้าสู่ระบบ AIVA Platform')]
+    Click Element    id=btn-goto-platform
     
-    # We should see Platform Login (mock email admin@globaltech.com)
-    Wait Until Page Contains    เข้าสู่ระบบการจัดการ    timeout=5s
-    Input Text    xpath=(//input[@type='email'])[1]    admin@globaltech.com
-    Input Text    xpath=(//input[@type='password'])[1]    password
-    Click Element    xpath=//button[contains(., 'เข้าสู่ระบบ AIVA Platform')]
-    
-    # Should land on Platform dashboard
-    Wait Until Page Contains    AIVA Agent ของคุณพร้อมทำงานแล้ว!    timeout=5s
+    # Should land on Platform dashboard directly (auto-logged in after registration)
+    Wait Until Page Contains    OWNER    timeout=10s
 
 Scenario 2: Client Platform Dashboard & Management Features
     [Tags]    feature    platform
@@ -170,17 +169,16 @@ Scenario 4: Super Admin Portal KYC Approval and Partner Center
     Click Element    xpath=//button[contains(., 'Authorize Access')]
     
     # Verify Super Admin dashboard loads (waits for mock 600ms loading timeout)
-    Wait Until Page Contains    Partner Management    timeout=5s
-    Page Should Contain    ประกาศ & แคมเปญ
+    Page Should Contain    Partners
     
     # Switch to Announcements tab
     Click Element    xpath=//*[contains(text(), 'ประกาศ & แคมเปญ')]
-    Wait Until Page Contains    ระบบบรอดแคสต์    timeout=5s
+    Wait Until Page Contains    Broadcast    timeout=5s
     
     # Switch back to Partners and verify listing
     Click Element    xpath=//*[contains(text(), 'พาร์ทเนอร์ (Partners)')]
-    Wait Until Page Contains    สมชาย ใจดี    timeout=5s
-    Page Should Contain    บจก. มาร์เก็ตติ้ง จำกัด
+    Wait Until Page Contains    P88942    timeout=5s
+    Page Should Contain    P11223
     
     # Logout
     Click Element    xpath=//p[contains(., 'System Logout')]

@@ -14,5 +14,8 @@ router.post('/partners/:id/kyc', adminController.updatePartnerKyc);
 router.get('/payouts', adminController.getPayouts);
 router.post('/payouts/:id/approve', adminController.approvePayout);
 router.post('/broadcast', adminController.createAnnouncement);
+router.get('/announcements', adminController.getAnnouncements);
+router.get('/tickets', adminController.getTickets);
+router.get('/customers', adminController.getCustomers);
 
 module.exports = router;

@@ -14,6 +14,15 @@ export default function App() {
     }
   }, [route]);
 
+  // Listen for global logout event from fetch interceptor
+  useEffect(() => {
+    const handleLogout = () => {
+      setRoute('landing');
+    };
+    window.addEventListener('aiva_logout', handleLogout);
+    return () => window.removeEventListener('aiva_logout', handleLogout);
+  }, []);
+
   // Capture Google Login token and user profile from URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

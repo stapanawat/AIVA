@@ -13,6 +13,8 @@ router.get('/stats', partnerController.getPartnerStats);
 router.get('/referrals', partnerController.getReferrals);
 router.post('/referrals', partnerController.createReferralLink);
 router.get('/network', partnerController.getSubPartners);
+router.get('/payouts', partnerController.getPayouts);
 router.post('/payouts/request', partnerController.requestPayout);
+router.get('/clients', partnerController.getClients);
 
 module.exports = router;

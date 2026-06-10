@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,6 +15,7 @@ model User {
   name          String
   phone         String?
   status        String         @default("ACTIVE") // "ACTIVE", "SUSPENDED"
+  referralCode  String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
@@ -36,6 +37,11 @@ model Client {
   status             String       @default("ACTIVE") // "ACTIVE", "PAST_DUE", "CANCELLED"
   stripeCustomerId   String?
   stripeSubscriptionId String?
+  aiName               String?      @default("AIVA Agent")
+  aiPersona            String?      @default("Friendly")
+  customPrompt         String?      @default("")
+  notifyHotLead        Boolean?     @default(true)
+  notifyDailyReport    Boolean?     @default(false)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   
@@ -46,6 +52,8 @@ model Client {
   chats              Chat[]
   leads              Lead[]
   branches           Branch[]
+  followUpRules      FollowUpRule[]
+  feedbacks          Feedback[]
 }
 
 model TeamMember {
@@ -170,4 +178,30 @@ model RefreshToken {
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FollowUpRule {
+  id        String   @id @default(uuid())
+  clientId  String
+  name      String
+  delay     String   @default("24h")
+  message   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id          String   @id @default(uuid())
+  clientId    String
+  type        String   // "bug", "feature", etc.
+  title       String
+  description String
+  status      String   @default("Pending") // "Pending", "In Progress", "Resolved"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }

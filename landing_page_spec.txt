@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIVA - AI Sales Assistant | เปลี่ยน Chatbot ให้เป็นเซลส์ปิดการขาย</title>
+    
+    <!-- Tailwind CSS & Font -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Anuphan', sans-serif; }
+        .hero-gradient {
+            background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 50%, #F5F3FF 100%);
+        }
+        .modal-overlay {
+            backdrop-filter: blur(8px);
+            background-color: rgba(15, 23, 42, 0.6);
+        }
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 cursor-pointer">
+                    <img src="https://i.postimg.cc/SxfdKzYs/AIVA-Logo-01.png" alt="AIVA Logo" class="h-14 w-auto object-contain" />
+                    <div class="flex flex-col justify-center">
+                        <span class="text-2xl font-black tracking-tight leading-none text-slate-900 mt-1">AIVA</span>
+                        <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5 text-slate-500">Powered by SpareX</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#how-it-works" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">วิธีทำงาน</a>
+                    <a href="#features" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">ฟีเจอร์</a>
+                    <a href="#pricing" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">ราคาแพ็กเกจ</a>
+                    <a href="#contact" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">ติดต่อเรา</a>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="hidden md:flex items-center gap-4">
+                    <button onclick="openAuthModal()" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors px-4 py-2">
+                        เข้าสู่ระบบ
+                    </button>
+                    <button onclick="openAuthModal()" class="bg-slate-900 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg hover:shadow-indigo-500/30">
+                        เริ่มใช้งานฟรี
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 hero-gradient overflow-hidden min-h-[90vh] flex items-center">
+        <!-- Decorative Background -->
+        <div class="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
+            <div class="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] bg-indigo-400/20 blur-[120px] rounded-full"></div>
+            <div class="absolute bottom-[10%] -left-[10%] w-[50%] h-[50%] bg-purple-400/20 blur-[100px] rounded-full"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left Content (Text) -->
+                <div class="text-center lg:text-left relative z-20 lg:w-[130%] xl:w-[140%]">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-indigo-100 text-indigo-700 text-xs font-bold mb-6 shadow-sm">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        AI พนักงานขายที่ฉลาดที่สุดของคุณ
+                    </div>
+                    
+                    <h1 class="text-5xl md:text-6xl lg:text-[5rem] xl:text-7xl font-black tracking-tight text-slate-900 mb-6 leading-tight relative lg:whitespace-nowrap">
+                        ตอบแชท ปิดการขาย <br class="hidden lg:block"/>
+                        ด้วย <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">AIVA</span> <br class="hidden lg:block"/>
+                        ตลอด 24 ชั่วโมง
+                    </h1>
+                    
+                    <p class="text-lg md:text-xl text-slate-600 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed lg:whitespace-normal lg:w-[75%] xl:w-[70%]">
+                        เปลี่ยน Chatbot ธรรมดาให้เป็นพนักงานขายมือโปร ที่ช่วยคุณวิเคราะห์ลูกค้า ทวงตะกร้า และสร้างยอดขายแม้ในยามที่คุณหลับ
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <button onclick="openAuthModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full text-base font-bold transition-all shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-2">
+                            ทดลองใช้งานฟรี 14 วัน <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Content (Image - Visible only on large screens) -->
+                <div class="hidden lg:block relative h-full min-h-[500px] z-10 pointer-events-none">
+                    <img 
+                        src="https://i.postimg.cc/bJnLwDhw/n-xng-xi-wa.png" 
+                        alt="น้องไอวา AIVA Assistant" 
+                        class="absolute bottom-0 left-1/2 -translate-x-[40%] xl:-translate-x-[45%] w-[120%] xl:w-[130%] max-w-none object-contain object-bottom drop-shadow-2xl"
+                        style="max-height: 105%; z-index: 5;"
+                    />
+                    
+                    <!-- Floating Badge -->
+                    <div class="absolute bottom-32 left-12 xl:left-24 bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-white/50 flex items-center gap-3 transform -translate-x-1/2 animate-bounce" style="animation-duration: 3s; z-index: 10;">
+                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="check" class="w-5 h-5 text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notification</p>
+                            <p class="text-sm font-bold text-slate-800">ปิดยอดขายใหม่ +฿1,290</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works (4 Steps) -->
+    <section id="how-it-works" class="py-24 bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-4">เริ่มต้นสร้างยอดขายอัตโนมัติใน 4 ขั้นตอน</h2>
+                <p class="text-lg text-slate-600">ไม่ต้องเขียนโค้ด ไม่ต้องมีประสบการณ์ ก็สามารถมี AI Sales ช่วยขายได้ทันที</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Step 1 -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div class="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">1</div>
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i data-lucide="link" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3 relative z-10">เชื่อมต่อช่องทาง</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed relative z-10">ล็อกอินและเชื่อมต่อ AIVA เข้ากับ LINE OA หรือ Facebook Page ของคุณด้วยการคลิกเพียงไม่กี่ครั้ง</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div class="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">2</div>
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i data-lucide="book-open-check" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3 relative z-10">สอน AI ด้วยข้อมูลคุณ</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed relative z-10">อัปโหลดไฟล์แคตตาล็อกสินค้า (PDF) หรือใส่ลิงก์เว็บไซต์ AIVA จะเรียนรู้และพร้อมตอบคำถามทันที</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div class="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">3</div>
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i data-lucide="settings-2" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3 relative z-10">ปรับแต่งสไตล์การคุย</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed relative z-10">ตั้งค่าให้ AI พูดคุยด้วยน้ำเสียงแบบเป็นกันเอง, น่ารัก (ใส่คะ/ขา), หรือเป็นทางการ เพื่อให้เข้ากับแบรนด์ของคุณ</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative group hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div class="text-6xl font-black text-slate-100 absolute top-4 right-6 group-hover:text-indigo-50 transition-colors">4</div>
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mb-6 relative z-10">
+                        <i data-lucide="rocket" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3 relative z-10">เริ่มรับออเดอร์</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed relative z-10">เปิดระบบให้ AIVA ทำงานแทนคุณ ตอบแชท ทวงตะกร้า และสรุปยอดขายให้คุณดูผ่าน Dashboard แบบเรียลไทม์</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature: Rich Media Interactions -->
+    <section id="features" class="py-24 bg-white relative overflow-hidden">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                
+                <!-- Text Content -->
+                <div class="order-2 lg:order-1">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold mb-6">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        AIVA ที่ทำงานได้เหมือนพนักงานจริง
+                    </div>
+                    <h2 class="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 mb-6 leading-tight tracking-tight">
+                        มากกว่า Chatbot ทั่วไป <br/>
+                        คือ <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">พนักงานขาย</span> ที่คุณไว้ใจ
+                    </h2>
+                    <p class="text-lg text-slate-600 mb-10 leading-relaxed">
+                        AIVA ไม่ได้มีหน้าที่แค่ตอบคำถามพื้นฐาน แต่สามารถนำเสนอสินค้าได้เหมือนเซลส์ตัวจริง รองรับการส่งสื่อทุกรูปแบบเพื่อปิดการขายให้คุณ
+                    </p>
+                    
+                    <ul class="space-y-6">
+                        <!-- Card 1 -->
+                        <li class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-300 transform hover:-translate-y-1 flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="image" class="w-6 h-6 text-emerald-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-base">ส่งรูปภาพและแคตตาล็อก (Rich Media)</h4>
+                                <p class="text-sm text-slate-500 mt-1 leading-relaxed">ส่งตารางไซส์, รีวิวจากลูกค้าท่านอื่น, หรือรูปสินค้าเพิ่มเติมได้ทันทีที่ลูกค้าร้องขอ</p>
+                            </div>
+                        </li>
+                        
+                        <!-- Card 2 -->
+                        <li class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-rose-200 transition-all duration-300 transform hover:-translate-y-1 flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="ticket" class="w-6 h-6 text-rose-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-base">กระตุ้นยอดด้วยคูปอง (Dynamic Discount)</h4>
+                                <p class="text-sm text-slate-500 mt-1 leading-relaxed">ถ้าลูกค้าลังเล AIVA สามารถเสนอโค้ดส่วนลดพิเศษพร้อมเวลานับถอยหลัง เพื่อเร่งการตัดสินใจ</p>
+                            </div>
+                        </li>
+                        
+                        <!-- Card 3 -->
+                        <li class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300 transform hover:-translate-y-1 flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="credit-card" class="w-6 h-6 text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-base">ส่ง QR Code ชำระเงิน (AIVA Closer)</h4>
+                                <p class="text-sm text-slate-500 mt-1 leading-relaxed">สรุปยอดบิลและส่งช่องทางชำระเงินให้ลูกค้าได้ครบจบในแชทเดียว ไม่ต้องรอแอดมิน</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right Content (Animated Chat Mockup) -->
+                <div class="order-1 lg:order-2 relative flex justify-center">
+                    <!-- Decorative Background Glow -->
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-tr from-indigo-100 via-purple-50 to-pink-50 rounded-[3rem] blur-3xl opacity-70"></div>
+                    
+                    <!-- Chat Container -->
+                    <div class="relative z-10 w-full max-w-[420px] bg-slate-50 rounded-[2.5rem] border-[8px] border-white shadow-2xl overflow-hidden transform -rotate-1 hover:rotate-0 transition-transform duration-500">
+                        <!-- Chat Header -->
+                        <div class="bg-white border-b border-slate-100 p-4 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                                <img src="https://i.postimg.cc/SxfdKzYs/AIVA-Logo-01.png" class="w-6 h-6 filter brightness-0 invert" alt="AIVA"/>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">AIVA Assistant</h4>
+                                <p class="text-[10px] text-emerald-500 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> พนักงานขายพร้อมให้บริการ</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat Body -->
+                        <div class="p-4 space-y-4 h-[450px] overflow-y-auto bg-slate-50/50 flex flex-col justify-end pb-6">
+                            
+                            <!-- Customer Msg -->
+                            <div class="flex items-end gap-2 max-w-[85%]">
+                                <div class="w-6 h-6 rounded-full bg-slate-200 shrink-0"></div>
+                                <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-bl-sm text-sm text-slate-700 shadow-sm">
+                                    สนใจเดรสรุ่นนี้ค่ะ มีตารางไซส์ให้ดูไหมคะ?
+                                </div>
+                            </div>
+
+                            <!-- AIVA Msg (Image) -->
+                            <div class="flex items-end gap-2 max-w-[85%] self-end flex-row-reverse">
+                                <div class="bg-indigo-600 p-3 rounded-2xl rounded-br-sm text-sm text-white shadow-md">
+                                    <p class="mb-2">มีค่ะคุณลูกค้า 💖 นี่คือตารางไซส์ของเดรสรุ่น Summer นะคะ แนะนำเผื่อไซส์ 1 นิ้วค่ะ</p>
+                                    <div class="w-full h-24 bg-white/20 rounded-lg flex items-center justify-center border border-white/30 backdrop-blur-sm">
+                                        <i data-lucide="image" class="w-8 h-8 text-white/70"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Customer Msg -->
+                            <div class="flex items-end gap-2 max-w-[85%]">
+                                <div class="w-6 h-6 rounded-full bg-slate-200 shrink-0"></div>
+                                <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-bl-sm text-sm text-slate-700 shadow-sm">
+                                    สวยจัง แต่ขอคิดดูก่อนนะคะ สิ้นเดือนค่อยมาซื้อ
+                                </div>
+                            </div>
+
+                            <!-- AIVA Msg (Coupon) -->
+                            <div class="flex items-end gap-2 max-w-[85%] self-end flex-row-reverse animate-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
+                                <div class="bg-indigo-600 p-3 rounded-2xl rounded-br-sm text-sm text-white shadow-md">
+                                    <p class="mb-2">แอดมินแอบกระซิบว่ารุ่นนี้ของใกล้หมดแล้วนะคะ 🥺 ถ้ารับวันนี้ แอดมินแจกโค้ดส่งฟรีให้เลยค่ะ!</p>
+                                    
+                                    <!-- Coupon Card -->
+                                    <div class="bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl p-3 shadow-inner border border-white/20 relative overflow-hidden">
+                                        <div class="absolute -right-2 -top-2 w-12 h-12 bg-white/10 rounded-full blur-xl"></div>
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i data-lucide="ticket" class="w-4 h-4 text-white"></i>
+                                            <span class="font-bold text-[11px] uppercase tracking-wider text-white">Flash Sale Offer</span>
+                                        </div>
+                                        <h5 class="text-xl font-black text-white mb-1">ส่งฟรีทั่วไทย 🚚</h5>
+                                        <p class="text-[9px] text-rose-100 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> โค้ดหมดอายุใน 24 ชม.</p>
+                                        <button class="w-full mt-3 bg-white text-rose-600 text-xs font-bold py-1.5 rounded-lg hover:bg-rose-50 transition-colors shadow-sm">
+                                            กดเพื่อใช้สิทธิ์
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Superpowers Section -->
+    <section class="py-24 bg-slate-50 relative border-t border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-16 flex flex-col items-center">
+                <p class="text-xs font-bold text-indigo-600 tracking-widest uppercase mb-3">Superpowers</p>
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-4">ฟีเจอร์ระดับ Enterprise ที่จับต้องได้</h2>
+                <p class="text-lg text-slate-600">ออกแบบมาเพื่อช่วยลดเวลาการทำงานของเจ้าของธุรกิจ และเพิ่มโอกาสในการสร้างยอดขายโดยเฉพาะ</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Power 1 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-indigo-100 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i data-lucide="flame" class="w-6 h-6 text-rose-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">AIVA Lead Score™</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">AI จะวิเคราะห์คำพูดของลูกค้าและให้คะแนนความสนใจ (Hot, Warm, Cold) ช่วยให้เซลส์รู้ว่าควรโฟกัสปิดการขายกับใครก่อน</p>
+                </div>
+
+                <!-- Power 2 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-indigo-100 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i data-lucide="clock" class="w-6 h-6 text-amber-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Smart Follow-up</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">ลูกค้าทักแล้วเงียบ? AIVA สามารถตั้งเวลาทักไปทวงตะกร้า หรือเสนอโปรโมชั่นกระตุ้นการตัดสินใจได้อัตโนมัติ</p>
+                </div>
+
+                <!-- Power 3 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-indigo-100 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i data-lucide="alert-octagon" class="w-6 h-6 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Lost Revenue Detector</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">AI ช่วยชี้เป้าหาออเดอร์ที่เกือบจะขายได้แต่หลุดไป พร้อมวิเคราะห์สาเหตุ เพื่อให้คุณนำไปปรับปรุงโปรโมชั่น</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 bg-white relative">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <p class="text-xs font-bold text-indigo-600 tracking-widest uppercase mb-3">Pricing Plans</p>
+                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">แพ็กเกจที่เหมาะกับคุณ</h2>
+                <p class="text-lg text-slate-500">เลือกแพ็กเกจที่ตรงกับขนาดธุรกิจของคุณ ไม่มีสัญญาผูกมัด อัปเกรดหรือยกเลิกได้ตลอดเวลา</p>
+                
+                <!-- Billing Toggle -->
+                <div class="mt-10 inline-flex items-center p-1 bg-slate-50 rounded-full border border-slate-200 relative overflow-x-auto max-w-full">
+                    <div id="billing-slider" class="absolute top-1 bottom-1 left-1 w-[calc(33.333%-2.66px)] bg-white rounded-full shadow-md transition-transform duration-300 border border-slate-100"></div>
+                    
+                    <button onclick="setBilling('monthly')" id="btn-monthly" class="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center whitespace-nowrap">
+                        รายเดือน
+                    </button>
+                    <button onclick="setBilling('halfYear')" id="btn-halfYear" class="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        ราย 6 เดือน <span class="bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded-full shrink-0 border border-indigo-200">ลด 3%</span>
+                    </button>
+                    <button onclick="setBilling('yearly')" id="btn-yearly" class="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        รายปี <span class="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full shrink-0 border border-emerald-200">ลด 15%</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                <!-- Starter Plan -->
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 hover:border-emerald-200 hover:shadow-xl transition-all duration-300 flex flex-col relative overflow-hidden group">
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">AIVA Starter</h3>
+                    <p class="text-emerald-600 font-bold text-sm mb-6">พนักงานต้อนรับ AI 24 ชม.</p>
+                    
+                    <div class="mb-6 flex flex-col justify-end min-h-[90px]">
+                        <!-- Price Anchor (Strikethrough) - Shown only on Yearly/Half-Yearly -->
+                        <div class="h-5 mb-1">
+                            <span id="strike-basic" class="text-sm font-medium text-slate-400 line-through opacity-0 transition-opacity duration-300"></span>
+                        </div>
+                        <div class="flex items-end gap-1">
+                            <span id="price-basic" class="text-5xl font-black text-slate-900 tracking-tight transition-all duration-300">฿990</span>
+                            <span id="period-basic" class="text-slate-500 font-medium pb-1.5 transition-all duration-300">/เดือน</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="openCheckout('Starter', 990)" class="w-full py-3.5 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 border border-slate-200 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all duration-300 mb-2">
+                        เริ่มต้นใช้งาน
+                    </button>
+                    <p class="text-[10px] text-center text-slate-400 mb-8 h-4">ไม่มีสัญญาผูกมัด ยกเลิกได้ตลอดเวลา</p>
+
+                    <div class="flex-1 flex flex-col gap-6">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-900 mb-4 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg w-fit">สิ่งที่คุณจะได้รับ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ไม่พลาดลูกค้าที่ทักเข้ามา แม้นอกเวลาทำการ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ตอบลูกค้าได้ทันที 24 ชั่วโมง ทุกวัน</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ลดภาระการตอบแชทซ้ำๆ ของทีมงาน</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">เก็บข้อมูลลูกค้าที่สนใจโดยอัตโนมัติ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ส่งต่อลูกค้าให้ทีมขายได้ทันทีเมื่อพร้อมซื้อ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ให้ข้อมูลสินค้า บริการ และโปรโมชั่นได้อย่างถูกต้อง</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">สร้างภาพลักษณ์ธุรกิจที่เป็นมืออาชีพตลอดเวลา</span></li>
+                            </ul>
+                        </div>
+                        <div class="pt-6 border-t border-slate-100">
+                            <p class="text-[11px] font-bold text-emerald-700 mb-4 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg w-fit">ผลลัพธ์ทางธุรกิจ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">เพิ่มโอกาสปิดการขายจากลูกค้าใหม่</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดการสูญเสียลูกค้าจากการตอบช้า</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดต้นทุนการจ้างแอดมินตอบแชท</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">รองรับลูกค้าได้พร้อมกันไม่จำกัด</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ให้ธุรกิจทำงานได้ตลอด 24 ชั่วโมง</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Plan (Hero Card) -->
+                <div class="bg-slate-900 rounded-3xl p-8 border border-indigo-500 shadow-[0_0_40px_-10px_rgba(99,102,241,0.4)] flex flex-col relative transform lg:-translate-y-4 hover:scale-[1.02] transition-transform duration-300 z-10">
+                    <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg whitespace-nowrap">
+                        ยอดนิยม (Most Popular)
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-white mb-2 mt-2">AIVA Professional</h3>
+                    <p class="text-indigo-400 font-bold text-sm mb-6">AI ผู้ช่วยคัดกรอง & ปิดการขาย</p>
+                    
+                    <div class="mb-6 flex flex-col justify-end min-h-[90px]">
+                        <!-- Price Anchor (Strikethrough) -->
+                        <div class="h-5 mb-1 flex items-center gap-2">
+                            <span id="strike-pro" class="text-sm font-medium text-slate-400 line-through opacity-0 transition-opacity duration-300"></span>
+                            <span id="save-badge-pro" class="text-[9px] font-bold bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded opacity-0 transition-opacity duration-300">ประหยัด ฿X,XXX</span>
+                        </div>
+                        <div class="flex items-end gap-1">
+                            <span id="price-pro" class="text-5xl font-black text-white tracking-tight transition-all duration-300">฿4,900</span>
+                            <span id="period-pro" class="text-slate-400 font-medium pb-1.5 transition-all duration-300">/เดือน</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Risk Reversal Button -->
+                    <button onclick="openAuthModal()" class="w-full py-4 rounded-xl font-bold text-sm bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/25 mb-2 flex justify-center items-center gap-2 relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        ทดลองใช้งานฟรี 14 วัน <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                    <p class="text-[10px] text-center text-indigo-300/60 mb-8 h-4">ไม่ต้องใช้บัตรเครดิต เซ็ตอัประบบเสร็จใน 5 นาที</p>
+
+                    <div class="flex-1 flex flex-col gap-6">
+                        <div>
+                            <p class="text-[11px] font-bold text-white mb-4 uppercase tracking-widest bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg w-fit">สิ่งที่คุณจะได้รับ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">AI คัดกรองลูกค้าที่มีโอกาสซื้อสูงให้โดยอัตโนมัติ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ติดตามลูกค้าอัตโนมัติ จนกว่าจะตัดสินใจซื้อ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ไม่พลาดลูกค้าที่เคยสนใจแต่ยังไม่พร้อมซื้อ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">รวมข้อมูลลูกค้าทั้งหมดไว้ในที่เดียว</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">จัดการนัดหมายและติดตามงานขายได้ง่ายขึ้น</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">สร้างโปรโมชั่นและข้อความการตลาดได้ในไม่กี่วินาที</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-300"><i data-lucide="check" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed">สื่อสารกับลูกค้าได้อย่างสม่ำเสมอในสไตล์แบรนด์ของคุณ</span></li>
+                            </ul>
+                        </div>
+                        <div class="pt-6 border-t border-slate-700/50">
+                            <p class="text-[11px] font-bold text-indigo-300 mb-4 uppercase tracking-widest bg-indigo-500/20 border border-indigo-500/30 px-3 py-1.5 rounded-lg w-fit">ผลลัพธ์ทางธุรกิจ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">เพิ่มจำนวนลูกค้าที่เปลี่ยนจาก "คนสนใจ" เป็น "ลูกค้าจริง"</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดการหลุดของลูกค้าในทุกขั้นตอนการขาย</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">เพิ่มยอดขายโดยไม่ต้องเพิ่มจำนวนพนักงานขาย</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดเวลางานเอกสารและการติดตามลูกค้า</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">สร้างยอดขายซ้ำจากฐานลูกค้าเดิม</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ทำให้ทีมขายทำงานได้มีประสิทธิภาพมากขึ้น</span></li>
+                                <li class="flex items-start gap-3 text-sm text-indigo-100"><i data-lucide="rocket" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">มองเห็น Pipeline การขายได้ชัดเจน</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col relative overflow-hidden group">
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">AIVA Enterprise</h3>
+                    <p class="text-purple-600 font-bold text-sm mb-6">AI วิเคราะห์ & บริหารองค์กร</p>
+                    
+                    <div class="mb-6 flex flex-col justify-end min-h-[90px]">
+                        <!-- Price Anchor (Strikethrough) -->
+                        <div class="h-5 mb-1 flex items-center gap-2">
+                            <span id="strike-adv" class="text-sm font-medium text-slate-400 line-through opacity-0 transition-opacity duration-300"></span>
+                            <span id="save-badge-adv" class="text-[9px] font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded opacity-0 transition-opacity duration-300">ประหยัด ฿X,XXX</span>
+                        </div>
+                        <div class="flex items-end gap-1">
+                            <span id="price-advanced" class="text-5xl font-black text-slate-900 tracking-tight transition-all duration-300">฿11,900</span>
+                            <span id="period-advanced" class="text-slate-500 font-medium pb-1.5 transition-all duration-300">/เดือน</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="openContactSalesModal()" class="w-full py-3.5 rounded-xl font-bold text-sm bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white group-hover:border-purple-600 transition-all duration-300 mb-2">
+                        ติดต่อทีมขายเพื่ออัปเกรด <i data-lucide="arrow-right" class="w-4 h-4 inline ml-1"></i>
+                    </button>
+                    <p class="text-[10px] text-center text-slate-400 mb-8 h-4">พร้อมดูแลและวางระบบให้แบบส่วนตัว (Onboarding)</p>
+
+                    <div class="flex-1 flex flex-col gap-6">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-900 mb-4 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg w-fit">สิ่งที่คุณจะได้รับ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ดูภาพรวมธุรกิจทุกสาขาจาก Dashboard เดียว</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">AI วิเคราะห์โอกาสเพิ่มยอดขายและกำไร</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">ตรวจจับลูกค้าและรายได้ที่กำลังสูญเสีย</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">รายงานผลธุรกิจอัตโนมัติสำหรับผู้บริหาร</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">บริหารหลายสาขาได้ในระบบเดียว</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">เชื่อมต่อข้อมูลกับระบบอื่นในองค์กร</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="check" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed">รองรับการเติบโตของธุรกิจในระยะยาว</span></li>
+                            </ul>
+                        </div>
+                        <div class="pt-6 border-t border-slate-100">
+                            <p class="text-[11px] font-bold text-purple-700 mb-4 uppercase tracking-widest bg-purple-50 border border-purple-100 px-3 py-1.5 rounded-lg w-fit">ผลลัพธ์ทางธุรกิจ</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">เพิ่มยอดขายจากทุกสาขาอย่างเป็นระบบ</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดการสูญเสียรายได้ที่มองไม่เห็น</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ตัดสินใจได้เร็วขึ้นจากข้อมูล Real-Time</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ลดเวลาการทำรายงานของผู้บริหาร</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ควบคุมธุรกิจหลายสาขาได้จากที่เดียว</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">ขยายธุรกิจได้โดยไม่ต้องเพิ่มทีมบริหารจำนวนมาก</span></li>
+                                <li class="flex items-start gap-3 text-sm text-slate-600"><i data-lucide="trending-up" class="w-4 h-4 text-purple-500 shrink-0 mt-0.5"></i> <span class="leading-relaxed font-semibold">เห็นปัญหาและโอกาสทางธุรกิจก่อนคู่แข่ง</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-24 bg-slate-50 border-t border-slate-100">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-black text-slate-900 mb-4">คำถามที่พบบ่อย (FAQ)</h2>
+                <p class="text-slate-600">ข้อสงสัยยอดฮิตก่อนตัดสินใจใช้งาน AIVA</p>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- FAQ Item 1 -->
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-6 py-5 text-left font-bold text-slate-900 flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors">
+                        <span>AIVA เรียนรู้ข้อมูลร้านค้าได้อย่างไร?</span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400"></i>
+                    </button>
+                    <div class="hidden px-6 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4 bg-slate-50/50">
+                        คุณสามารถอัปโหลดไฟล์ PDF (เช่น แคตตาล็อก, เมนู, Price List) หรือระบุลิงก์เว็บไซต์ของร้านค้าลงในระบบ Knowledge Base ของ AIVA ได้เลยครับ ระบบจะทำการอ่านและเรียนรู้ข้อมูลทั้งหมดภายในไม่กี่วินาที และพร้อมตอบคำถามลูกค้าได้ทันที
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-6 py-5 text-left font-bold text-slate-900 flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors">
+                        <span>ถ้า AI ตอบไม่ได้ หรือลูกค้าโกรธ จะทำอย่างไร?</span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400"></i>
+                    </button>
+                    <div class="hidden px-6 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4 bg-slate-50/50">
+                        AIVA มีระบบ "Human Handover" (การโอนสายให้มนุษย์) ครับ หาก AI ประเมินว่าลูกค้ารายนี้มีอารมณ์ขุ่นมัว หรือถามคำถามที่อยู่นอกเหนือฐานข้อมูล ระบบจะหยุดตอบชั่วคราวและส่งแจ้งเตือน (Notification) ไปให้แอดมินหรือเซลส์ของร้านคุณเข้ามาจัดการต่อได้ทันทีอย่างไร้รอยต่อครับ
+                    </div>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-6 py-5 text-left font-bold text-slate-900 flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors">
+                        <span>สามารถยกเลิกแพ็กเกจกลางคันได้ไหม?</span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400"></i>
+                    </button>
+                    <div class="hidden px-6 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4 bg-slate-50/50">
+                        ได้ครับ! AIVA เป็นบริการแบบ Subscription (สมัครสมาชิก) ที่ไม่มีสัญญาผูกมัดระยะยาว คุณสามารถกดยกเลิกการใช้งาน หรือดาวน์เกรด/อัปเกรดแพ็กเกจได้ตลอดเวลาด้วยตัวเองผ่านหน้า Dashboard ของคุณครับ
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-24 bg-white border-t border-slate-100 relative overflow-hidden">
+        <!-- Decorative bg -->
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-indigo-50/50 rounded-l-[100px] pointer-events-none -z-10"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <p class="text-xs font-bold text-indigo-600 tracking-widest uppercase mb-3">Customer Stories</p>
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-4">เสียงตอบรับจากผู้ใช้งานจริง</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Review 1 -->
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 relative group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="text-amber-400 flex gap-1 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed mb-8">"ตั้งแต่ใช้ AIVA เราประหยัดเวลาแอดมินไป 40 ชม./เดือน ยอดขายตอนดึกเพิ่มขึ้น 15% เพราะบอทปิดการขายแทนได้เป๊ะมากค่ะ"</p>
+                    <div class="flex items-center gap-4 border-t border-slate-100 pt-6">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">พ</div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">คุณพิมพ์พรรณ</p>
+                            <p class="text-xs text-slate-500">เจ้าของร้านเสื้อผ้าออนไลน์</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review 2 -->
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 relative group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="text-amber-400 flex gap-1 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed mb-8">"ฟีเจอร์จองคิว (Booking) ทำให้คลินิกเราทำงานง่ายขึ้นมาก ลูกค้าทักมาตอนตี 1 บอทก็จัดคิวลงปฏิทินให้เลย สบายมากๆ"</p>
+                    <div class="flex items-center gap-4 border-t border-slate-100 pt-6">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-sm">อ</div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">คุณแอนนา</p>
+                            <p class="text-xs text-slate-500">ผู้จัดการคลินิกความงาม</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review 3 -->
+                <div class="bg-slate-900 p-8 rounded-3xl shadow-xl border border-indigo-500/30 relative group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="text-amber-400 flex gap-1 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed mb-8">"ระบบ Multi-Branch ตอบโจทย์ธุรกิจแฟรนไชส์มากครับ ผมเห็นยอดขายและสถิติการแชทของทุกสาขาแบบ Real-time คุ้มค่ามากครับ"</p>
+                    <div class="flex items-center gap-4 border-t border-slate-800 pt-6">
+                        <div class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center font-bold text-sm">ธ</div>
+                        <div>
+                            <p class="font-bold text-white text-sm">คุณธนา</p>
+                            <p class="text-xs text-slate-400">เจ้าของแฟรนไชส์คาเฟ่</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROI Calculator Widget Section -->
+    <section class="py-20 bg-indigo-600 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+        
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col lg:flex-row items-center gap-12">
+            <div class="lg:w-1/2 text-center lg:text-left text-white">
+                <h2 class="text-3xl md:text-4xl font-black mb-4">AIVA คุ้มค่าแค่ไหน?</h2>
+                <p class="text-indigo-200 text-lg mb-8 leading-relaxed">ลองคำนวณยอดขายที่คุณ "อาจจะเสียไป" จากการที่แอดมินตอบแชทไม่ทัน แล้วให้ AIVA ช่วยกู้คืนมาสิครับ!</p>
+                <div class="flex items-center justify-center lg:justify-start gap-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <i data-lucide="calculator" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <span class="font-bold text-xl">ROI Calculator</span>
+                </div>
+            </div>
+            
+            <!-- Calculator Box -->
+            <div class="lg:w-1/2 w-full bg-white p-8 rounded-3xl shadow-2xl">
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="font-bold text-slate-700 text-sm">จำนวนแชทลูกค้าต่อเดือน</label>
+                            <span id="calc-chats-val" class="font-black text-indigo-600">500 คน</span>
+                        </div>
+                        <input type="range" id="calc-chats" min="100" max="5000" step="100" value="500" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="calculateROI()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="font-bold text-slate-700 text-sm">ยอดซื้อเฉลี่ยต่อบิล</label>
+                            <span id="calc-order-val" class="font-black text-indigo-600">฿1,000</span>
+                        </div>
+                        <input type="range" id="calc-order" min="100" max="10000" step="100" value="1000" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="calculateROI()">
+                    </div>
+                    
+                    <div class="pt-6 border-t border-slate-100 text-center">
+                        <p class="text-sm text-slate-500 font-medium mb-1">AIVA จะช่วยคุณกู้คืนยอดขายได้ประมาณ</p>
+                        <p id="calc-result" class="text-4xl font-black text-emerald-500">฿75,000 <span class="text-lg font-bold text-slate-400">/เดือน</span></p>
+                        <p class="text-[10px] text-slate-400 mt-2">*คำนวณจากค่าเฉลี่ยที่ AIVA สามารถช่วยปิดการขายเพิ่มได้ 15%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section with LINE QR -->
+    <section id="contact" class="py-24 bg-white relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-[2.5rem] p-8 md:p-16 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+                
+                <div class="md:w-1/2 relative z-10 text-center md:text-left">
+                    <h2 class="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">พร้อมให้เราดูแลลูกค้าคุณหรือยัง?</h2>
+                    <p class="text-indigo-200 text-lg mb-8 leading-relaxed">แอด LINE พูดคุยกับทีมผู้เชี่ยวชาญของเราได้ทันที เราพร้อมให้คำปรึกษาและออกแบบระบบ AI ที่เหมาะกับธุรกิจของคุณ</p>
+                    <a href="https://lin.ee/5naegQA" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-3 bg-[#00B900] hover:bg-[#00a000] text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg shadow-[#00B900]/30 transform hover:-translate-y-1">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i> เพิ่มเพื่อน @AIVA_Support
+                    </a>
+                </div>
+
+                <div class="md:w-1/2 flex justify-center md:justify-end relative z-10">
+                    <div class="bg-white p-5 rounded-3xl shadow-xl flex flex-col items-center transform md:rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <p class="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest">Scan to add LINE</p>
+                        <img src="https://i.postimg.cc/W4fx2RMw/L-gainfriends-2dbarcodes-GW.png" alt="LINE Official QR Code" class="w-40 h-40 object-cover rounded-xl border border-slate-100 mb-4" />
+                        <p class="font-black text-slate-800 text-xl tracking-tight">@AIVA_Support</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-8 mb-8 pb-8 border-b border-slate-800/50">
+                <!-- Left: Logo & Contact -->
+                <div class="flex flex-col items-center lg:items-start gap-4">
+                    <div class="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
+                        <img src="https://i.postimg.cc/SxfdKzYs/AIVA-Logo-01.png" alt="AIVA Logo" class="h-8 w-auto filter brightness-0 invert object-contain" />
+                        <span class="font-bold text-white tracking-tight text-2xl mt-1">AIVA</span>
+                    </div>
+                    <div class="text-sm text-slate-500 text-center lg:text-left">
+                        <p class="font-bold text-slate-300 mb-1">SpareX Company Limited</p>
+                        <p>Tax ID: 0215568001519</p>
+                        <p>56/52 Samed Daeng rd., Thap Ma,</p>
+                        <p>Muang Rayong, Rayong 21000</p>
+                        <p class="mt-2 text-indigo-400">admin@sparexth.com</p>
+                    </div>
+                </div>
+
+                <!-- Center: Contact Badges -->
+                <div class="flex flex-col items-center gap-3">
+                    <div class="flex items-center gap-2.5 text-sm text-slate-300 bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-700/50 shadow-sm whitespace-nowrap hover:bg-slate-800 transition-colors">
+                        <i data-lucide="phone-call" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                        <span class="font-medium">Sales: <span class="font-bold text-white tracking-wider ml-1">089-356-2235</span><span class="text-slate-600 mx-2">|</span><span class="font-bold text-white tracking-wider">093-526-9924</span></span>
+                    </div>
+                </div>
+
+                <!-- Right: Links -->
+                <div class="flex flex-wrap justify-center gap-6 text-sm font-medium">
+                    <button onclick="openPartnerAssessment()" class="text-indigo-400 hover:text-indigo-300 transition focus:outline-none">Partner Program</button>
+                    <a href="#" class="hover:text-white transition">เงื่อนไขการให้บริการ</a>
+                    <a href="#" class="hover:text-white transition">นโยบายความเป็นส่วนตัว</a>
+                </div>
+            </div>
+
+            <!-- Bottom: Copyright -->
+            <div class="text-center">
+                <p class="text-xs text-slate-600">© 2026 AIVA Powered by SpareX. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- ========================================== -->
+    <!-- MODALS SECTION -->
+    <!-- ========================================== -->
+
+    <!-- AUTH MODAL (Login / Sign Up) -->
+    <div id="auth-modal" class="fixed inset-0 z-[100] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div id="auth-content" class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl transform scale-95 opacity-0 transition-all duration-300 relative overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors z-20">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Decorative Header -->
+            <div class="h-32 bg-slate-50 relative flex items-center justify-center shrink-0">
+                <div class="absolute inset-0 bg-gradient-to-t from-white to-transparent z-10"></div>
+                <img src="https://i.postimg.cc/SxfdKzYs/AIVA-Logo-01.png" alt="AIVA" class="h-12 w-auto relative z-0 opacity-20" />
+            </div>
+
+            <!-- Content Area (Scrollable) -->
+            <div class="px-8 pb-8 pt-0 text-center relative z-20 overflow-y-auto custom-scrollbar flex-1">
+                <img src="https://i.postimg.cc/SxfdKzYs/AIVA-Logo-01.png" alt="AIVA Logo" class="h-10 w-auto mx-auto mb-4" />
+                <h2 class="text-2xl font-black text-slate-900 mb-2">เข้าสู่ระบบ</h2>
+                <p class="text-sm text-slate-500 mb-8">ยินดีต้อนรับกลับสู่ AIVA Workspace</p>
+
+                <!-- Login Form for Existing Customers -->
+                <form id="login-form" onsubmit="simulateLogin(event)" class="space-y-4 mb-6">
+                    <div class="space-y-1.5 text-left">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer ID</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" placeholder="CXXXXXX" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all uppercase" required />
+                        </div>
+                    </div>
+                    <div class="space-y-1.5 text-left">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                            <a href="#" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700">ลืมรหัสผ่าน?</a>
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="lock" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" required />
+                        </div>
+                    </div>
+                    <button type="submit" id="btn-login-submit" class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 mt-2">
+                        เข้าสู่ระบบ
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="flex items-center gap-4 my-6">
+                    <div class="h-px bg-slate-200 flex-1"></div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">หรือสมัครสมาชิกใหม่ผ่าน</span>
+                    <div class="h-px bg-slate-200 flex-1"></div>
+                </div>
+
+                <!-- Social Login for New Customers -->
+                <div class="space-y-3">
+                    <button onclick="simulateAuthLoading(this, 'Google')" class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl transition-all font-bold text-slate-700 shadow-sm">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="w-5 h-5" />
+                        เข้าสู่ระบบด้วย Google
+                    </button>
+                    
+                    <button onclick="simulateAuthLoading(this, 'LINE')" class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#00B900] hover:bg-[#00a000] text-white rounded-xl transition-all font-bold shadow-sm">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" class="w-5 h-5 filter brightness-0 invert" />
+                        เข้าสู่ระบบด้วย LINE
+                    </button>
+                    
+                    <button onclick="simulateAuthLoading(this, 'Facebook')" class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl transition-all font-bold shadow-sm">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        เข้าสู่ระบบด้วย Facebook
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 border-t border-slate-100 p-4 text-center shrink-0">
+                <p class="text-[11px] text-slate-500 font-medium">หากเพิ่งเริ่มต้นใช้งาน ระบบจะสร้างบัญชีให้คุณโดยอัตโนมัติ</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 1-STEP CHECKOUT MODAL -->
+    <div id="checkout-modal" class="fixed inset-0 z-[100] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div id="checkout-content" class="bg-white rounded-[2rem] w-full max-w-5xl max-h-[90vh] shadow-2xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col lg:flex-row overflow-hidden relative">
+            
+            <!-- Close Button -->
+            <button onclick="closeCheckout()" class="absolute top-4 right-4 p-2 bg-slate-100/50 hover:bg-slate-200 rounded-full text-slate-500 transition-colors z-20">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <!-- LEFT: Summary Panel -->
+            <div class="lg:w-[40%] bg-slate-50 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col justify-between hidden lg:flex relative overflow-hidden shrink-0">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none"></div>
+                
+                <div>
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">สรุปคำสั่งซื้อ</h3>
+                    
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h4 id="checkout-plan-name" class="text-xl font-black text-slate-900">AIVA Pro Plan</h4>
+                            <p class="text-sm text-slate-500" id="checkout-plan-period">รอบบิลชำระรายเดือน</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm mb-8 pb-8 border-b border-slate-200">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">ค่าบริการแพ็กเกจ</span>
+                            <span id="checkout-plan-price" class="font-bold text-slate-900">฿4,900.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">ภาษีมูลค่าเพิ่ม (VAT 7%)</span>
+                            <span id="checkout-tax" class="font-bold text-slate-900">฿343.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-end mb-6">
+                        <span class="font-bold text-slate-900">ยอดชำระสุทธิ</span>
+                        <span id="checkout-total" class="text-4xl font-black text-indigo-600 tracking-tight">฿5,243.00</span>
+                    </div>
+                    
+                    <!-- Trust Badges -->
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex gap-3">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                        <p class="text-xs text-emerald-700 leading-relaxed">การชำระเงินของคุณปลอดภัยและถูกเข้ารหัสด้วยมาตรฐานระดับธนาคารแบบ 256-bit SSL</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Checkout Form & Action (Flex Column) -->
+            <div class="lg:w-[60%] flex flex-col h-full bg-white relative">
+                
+                <!-- Scrollable Form Area -->
+                <div class="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar pb-32">
+                    
+                    <!-- 1. Account / Billing Info -->
+                    <div class="mb-10">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <i data-lucide="user" class="w-5 h-5 text-indigo-600"></i> ข้อมูลผู้ซื้อ / ออกใบกำกับภาษี
+                        </h3>
+                        
+                        <!-- Tax Type Toggle -->
+                        <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                            <button onclick="toggleTaxType('personal')" id="btn-personal" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition-all">บุคคลธรรมดา</button>
+                            <button onclick="toggleTaxType('corporate')" id="btn-corporate" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">นิติบุคคล (บริษัท)</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label id="label-name" class="block text-xs font-bold text-slate-700 mb-1.5">ชื่อ - นามสกุล</label>
+                                    <input type="text" placeholder="ระบุชื่อของคุณ" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                                </div>
+                                <div>
+                                    <label id="label-taxid" class="block text-xs font-bold text-slate-700 mb-1.5">เลขประจำตัวประชาชน (13 หลัก)</label>
+                                    <input type="text" placeholder="x-xxxx-xxxxx-xx-x" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                                </div>
+                            </div>
+                            
+                            <div id="corporate-fields" class="hidden grid-cols-1 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">สาขา</label>
+                                    <select class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all bg-white">
+                                        <option>สำนักงานใหญ่</option>
+                                        <option>สาขา (ระบุรหัส 5 หลัก)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">อีเมล (สำหรับใบเสร็จและรหัสเข้าใช้งาน)</label>
+                                <input type="email" placeholder="example@email.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">ที่อยู่ (สำหรับออกใบกำกับภาษี)</label>
+                                <textarea rows="2" placeholder="ระบุที่อยู่ให้ครบถ้วน" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Payment Method -->
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <i data-lucide="credit-card" class="w-5 h-5 text-indigo-600"></i> เลือกช่องทางชำระเงิน
+                        </h3>
+                        
+                        <div class="flex bg-slate-50 p-1.5 rounded-xl border border-slate-200 mb-6">
+                            <button onclick="selectPayment('card')" id="tab-card" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-slate-900 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="credit-card" class="w-4 h-4 hidden sm:block"></i> บัตรเครดิต
+                            </button>
+                            <button onclick="selectPayment('bank')" id="tab-bank" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="smartphone" class="w-4 h-4 hidden sm:block"></i> แอปธนาคาร
+                            </button>
+                            <button onclick="selectPayment('qr')" id="tab-qr" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="qr-code" class="w-4 h-4 hidden sm:block"></i> PromptPay
+                            </button>
+                        </div>
+
+                        <!-- Payment Views -->
+                        <div class="min-h-[220px]">
+                            <!-- Credit Card View -->
+                            <div id="view-card" class="space-y-4 block">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">ชื่อบนบัตร (Card Holder Name)</label>
+                                    <div class="relative">
+                                        <i data-lucide="user" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text" placeholder="SOMCHAI JAIDEE" class="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all uppercase">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">หมายเลขบัตรเครดิต</label>
+                                    <div class="relative">
+                                        <i data-lucide="credit-card" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text" placeholder="0000 0000 0000 0000" class="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">วันหมดอายุ</label>
+                                        <input type="text" placeholder="MM/YY" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-center">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">CVC</label>
+                                        <input type="text" placeholder="123" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-center">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Banking View (Compact Grid) -->
+                            <div id="view-bank" class="hidden text-center h-full">
+                                <p class="text-[11px] text-slate-500 mb-3">คลิกแอปพลิเคชันธนาคารที่คุณมีในเครื่องเพื่อเปิดและชำระเงิน</p>
+                                <div class="grid grid-cols-3 md:grid-cols-3 gap-2">
+                                    <!-- K PLUS -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#00A950] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#00A950] rounded-lg flex items-center justify-center text-white font-black text-sm">K+</div>
+                                        <span class="text-[9px] font-bold text-slate-700">K PLUS</span>
+                                    </button>
+                                    <!-- SCB EASY -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#4E2A84] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#4E2A84] rounded-lg flex items-center justify-center text-white font-black text-xs">SCB</div>
+                                        <span class="text-[9px] font-bold text-slate-700">SCB EASY</span>
+                                    </button>
+                                    <!-- BBL -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#0050B5] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#0050B5] rounded-lg flex items-center justify-center text-white font-black text-xs">BBL</div>
+                                        <span class="text-[9px] font-bold text-slate-700">Bualuang</span>
+                                    </button>
+                                    <!-- KTB -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#00a1e4] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#00a1e4] rounded-lg flex items-center justify-center text-white font-black text-xs">KTB</div>
+                                        <span class="text-[9px] font-bold text-slate-700">Krungthai</span>
+                                    </button>
+                                    <!-- GSB (MyMo) -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#ec068d] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#ec068d] rounded-lg flex items-center justify-center text-white font-black text-xs">GSB</div>
+                                        <span class="text-[9px] font-bold text-slate-700">MyMo</span>
+                                    </button>
+                                    <!-- BAY (KMA) -->
+                                    <button class="border border-slate-200 rounded-xl p-2 hover:border-[#f9a825] hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5">
+                                        <div class="w-8 h-8 bg-[#f9a825] rounded-lg flex items-center justify-center text-white font-black text-xs">BAY</div>
+                                        <span class="text-[9px] font-bold text-slate-700">KMA</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- PromptPay QR View -->
+                            <div id="view-qr" class="hidden text-center h-full flex flex-col items-center justify-center bg-slate-50 border border-slate-100 rounded-2xl py-4">
+                                <!-- SVG PromptPay Logo -->
+                                <div class="flex items-center gap-1.5 mb-3 font-bold italic text-slate-800">
+                                    <div class="bg-[#103561] text-white px-2 py-0.5 rounded text-sm">Prompt</div>
+                                    <div class="text-[#103561] text-sm">Pay</div>
+                                </div>
+                                <!-- Inline SVG QR Code (Never breaks) -->
+                                <div class="bg-white p-2 rounded-xl shadow-sm border border-slate-200 mb-2">
+                                    <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="100" height="100" fill="white"/>
+                                        <!-- Top Left Square -->
+                                        <path d="M10,10 h25 v25 h-25 z M15,15 h15 v15 h-15 z M18,18 h9 v9 h-9 z" fill="black"/>
+                                        <!-- Top Right Square -->
+                                        <path d="M65,10 h25 v25 h-25 z M70,15 h15 v15 h-15 z M73,18 h9 v9 h-9 z" fill="black"/>
+                                        <!-- Bottom Left Square -->
+                                        <path d="M10,65 h25 v25 h-25 z M15,70 h15 v15 h-15 z M18,73 h9 v9 h-9 z" fill="black"/>
+                                        <!-- Random Dots -->
+                                        <rect x="45" y="10" width="8" height="8" fill="black"/>
+                                        <rect x="55" y="15" width="8" height="8" fill="black"/>
+                                        <rect x="10" y="45" width="15" height="8" fill="black"/>
+                                        <rect x="30" y="40" width="8" height="20" fill="black"/>
+                                        <rect x="45" y="45" width="20" height="8" fill="black"/>
+                                        <rect x="70" y="45" width="20" height="8" fill="black"/>
+                                        <rect x="45" y="60" width="8" height="15" fill="black"/>
+                                        <rect x="60" y="65" width="15" height="8" fill="black"/>
+                                        <rect x="80" y="60" width="10" height="20" fill="black"/>
+                                        <rect x="45" y="80" width="15" height="8" fill="black"/>
+                                    </svg>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mb-1">สแกนเพื่อชำระเงินจำนวน</p>
+                                <p id="qr-total" class="text-lg font-black text-indigo-600 leading-none">฿5,243.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticky Submit Button Area -->
+                <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-6 z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                    <button id="btn-submit-payment" onclick="processPayment()" class="w-full bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-xl text-base font-bold transition-all shadow-lg flex items-center justify-center gap-2">
+                        ชำระเงิน <span id="btn-total">฿5,243.00</span> <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                    <p class="text-center text-[10px] text-slate-400 mt-3">คลิกชำระเงินหมายถึงยอมรับเงื่อนไขการให้บริการของ AIVA</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARTNER ASSESSMENT MODAL -->
+    <div id="assessment-modal" class="fixed inset-0 z-[100] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div id="assessment-content" class="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] shadow-2xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col relative overflow-hidden">
+            
+            <!-- Close Button -->
+            <button onclick="closePartnerAssessment()" class="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-20">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Header -->
+            <div class="bg-slate-900 pt-10 pb-8 px-8 text-center relative shrink-0">
+                <div class="w-12 h-12 border border-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 bg-white/5 backdrop-blur-sm">
+                    <i data-lucide="briefcase" class="w-6 h-6 text-indigo-400"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white mb-2">AIVA Partner Assessment</h2>
+                <p class="text-sm text-slate-400">แบบประเมินเบื้องต้น เพื่อเข้าร่วมเป็นตัวแทนจำหน่ายอย่างเป็นทางการ</p>
+            </div>
+
+            <!-- Quiz Container (Scrollable) -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-white" id="quiz-container">
+                <p class="text-sm text-slate-600 font-bold mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+                    <span>ทำแบบทดสอบ 10 ข้อ (ผ่านเกณฑ์ 50%)</span>
+                    <span class="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md text-xs">เวลาประมาณ 3 นาที</span>
+                </p>
+
+                <!-- Questions will be injected here via JS -->
+                <div id="quiz-questions" class="space-y-8 pb-4">
+                    <!-- Loading state initially -->
+                    <div class="flex justify-center items-center py-10">
+                        <div class="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Container (Hidden initially) -->
+            <div id="quiz-result" class="hidden flex-1 p-8 flex flex-col items-center justify-center bg-white text-center">
+                <div id="result-icon" class="w-20 h-20 rounded-full flex items-center justify-center mb-6"></div>
+                <h3 id="result-title" class="text-2xl font-black text-slate-900 mb-2"></h3>
+                <p id="result-score" class="text-lg font-bold text-slate-600 mb-4"></p>
+                <p id="result-desc" class="text-sm text-slate-500 mb-8 max-w-md"></p>
+                <div id="result-action" class="w-full max-w-sm"></div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="p-6 border-t border-slate-100 bg-slate-50 shrink-0" id="quiz-footer">
+                <button onclick="submitAssessment()" id="btn-submit-quiz" class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                    ส่งแบบประเมิน <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTACT SALES MODAL -->
+    <div id="contact-sales-modal" class="fixed inset-0 z-[105] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div id="contact-sales-content" class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl transform scale-95 opacity-0 transition-all duration-300 relative overflow-hidden flex flex-col">
+            <button onclick="closeContactSalesModal()" class="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors z-20">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <i data-lucide="briefcase" class="w-8 h-8 text-purple-600"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 mb-2">ติดต่อทีมขาย</h2>
+                <p class="text-sm text-slate-500 mb-8">กรอกข้อมูลเพื่อให้ทีมผู้เชี่ยวชาญของเราติดต่อกลับ และออกแบบระบบ AIVA ให้เหมาะกับธุรกิจของคุณ</p>
+                <form onsubmit="submitContactSales(event)" class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">ชื่อ - นามสกุล</label>
+                        <input type="text" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">ชื่อองค์กร / บริษัท</label>
+                        <input type="text" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">เบอร์โทรศัพท์</label>
+                        <input type="tel" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-purple-500/30 mt-4 flex justify-center items-center gap-2">
+                        ส่งข้อมูลติดต่อ <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROCESSING MODAL -->
+    <div id="processing-modal" class="fixed inset-0 z-[110] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 text-center transform scale-95 opacity-0 transition-all duration-300" id="processing-content">
+            <div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mx-auto mb-6"></div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">กำลังดำเนินการ...</h3>
+            <p id="processing-text" class="text-sm text-slate-500">ระบบกำลังทำรายการของคุณ</p>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL (With Invoice Button) -->
+    <div id="success-modal" class="fixed inset-0 z-[120] modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl p-10 flex flex-col items-center text-center transform scale-95 opacity-0 transition-all duration-300" id="success-content">
+            <div class="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <i data-lucide="check" class="w-12 h-12"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 mb-3">ชำระเงินเรียบร้อย!</h3>
+            <p class="text-slate-600 mb-8 leading-relaxed">ยินดีต้อนรับสู่ AIVA ระบบได้ส่งใบเสร็จและคู่มือการเริ่มต้นใช้งานไปที่อีเมลของคุณแล้ว</p>
+            
+            <div class="bg-indigo-50 border border-indigo-100 w-full p-6 rounded-2xl mb-8 relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full"></div>
+                <p class="text-xs font-bold text-indigo-800 uppercase tracking-widest mb-4">ข้อมูลเข้าใช้งานของคุณ (Login Credentials)</p>
+                <div class="flex justify-between items-center bg-white p-3 rounded-xl mb-3 shadow-sm border border-indigo-50/50">
+                    <span class="text-sm font-semibold text-slate-500">Customer ID:</span>
+                    <span class="font-mono font-black text-lg text-indigo-600" id="generated-cust-id">C125439</span>
+                </div>
+                <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-indigo-50/50">
+                    <span class="text-sm font-semibold text-slate-500">Password:</span>
+                    <span class="font-mono font-bold text-slate-800">aiva2026</span>
+                </div>
+                <p class="text-[10px] text-indigo-600/70 mt-4">* กรุณาคัดลอกและเปลี่ยนรหัสผ่านในการเข้าสู่ระบบครั้งแรก</p>
+            </div>
+
+            <div class="flex flex-col w-full gap-3">
+                <button onclick="window.location.reload()" class="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
+                    เข้าสู่ระบบ AIVA Platform <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+                <button onclick="downloadInvoice(this)" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> ดาวน์โหลดใบเสร็จ (Invoice)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // Contact Sales Modal Logic
+        // ----------------------------------------------------
+        const contactModal = document.getElementById('contact-sales-modal');
+        const contactContent = document.getElementById('contact-sales-content');
+
+        function openContactSalesModal() {
+            contactModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { contactContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+        }
+
+        function closeContactSalesModal() {
+            contactContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { contactModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function submitContactSales(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>';
+            btn.classList.add('pointer-events-none', 'opacity-80');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('pointer-events-none', 'opacity-80');
+                closeContactSalesModal();
+                alert("✅ ทีมขายได้รับข้อมูลของคุณแล้ว!\n\nเราจะรีบติดต่อกลับไปที่เบอร์โทรศัพท์ที่คุณให้ไว้ ภายใน 24 ชั่วโมงครับ");
+            }, 1500);
+        }
+
+        // ----------------------------------------------------
+        // Pricing & Billing Logic
+        // ----------------------------------------------------
+        let currentCycle = 'monthly';
+        const pricingData = {
+            monthly: { basic: 990, pro: 4900, adv: 11900 },
+            halfYear: { basic: 5761, pro: 28518, adv: 69258 }, // 3% Discount
+            yearly: { basic: 10098, pro: 49980, adv: 121380 } // 15% Discount
+        };
+
+        function setBilling(cycle) {
+            currentCycle = cycle;
+            const slider = document.getElementById('billing-slider');
+            const btns = ['monthly', 'halfYear', 'yearly'];
+            
+            btns.forEach((btn, index) => {
+                const el = document.getElementById('btn-' + btn);
+                if (btn === cycle) {
+                    el.classList.replace('text-slate-500', 'text-slate-900');
+                    if(index === 0) slider.style.transform = 'translateX(0)';
+                    else if(index === 1) slider.style.transform = 'translateX(100%)';
+                    else slider.style.transform = 'translateX(200%)';
+                } else {
+                    el.classList.replace('text-slate-900', 'text-slate-500');
+                }
+            });
+
+            updatePrice('basic', pricingData[cycle].basic, cycle);
+            updatePrice('pro', pricingData[cycle].pro, cycle);
+            updatePrice('advanced', pricingData[cycle].adv, cycle);
+        }
+
+        function updatePrice(plan, price, cycle) {
+            const priceEl = document.getElementById(`price-${plan}`);
+            const periodEl = document.getElementById(`period-${plan}`);
+            const strikeEl = document.getElementById(`strike-${plan}`);
+            const badgeEl = document.getElementById(`save-badge-${plan}`);
+            
+            if(!priceEl) return;
+
+            priceEl.style.opacity = '0';
+            if(strikeEl) strikeEl.style.opacity = '0';
+            if(badgeEl) badgeEl.style.opacity = '0';
+
+            setTimeout(() => {
+                priceEl.innerText = '฿' + price.toLocaleString();
+                
+                if (cycle === 'monthly') {
+                    periodEl.innerText = '/เดือน';
+                    if(strikeEl) strikeEl.innerText = '';
+                } else {
+                    periodEl.innerText = cycle === 'halfYear' ? '/6 เดือน' : '/ปี';
+                    
+                    const months = cycle === 'halfYear' ? 6 : 12;
+                    const fullPrice = pricingData.monthly[plan] * months;
+                    const savings = fullPrice - price;
+                    
+                    if(strikeEl) {
+                        strikeEl.innerText = '฿' + fullPrice.toLocaleString();
+                        strikeEl.style.opacity = '1';
+                    }
+                    if(badgeEl) {
+                        badgeEl.innerText = 'ประหยัด ฿' + savings.toLocaleString();
+                        badgeEl.style.opacity = '1';
+                    }
+                }
+                
+                priceEl.style.opacity = '1';
+            }, 150);
+        }
+
+        function calculateROI() {
+            const chats = document.getElementById('calc-chats').value;
+            const orderValue = document.getElementById('calc-order').value;
+            
+            document.getElementById('calc-chats-val').innerText = Number(chats).toLocaleString() + ' คน';
+            document.getElementById('calc-order-val').innerText = '฿' + Number(orderValue).toLocaleString();
+            
+            // Assume 15% conversion rate improvement
+            const potentialRevenue = (chats * 0.15) * orderValue;
+            document.getElementById('calc-result').innerHTML = `฿${potentialRevenue.toLocaleString()} <span class="text-lg font-bold text-slate-400">/เดือน</span>`;
+        }
+
+        // Initialize Exit Intent
+        let exitIntentTriggered = false;
+        document.addEventListener('mouseout', (e) => {
+            if (e.clientY < 0 && !exitIntentTriggered) {
+                exitIntentTriggered = true;
+                // Optional: Show exit intent modal here
+            }
+        });
+
+        // ----------------------------------------------------
+        // Modals Logic
+        // ----------------------------------------------------
+        const checkoutModal = document.getElementById('checkout-modal');
+        const checkoutContent = document.getElementById('checkout-content');
+        const processingModal = document.getElementById('processing-modal');
+        const processingContent = document.getElementById('processing-content');
+        const successModal = document.getElementById('success-modal');
+        const successContent = document.getElementById('success-content');
+        const authModal = document.getElementById('auth-modal');
+        const authContent = document.getElementById('auth-content');
+        
+        // Auth Modal
+        function openAuthModal() {
+            authModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { authContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+        }
+
+        function closeAuthModal() {
+            if(!authContent || !authModal) return;
+            authContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { authModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function simulateLogin(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btn-login-submit');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> กำลังเข้าสู่ระบบ...`;
+            btn.classList.add('pointer-events-none', 'opacity-80');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.remove('pointer-events-none', 'opacity-80');
+                closeAuthModal();
+                alert(`เข้าสู่ระบบ AIVA สำเร็จ! (ระบบจำลอง)`);
+            }, 1500);
+        }
+
+        function simulateAuthLoading(btn, provider) {
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin"></div> เชื่อมต่อกับ ${provider}...`;
+            btn.classList.add('pointer-events-none', 'opacity-80');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.remove('pointer-events-none', 'opacity-80');
+                closeAuthModal();
+                showProcessing('สร้างบัญชีสำเร็จ!');
+            }, 1500);
+        }
+
+        // Checkout Modal
+        let currentPrice = 0;
+        let currentTax = 0;
+        let currentTotal = 0;
+
+        function openCheckout(planName, price) {
+            currentPrice = price;
+            currentTax = price * 0.07;
+            currentTotal = price + currentTax;
+
+            const formatStr = (num) => '฿' + num.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            let periodText = 'รอบบิลชำระรายเดือน';
+            if (currentCycle === 'halfYear') periodText = 'รอบบิลชำระล่วงหน้า 6 เดือน (ประหยัดกว่า 3%)';
+            if (currentCycle === 'yearly') periodText = 'รอบบิลชำระล่วงหน้า 1 ปี (ประหยัดกว่า 15%)';
+
+            document.getElementById('checkout-plan-name').innerText = `AIVA ${planName} Plan`;
+            document.getElementById('checkout-plan-period').innerText = periodText;
+            document.getElementById('checkout-plan-price').innerText = formatStr(currentPrice);
+            document.getElementById('checkout-tax').innerText = formatStr(currentTax);
+            document.getElementById('checkout-total').innerText = formatStr(currentTotal);
+            document.getElementById('btn-total').innerText = formatStr(currentTotal);
+            document.getElementById('qr-total').innerText = formatStr(currentTotal);
+            document.getElementById('generated-cust-id').innerText = 'C' + Math.floor(100000 + Math.random() * 900000);
+
+            checkoutModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { checkoutContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+        }
+
+        function closeCheckout() {
+            if(!checkoutContent || !checkoutModal) return;
+            checkoutContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { checkoutModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function toggleTaxType(type) {
+            const btnP = document.getElementById('btn-personal');
+            const btnC = document.getElementById('btn-corporate');
+            const lblName = document.getElementById('label-name');
+            const lblTaxId = document.getElementById('label-taxid');
+            const corpFields = document.getElementById('corporate-fields');
+
+            if (type === 'personal') {
+                btnP.classList.replace('bg-transparent', 'bg-white');
+                btnP.classList.replace('text-slate-500', 'text-slate-900');
+                btnP.classList.add('shadow-sm');
+                btnC.classList.replace('bg-white', 'bg-transparent');
+                btnC.classList.replace('text-slate-900', 'text-slate-500');
+                btnC.classList.remove('shadow-sm');
+
+                lblName.innerText = 'ชื่อ - นามสกุล';
+                lblTaxId.innerText = 'เลขประจำตัวประชาชน (13 หลัก)';
+                corpFields.classList.replace('grid', 'hidden');
+            } else {
+                btnC.classList.replace('bg-transparent', 'bg-white');
+                btnC.classList.replace('text-slate-500', 'text-slate-900');
+                btnC.classList.add('shadow-sm');
+                btnP.classList.replace('bg-white', 'bg-transparent');
+                btnP.classList.replace('text-slate-900', 'text-slate-500');
+                btnP.classList.remove('shadow-sm');
+
+                lblName.innerText = 'ชื่อบริษัท / นิติบุคคล';
+                lblTaxId.innerText = 'เลขประจำตัวผู้เสียภาษี (13 หลัก)';
+                corpFields.classList.replace('hidden', 'grid');
+            }
+        }
+
+        function selectPayment(method) {
+            ['card', 'bank', 'qr'].forEach(t => {
+                const tab = document.getElementById('tab-' + t);
+                const view = document.getElementById('view-' + t);
+                tab.classList.replace('bg-white', 'bg-transparent');
+                tab.classList.replace('text-slate-900', 'text-slate-500');
+                tab.classList.remove('shadow-sm');
+                view.classList.add('hidden');
+                view.classList.remove('block');
+            });
+
+            const activeTab = document.getElementById('tab-' + method);
+            const activeView = document.getElementById('view-' + method);
+            activeTab.classList.replace('bg-transparent', 'bg-white');
+            activeTab.classList.replace('text-slate-500', 'text-slate-900');
+            activeTab.classList.add('shadow-sm');
+            activeView.classList.remove('hidden');
+            activeView.classList.add('block');
+        }
+
+        function processPayment() {
+            closeCheckout();
+            showProcessing('ชำระเงินสำเร็จ!');
+        }
+
+        function showProcessing(successMessage) {
+            processingModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { processingContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+
+            setTimeout(() => {
+                processingContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    processingModal.classList.add('opacity-0', 'pointer-events-none');
+                    showSuccess();
+                }, 300);
+            }, 2000);
+        }
+
+        function showSuccess() {
+            successModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { successContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+        }
+
+        function downloadInvoice(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> ดาวน์โหลดสำเร็จแล้ว';
+            btn.classList.add('border-emerald-200', 'bg-emerald-50');
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('border-emerald-200', 'bg-emerald-50');
+                lucide.createIcons();
+            }, 3000);
+        }
+
+        // ----------------------------------------------------
+        // Partner Assessment Logic
+        // ----------------------------------------------------
+        const assessmentModal = document.getElementById('assessment-modal');
+        const assessmentContent = document.getElementById('assessment-content');
+        let currentAnswers = {};
+
+        const questionsData = [
+            {
+                q: '1. คุณมีฐานลูกค้าที่เป็นเจ้าของธุรกิจ (SME, ร้านค้าออนไลน์, คลินิก) อยู่ในมือประมาณกี่ราย?',
+                options: [
+                    { t: 'ไม่มีเลย กำลังจะเริ่มต้นหาลูกค้าใหม่', s: 0 },
+                    { t: '1 - 10 ราย (ลูกค้าคนรู้จัก)', s: 5 },
+                    { t: 'มากกว่า 20 รายขึ้นไป (เป็นเอเจนซี่ / ผู้ให้คำปรึกษา)', s: 10 }
+                ]
+            },
+            {
+                q: '2. คุณเคยมีประสบการณ์ขายสินค้าประเภท ซอฟต์แวร์, ระบบ POS, หรือ IT Solutions ให้ธุรกิจหรือไม่?',
+                options: [
+                    { t: 'ไม่เคยเลย ขายแต่สินค้าทั่วไป', s: 0 },
+                    { t: 'เคยแนะนำบ้าง แต่ไม่ได้ทำเป็นอาชีพหลัก', s: 5 },
+                    { t: 'เชี่ยวชาญมาก ขายซอฟต์แวร์ให้องค์กรเป็นหลัก', s: 10 }
+                ]
+            },
+            {
+                q: '3. ช่องทางหลักที่คุณวางแผนจะใช้โปรโมท AIVA คืออะไร?',
+                options: [
+                    { t: 'โพสต์ลง Facebook ส่วนตัว', s: 2 },
+                    { t: 'ยิงแอดโฆษณาออนไลน์ (FB Ads / TikTok)', s: 7 },
+                    { t: 'เข้าพบลูกค้าองค์กร หรือจัดสัมมนา B2B', s: 10 }
+                ]
+            },
+            {
+                q: '4. ในมุมมองของคุณ ปัญหาหลักของคนขายของออนไลน์ที่ "AI พนักงานขาย" จะเข้าไปช่วยแก้ได้คืออะไร?',
+                options: [
+                    { t: 'ลดการจ้างแอดมินหลายกะ และตอบลูกค้าได้ 24 ชม.', s: 10 },
+                    { t: 'ทำให้แชทดูทันสมัย', s: 2 },
+                    { t: 'ไม่แน่ใจ ต้องลองใช้ดูก่อน', s: 0 }
+                ]
+            },
+            {
+                q: '5. คำว่า "SaaS" (Software as a Service) หมายถึงอะไร?',
+                options: [
+                    { t: 'การขายโปรแกรมแบบขาดตัว จ่ายครั้งเดียวจบ', s: 0 },
+                    { t: 'การให้บริการซอฟต์แวร์ผ่านระบบคลาวด์ คิดค่าบริการรายเดือน/รายปี', s: 10 },
+                    { t: 'การรับจ้างเขียนเว็บไซต์ให้ธุรกิจ', s: 0 }
+                ]
+            },
+            {
+                q: '6. อะไรคือ "MRR" ในธุรกิจระบบ Subscription?',
+                options: [
+                    { t: 'Monthly Recurring Revenue (รายได้ประจำที่ได้ทุกเดือนจากลูกค้า)', s: 10 },
+                    { t: 'Maximum Retail Rate (ราคาสูงสุดที่ขายได้)', s: 0 },
+                    { t: 'Minimum Referral Requirement (ยอดขั้นต่ำของตัวแทน)', s: 0 }
+                ]
+            },
+            {
+                q: '7. หากลูกค้าบ่นว่า "AI ชอบตอบเป็นหุ่นยนต์ ดูไม่จริงใจ" คุณจะแก้ปัญหาอย่างไร?',
+                options: [
+                    { t: 'บอกลูกค้าว่ามันเป็นแค่หุ่นยนต์ ต้องทำใจ', s: 0 },
+                    { t: 'แนะนำให้ลูกค้านำข้อมูลประวัติแชทเก่ามาสอน AI ด้วยฟีเจอร์ AIVA Persona เพื่อให้ตอบเหมือนคนขึ้น', s: 10 },
+                    { t: 'แนะนำให้ลูกค้ากลับไปใช้คนตอบแทน', s: 0 }
+                ]
+            },
+            {
+                q: '8. ฟีเจอร์ใดของ AIVA ที่ตอบโจทย์การ "กู้คืนยอดขาย (Recover Revenue)" มากที่สุด?',
+                options: [
+                    { t: 'ระบบส่ง QR Code จ่ายเงิน', s: 0 },
+                    { t: 'AIVA Smart Follow-up (ระบบทวงตะกร้า/ทวงลูกค้าที่เงียบหาย)', s: 10 },
+                    { t: 'การเลือกสีหน้าต่างแชท', s: 0 }
+                ]
+            },
+            {
+                q: '9. หากมีลูกค้าองค์กรต้องการเชื่อมต่อ AIVA เข้ากับระบบสต็อก (ERP) ของบริษัท คุณควรแนะนำฟีเจอร์ใด?',
+                options: [
+                    { t: 'ให้อัปโหลดไฟล์ PDF ใหม่ทุกวัน', s: 0 },
+                    { t: 'ฟีเจอร์ API & Webhook Integration ในแพ็กเกจ Advanced', s: 10 },
+                    { t: 'บอกว่าทำไม่ได้ AIVA ทำได้แค่ตอบแชท', s: 0 }
+                ]
+            },
+            {
+                q: '10. คุณพร้อมที่จะให้คำปรึกษา (Consult) และช่วยลูกค้าวางระบบ AIVA เบื้องต้นหรือไม่?',
+                options: [
+                    { t: 'ไม่พร้อม อยากส่งแค่ลิงก์แล้วรับเงินเลย', s: 0 },
+                    { t: 'พร้อม แต่ขอให้ AIVA มีคู่มือให้ศึกษา', s: 8 },
+                    { t: 'พร้อมมาก ยินดีเข้าไปช่วยลูกค้าวางระบบจนใช้งานได้จริง', s: 10 }
+                ]
+            }
+        ];
+
+        function openPartnerAssessment() {
+            currentAnswers = {};
+            assessmentModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { assessmentContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+            renderQuiz();
+        }
+
+        function closePartnerAssessment() {
+            assessmentContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { assessmentModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+            
+            // Reset views
+            setTimeout(() => {
+                document.getElementById('quiz-container').classList.remove('hidden');
+                document.getElementById('quiz-footer').classList.remove('hidden');
+                document.getElementById('quiz-result').classList.add('hidden');
+            }, 300);
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-questions');
+            let html = '';
+            
+            questionsData.forEach((qData, qIndex) => {
+                html += `<div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <p class="font-bold text-slate-900 mb-4 leading-relaxed">${qData.q}</p>
+                    <div class="space-y-2">`;
+                
+                qData.options.forEach((opt, oIndex) => {
+                    const id = `q${qIndex}_o${oIndex}`;
+                    html += `
+                        <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-indigo-300 transition-colors">
+                            <input type="radio" name="q${qIndex}" value="${opt.s}" class="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500" onclick="answerQuestion(${qIndex}, ${opt.s})" />
+                            <span class="text-sm text-slate-700">${opt.t}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function answerQuestion(qIndex, score) {
+            currentAnswers[qIndex] = score;
+        }
+
+        function submitAssessment() {
+            const totalQuestions = questionsData.length;
+            const answeredCount = Object.keys(currentAnswers).length;
+
+            if (answeredCount < totalQuestions) {
+                alert(`กรุณาตอบคำถามให้ครบทุกข้อ (ขาดอีก ${totalQuestions - answeredCount} ข้อ)`);
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-quiz');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> กำลังประมวลผล...';
+            btn.classList.add('pointer-events-none', 'opacity-80');
+
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('pointer-events-none', 'opacity-80');
+                showResult();
+            }, 1500);
+        }
+
+        function showResult() {
+            let totalScore = 0;
+            for (let key in currentAnswers) {
+                totalScore += currentAnswers[key];
+            }
+            
+            // 50% passing score (Max is 100, pass is 50)
+            const passed = totalScore >= 50;
+
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('quiz-footer').classList.add('hidden');
+            
+            const resultBox = document.getElementById('quiz-result');
+            resultBox.classList.remove('hidden');
+
+            const iconBox = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const scoreDisplay = document.getElementById('result-score');
+            const desc = document.getElementById('result-desc');
+            const action = document.getElementById('result-action');
+
+            scoreDisplay.innerHTML = `คะแนนของคุณ: <span class="${passed ? 'text-emerald-500' : 'text-rose-500'}">${totalScore}/100</span>`;
+
+            if (passed) {
+                iconBox.className = 'w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-emerald-100 text-emerald-500';
+                iconBox.innerHTML = '<i data-lucide="check-circle-2" class="w-12 h-12"></i>';
+                title.innerText = 'ยินดีด้วย คุณผ่านเกณฑ์!';
+                title.className = 'text-2xl font-black text-emerald-600 mb-2';
+                desc.innerText = 'คุณมีวิสัยทัศน์และศักยภาพที่พร้อมสำหรับการเป็นตัวแทนจำหน่าย AIVA ขั้นตอนต่อไปคือการสมัครสร้างบัญชี Partner อย่างเป็นทางการครับ';
+                action.innerHTML = `
+                    <button onclick="window.location.reload()" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                        ไปที่หน้าสมัคร Partner <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                `;
+            } else {
+                iconBox.className = 'w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-rose-100 text-rose-500';
+                iconBox.innerHTML = '<i data-lucide="x-circle" class="w-12 h-12"></i>';
+                title.innerText = 'เสียใจด้วย คุณยังไม่ผ่านเกณฑ์';
+                title.className = 'text-2xl font-black text-rose-600 mb-2';
+                desc.innerText = 'ขอขอบคุณที่ให้ความสนใจ AIVA Partner Program แต่อาจจะยังไม่ใช่จังหวะที่เหมาะสมในตอนนี้ คุณสามารถศึกษาข้อมูลเพิ่มเติมเกี่ยวกับ SaaS และ B2B Sales แล้วกลับมาทำแบบประเมินใหม่ได้ในอนาคตครับ';
+                action.innerHTML = `
+                    <button onclick="closePartnerAssessment()" class="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3.5 rounded-xl transition-all">
+                        กลับสู่หน้าหลัก
+                    </button>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+    </script>
+</body>
+</html>

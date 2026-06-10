@@ -4,7 +4,7 @@ const tokenService = require('../services/tokenService');
 
 const register = async (req, res, next) => {
   try {
-    const { email, password, name, role, phone } = req.body;
+    const { email, password, name, role, phone, referralCode } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -27,8 +27,21 @@ const register = async (req, res, next) => {
         name,
         role,
         phone,
+        referralCode
       }
     });
+
+    // Increment signup count on referral campaign if code matches
+    if (referralCode) {
+      try {
+        await prisma.referral.update({
+          where: { code: referralCode },
+          data: { signups: { increment: 1 } }
+        });
+      } catch (err) {
+        console.warn(`[Referral Tracking] Referral code ${referralCode} not found in Referral table (might be a partner ID directly)`);
+      }
+    }
 
     let clientId = null;
 
