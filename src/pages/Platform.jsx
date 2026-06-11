@@ -91,9 +91,9 @@ const MOCK_KNOWLEDGE = [
   { id: 3, type: 'url', name: 'https://sparexth.com/shipping-policy', size: '-', status: 'Trained', date: '01/06/2026', tokens: '320' },
 ];
 const MOCK_INBOX_LIST = [
-  { id: 'C-001', user: 'Khun Praew (VIP)', platform: 'Line OA', query: 'รุ่นที่ไลฟ์เมื่อคืนยังมีของไหมคะ?', status: 'AI Replied', time: '10:05 AM' },
-  { id: 'C-002', user: 'Katty', platform: 'Line OA', query: 'ส่งสลิปโอนเงิน ยอด 1,290 บาท', status: 'AI Replied', time: '09:15 AM' },
-  { id: 'C-003', user: 'MewMew', platform: '', query: 'ได้รับของแล้วแต่ไซส์ไม่พอดี ขอเปลี่ยนค่ะ', status: 'Handover', time: '08:30 AM' },
+  { id: 'C-001', user: 'Khun Praew (VIP)', platform: 'Line OA', query: 'รุ่นที่ไลฟ์เมื่อคืนยังมีของไหมคะ?', status: 'AI Replied', time: '10:05 AM', unreadCount: 0 },
+  { id: 'C-002', user: 'Katty', platform: 'Line OA', query: 'ส่งสลิปโอนเงิน ยอด 1,290 บาท', status: 'AI Replied', time: '09:15 AM', unreadCount: 3 },
+  { id: 'C-003', user: 'MewMew', platform: 'Facebook', query: 'ได้รับของแล้วแต่ไซส์ไม่พอดี ขอเปลี่ยนค่ะ', status: 'Handover', time: '08:30 AM', unreadCount: 1 },
 ];
 const MOCK_CHATS = {
   'C-001': [
@@ -137,7 +137,7 @@ const MOCK_BRANCHES = [
 ];
 
 const PLATFORM_MAP = {
-  line: 'Line OA', facebook: '', instagram: '', website: 'Website',
+  line: 'Line OA', facebook: 'Facebook', instagram: 'Instagram', website: 'Website',
   lazada: 'Lazada', tiktok: 'TikTok Shop', youtube: 'YouTube Comments'
 };
 
@@ -330,17 +330,17 @@ export default function Platform() {
   const [newDeal, setNewDeal] = useState({ name: '', intent: '', score: 'Warm', stage: 'New Leads', value: '' });
   const [pipelineFilter, setPipelineFilter] = useState('All Stages');
 
-  const [leadScores, setLeadScores] = useState([
+  const [leadScores, setLeadScores] = useState(USE_MOCK ? [
     { id: 1, name: 'Khun Praew', score: 98, reason: 'สอบถามช่องทางการโอนเงินและระยะเวลาส่ง แนะนำให้รีบส่งเลขบัญชี', aiEnabled: true },
     { id: 2, name: 'MewMew', score: 95, reason: 'ต้องการสั่งซื้อเซ็ตบำรุงผิว แต่ลังเลเรื่องไซส์ แนะนำให้เสนอโปรแถมฟรี', aiEnabled: false },
     { id: 3, name: 'คุณตูน', score: 88, reason: 'ถามรายละเอียดสินค้าครบแล้ว เงียบไป 1 ชม. น่าจะรอตัดสินใจ', aiEnabled: true }
-  ]);
+  ] : []);
 
-  const [lostRevenues, setLostRevenues] = useState([
+  const [lostRevenues, setLostRevenues] = useState(USE_MOCK ? [
     { id: 1, name: 'คุณนิว', product: 'เดรส Summer', value: 1290, reason: 'บ่นว่าค่าส่ง 50 บาทแพงไป แล้วเงียบหาย', action: 'ส่งโค้ดส่งฟรี', btnColor: 'bg-emerald-600', autoEnabled: false },
     { id: 2, name: 'Khun May', product: 'เซ็ตบำรุงผิว', value: 3210, reason: 'บอกว่ารอเงินเดือนออกสิ้นเดือน (อีก 3 วัน)', action: 'ตั้งแจ้งเตือนทักแชท', btnColor: 'bg-indigo-600', autoEnabled: true },
     { id: 3, name: 'Katty', product: 'กระเป๋าหนัง', value: 2500, reason: 'สินค้าหมดสต็อกตอนนั้น (ตอนนี้ของเข้าแล้ว)', action: 'แจ้งของเข้า', btnColor: 'bg-amber-600', autoEnabled: false }
-  ]);
+  ] : []);
 
   const [editProfile, setEditProfile] = useState({
     bossName: 'สมชาย ใจดี',
@@ -527,26 +527,30 @@ export default function Platform() {
       });
       if (res.ok) {
         const data = await res.json();
-        const list = USE_MOCK ? [...MOCK_INBOX_LIST] : [];
-        data.forEach(chat => {
-          const formatted = {
-            id: chat.id,
-            user: chat.customerName,
-            platform: chat.platform === 'WEB' ? 'Website' : (chat.platform === 'LINE' ? 'Line OA' : 'Facebook'),
-            query: chat.messages[0]?.content || 'ไม่มีข้อความ',
-            status: chat.status === 'BOT_HANDLING' ? 'AI Replied' : 'Handover',
-            time: new Date(chat.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
-          };
-          const idx = list.findIndex(item => item.id === formatted.id);
-          if (idx > -1) {
-            list[idx] = { ...list[idx], ...formatted };
-          } else {
-            list.unshift(formatted);
-          }
+        setInboxList(prev => {
+          const list = USE_MOCK ? [...MOCK_INBOX_LIST] : [];
+          data.forEach(chat => {
+            const existing = prev.find(item => item.id === chat.id);
+            const formatted = {
+              id: chat.id,
+              user: chat.customerName,
+              platform: chat.platform === 'WEB' ? 'Website' : (chat.platform === 'LINE' ? 'Line OA' : 'Facebook'),
+              query: chat.messages[0]?.content || 'ไม่มีข้อความ',
+              status: chat.status === 'BOT_HANDLING' ? 'AI Replied' : 'Handover',
+              time: new Date(chat.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+              unreadCount: existing ? existing.unreadCount : (chat.status === 'BOT_HANDLING' ? 0 : 1)
+            };
+            const idx = list.findIndex(item => item.id === formatted.id);
+            if (idx > -1) {
+              list[idx] = { ...list[idx], ...formatted };
+            } else {
+              list.unshift(formatted);
+            }
+          });
+          return list;
         });
-        setInboxList(list);
-        if (!selectedChat && list.length > 0) {
-          setSelectedChat(list[0].id);
+        if (!selectedChat && data.length > 0) {
+          setSelectedChat(data[0].id);
         }
       }
     } catch (err) {
@@ -1240,7 +1244,14 @@ export default function Platform() {
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-3 mt-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('workspace')}</div>
             <NavItem icon={LayoutDashboard} label={t('dashboard')} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isDark={isDarkMode} />
             <NavItem icon={BookOpen} label={t('knowledge')} isActive={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} isDark={isDarkMode} />
-            <NavItem icon={MessageSquare} label={t('inbox')} isActive={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={1} isDark={isDarkMode} />
+            <NavItem icon={MessageSquare} label={t('inbox')} isActive={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={(() => {
+              const count = inboxList.reduce((sum, chat) => {
+                const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
+                if (!connectedApps.includes(platformId)) return sum;
+                return sum + (chat.unreadCount || 0);
+              }, 0);
+              return count || null;
+            })()} isDark={isDarkMode} />
             <NavItem icon={MessageCircle} label={t('replycomment')} isActive={activeTab === 'replycomment'} onClick={() => setActiveTab('replycomment')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             <NavItem icon={Users} label={t('leads')} isActive={activeTab === 'leads'} onClick={() => setActiveTab('leads')} isDark={isDarkMode} />
             <NavItem icon={BarChart3} label={t('pipeline')} isActive={activeTab === 'pipeline'} onClick={() => setActiveTab('pipeline')} isLocked={!isProOrAbove} isDark={isDarkMode} />
@@ -1357,7 +1368,7 @@ export default function Platform() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatCard title="แชททั้งหมด (เดือนนี้)" value={stats.totalChats.toLocaleString()} icon={MessageSquare} color="blue" isDark={isDarkMode} />
-                <StatCard title="AI ตอบสำเร็จ (Resolution)" value={`${stats.resolvedByAI}%`} icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
+                <StatCard title="AI ตอบสำเร็จ (Resolution)" value={`${stats.resolvedByAI !== undefined ? stats.resolvedByAI : (stats.totalChats > 0 ? Math.round((stats.botHandled / stats.totalChats) * 100) : 0)}%`} icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
                 <StatCard title={t('tokensLimit')} value={(stats.tokenLimit - stats.tokensUsed).toLocaleString()} icon={Zap} color="amber" isDark={isDarkMode} />
                 <StatCard title="ช่องทางที่เชื่อมต่อ" value={connectedApps.length} icon={Plug} color="indigo" isDark={isDarkMode} />
               </div>
@@ -1507,202 +1518,265 @@ export default function Platform() {
           )}
 
           {/* TAB: INBOX */}
-          {activeTab === 'inbox' && (
-            <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
-              
-              <div className="mb-4 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                    <MessageSquare className="w-6 h-6 text-indigo-600" /> {t('inbox')}
-                  </h2>
-                </div>
-                <div className={`flex items-center gap-1.5 p-1.5 rounded-xl border shadow-sm shrink-0 overflow-x-auto custom-scrollbar ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  {['All', ...connectedApps.filter(id => ['line', 'facebook', 'instagram', 'website'].includes(id)).map(id => PLATFORM_MAP[id])].map(platform => (
-                    <button
-                      key={platform}
-                      onClick={() => setInboxPlatformFilter(platform)}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
-                        inboxPlatformFilter === platform
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : (isDarkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
-                      }`}
-                    >
-                      {platform === 'All' ? 'ทั้งหมด (All)' : platform}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {activeTab === 'inbox' && (() => {
+            const visibleChats = inboxList.filter(chat => {
+              const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
+              const isConnected = connectedApps.includes(platformId);
+              if (!isConnected) return false;
+              if (inboxSearch.trim() !== '') {
+                const searchLower = inboxSearch.toLowerCase();
+                if (!chat.user?.toLowerCase().includes(searchLower) && !chat.query?.toLowerCase().includes(searchLower)) return false;
+              }
+              return inboxPlatformFilter === 'All' || chat.platform === inboxPlatformFilter;
+            });
+            const activeChat = visibleChats.find(c => c.id === selectedChat);
 
-              <div className={`flex-1 flex rounded-2xl overflow-hidden border shadow-sm min-h-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            return (
+              <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
                 
-                <div className={`w-80 flex flex-col border-r shrink-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                  <div className={`p-4 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-slate-50'}`}>
-                    <Search className="w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="ค้นหาชื่อลูกค้า..." value={inboxSearch} onChange={(e) => setInboxSearch(e.target.value)} className={`w-full bg-transparent border-none text-sm outline-none ${isDarkMode ? 'text-slate-200 placeholder:text-slate-500' : 'text-slate-800'}`} />
+                <div className="mb-4 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                      <MessageSquare className="w-6 h-6 text-indigo-600" /> {t('inbox')}
+                    </h2>
                   </div>
-
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                    {(() => {
-                      const visibleChats = (USE_MOCK ? MOCK_INBOX_LIST : inboxList).filter(chat => {
-                        const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
-                        const isConnected = connectedApps.includes(platformId);
-                        if (!isConnected) return false;
-                        return inboxPlatformFilter === 'All' || chat.platform === inboxPlatformFilter;
-                      });
-
-                      if (visibleChats.length === 0) {
-                        return (
-                          <div className="flex flex-col items-center justify-center h-full text-slate-400 py-10 opacity-70">
-                            <MessageSquare className="w-8 h-8 mb-2" />
-                            <p className="text-xs font-bold">ไม่มีข้อความในช่องทางนี้</p>
-                          </div>
-                        );
-                      }
-
-                      return visibleChats.map((chat) => (
-                        <div 
-                          key={chat.id} 
-                          onClick={() => {
-                            setSelectedChat(chat.id);
-                            if(chat.status === 'Handover') setChatMode('human');
-                            else setChatMode('ai');
-                          }}
-                          className={`p-3 rounded-xl cursor-pointer transition-colors border ${
-                            selectedChat === chat.id 
-                              ? (isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30' : 'bg-indigo-50 border-indigo-100') 
-                              : (isDarkMode ? 'border-transparent hover:bg-slate-700/50' : 'border-transparent hover:bg-slate-50')
+                  <div className={`flex items-center gap-1.5 p-1.5 rounded-xl border shadow-sm shrink-0 overflow-x-auto custom-scrollbar ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    {['All', ...connectedApps.filter(id => ['line', 'facebook', 'instagram', 'website'].includes(id)).map(id => PLATFORM_MAP[id])].map(platform => (
+                      <div key={platform} className="group relative">
+                        <button
+                          onClick={() => setInboxPlatformFilter(platform)}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                            inboxPlatformFilter === platform
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : (isDarkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50')
                           }`}
                         >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className={`flex items-center gap-1.5 text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${
-                                chat.platform === 'Line OA' ? 'bg-[#00B900]' : 
-                                chat.platform === '' ? 'bg-[#0084FF]' : 
-                                chat.platform === '' ? 'bg-gradient-to-tr from-amber-500 to-purple-600' : 'bg-slate-800'
-                              }`}>
-                                {chat.user.charAt(0)}
-                              </div>
-                              {chat.user}
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-medium">{chat.time}</span>
-                          </div>
-                          <div className="pl-10">
-                            <p className={`text-xs truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                              {chat.status === 'AI Replied' ? <Bot className="w-3 h-3 inline mr-1 text-emerald-500"/> : <AlertCircle className="w-3 h-3 inline mr-1 text-rose-500"/>}
-                              "{chat.query}"
-                            </p>
-                          </div>
-                        </div>
-                      ));
-                    })()}
+                          {platform === 'All' ? 'ทั้งหมด (All)' : platform}
+                        </button>
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                          {platform === 'All' ? 'แสดงข้อความทุกช่องทาง' : `กรองแสดงช่องทาง ${platform}`}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className={`flex-1 flex flex-col min-w-0 ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50/50'}`}>
-                  <div className={`h-16 px-6 border-b flex items-center justify-between shrink-0 backdrop-blur-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-slate-100'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-500'}`}>
-                        {(inboxList.find(c => c.id === selectedChat)?.user || MOCK_INBOX_LIST.find(c => c.id === selectedChat)?.user || '').charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{inboxList.find(c => c.id === selectedChat)?.user || MOCK_INBOX_LIST.find(c => c.id === selectedChat)?.user}</h3>
-                        <p className="text-[10px] text-slate-400">ผ่านช่องทาง {inboxList.find(c => c.id === selectedChat)?.platform || MOCK_INBOX_LIST.find(c => c.id === selectedChat)?.platform}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={`flex items-center p-1 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                      <button 
-                        onClick={() => setChatMode('ai')}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${chatMode === 'ai' ? (isDarkMode ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'bg-white text-emerald-600 shadow-sm') : (isDarkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}
-                      >
-                        <Bot className="w-3.5 h-3.5" /> AI กำลังดูแล
-                      </button>
-                      <button 
-                        onClick={() => setChatMode('human')}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${chatMode === 'human' ? 'bg-rose-500 text-white shadow-sm' : (isDarkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}
-                      >
-                        <Users className="w-3.5 h-3.5" /> แอดมินตอบเอง
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                    <div className="text-center mb-6">
-                      <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>วันนี้ 10:00 AM</span>
+                <div className={`flex-1 flex rounded-2xl overflow-hidden border shadow-sm min-h-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  
+                  <div className={`w-80 flex flex-col border-r shrink-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <div className={`p-4 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-slate-50'}`}>
+                      <Search className="w-4 h-4 text-slate-400" />
+                      <input type="text" placeholder="ค้นหาชื่อลูกค้า..." value={inboxSearch} onChange={(e) => setInboxSearch(e.target.value)} className={`w-full bg-transparent border-none text-sm outline-none ${isDarkMode ? 'text-slate-200 placeholder:text-slate-500' : 'text-slate-800'}`} />
                     </div>
 
-                    {(chatMessages[selectedChat] || (USE_MOCK ? MOCK_CHATS[selectedChat] : []) || []).map((msg, idx) => (
-                      <div key={idx} className={`flex items-start gap-3 max-w-[90%] ${msg.sender === 'user' ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${
-                          msg.sender === 'user' 
-                            ? (isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-500') 
-                            : (isDarkMode ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-indigo-100 text-indigo-600 border border-indigo-200')
-                        }`}>
-                          {msg.sender === 'user' ? 'C' : <Bot className="w-4 h-4"/>}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                      {visibleChats.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 py-10 opacity-70">
+                          <MessageSquare className="w-8 h-8 mb-2" />
+                          <p className="text-xs font-bold">ไม่มีข้อความในช่องทางนี้</p>
                         </div>
-                        <div className={`flex flex-col gap-2 ${msg.sender === 'user' ? 'items-start' : 'items-end'}`}>
-                          {msg.text && (
-                            <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm whitespace-pre-wrap leading-relaxed ${
-                              msg.sender === 'user' 
-                                ? (isDarkMode ? 'bg-slate-700 text-slate-100 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm') 
-                                : (isDarkMode ? 'bg-indigo-500 text-white rounded-tr-sm' : 'bg-indigo-600 text-white rounded-tr-sm')
-                            }`}>
-                              {msg.text}
-                            </div>
-                          )}
-                          {msg.image && (
-                            <div className={`rounded-2xl overflow-hidden shadow-sm max-w-[200px] border ${isDarkMode ? 'border-slate-700' : 'border-slate-200'} ${msg.sender === 'user' ? 'rounded-tl-sm' : 'rounded-tr-sm'}`}>
-                              <img src={msg.image} alt="attachment" className="w-full h-auto object-cover" />
-                            </div>
-                          )}
-                          {msg.buttons && (
-                            <div className={`flex flex-wrap gap-2 ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                              {msg.buttons.map((btn, i) => (
-                                <button key={i} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 border-indigo-500/40 text-indigo-400 hover:bg-slate-700' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>
-                                  {btn}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          {msg.carousel && (
-                            <div className={`flex gap-3 overflow-x-auto custom-scrollbar pb-2 max-w-[320px] ${msg.sender === 'user' ? 'flex-row' : 'flex-row-reverse'}`}>
-                              {msg.carousel.map((item, i) => (
-                                <div key={i} className={`flex-shrink-0 w-36 rounded-2xl overflow-hidden border shadow-sm flex flex-col ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                                  <img src={item.image} alt={item.title} className="w-full h-36 object-cover" />
-                                  <div className="p-3 flex flex-col flex-1">
-                                    <p className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{item.title}</p>
-                                    <p className="text-[11px] text-indigo-500 font-black mt-0.5 mb-2">{item.price}</p>
-                                    <button className={`w-full py-1.5 mt-auto rounded-lg text-[10px] font-bold transition-colors ${isDarkMode ? 'bg-indigo-500 text-white hover:bg-indigo-400' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}>ดูรายละเอียด</button>
-                                  </div>
+                      ) : (
+                        visibleChats.map((chat) => (
+                          <div 
+                            key={chat.id} 
+                            onClick={() => {
+                              setSelectedChat(chat.id);
+                              if(chat.status === 'Handover') setChatMode('human');
+                              else setChatMode('ai');
+                              // Clear unread count when chat is clicked
+                              setInboxList(prev => prev.map(item => item.id === chat.id ? { ...item, unreadCount: 0 } : item));
+                            }}
+                            className={`p-3 rounded-xl cursor-pointer transition-colors border ${
+                              selectedChat === chat.id 
+                                ? (isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30' : 'bg-indigo-50 border-indigo-100') 
+                                : (isDarkMode ? 'border-transparent hover:bg-slate-700/50' : 'border-transparent hover:bg-slate-50')
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className={`flex items-center gap-1.5 text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${
+                                  chat.platform === 'Line OA' ? 'bg-[#00B900]' : 
+                                  chat.platform === 'Facebook' ? 'bg-[#0084FF]' : 
+                                  chat.platform === 'Instagram' ? 'bg-gradient-to-tr from-amber-500 to-purple-600' : 'bg-slate-800'
+                                }`}>
+                                  {chat.user.charAt(0)}
                                 </div>
-                              ))}
+                                {chat.user}
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <span className="text-[10px] text-slate-400 font-medium">{chat.time}</span>
+                                {chat.unreadCount > 0 && (
+                                  <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[16px] h-4 flex items-center justify-center shadow-sm animate-pulse">
+                                    {chat.unreadCount}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          <span className="text-[9px] text-slate-400 px-1">{msg.sender === 'ai' && <Bot className="w-3 h-3 inline mr-0.5 opacity-50"/>}{msg.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
+                            <div className="pl-10">
+                              <p className={`text-xs truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                                {chat.status === 'AI Replied' ? <Bot className="w-3 h-3 inline mr-1 text-emerald-500"/> : <AlertCircle className="w-3 h-3 inline mr-1 text-rose-500"/>}
+                                "{chat.query}"
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
 
-                  <div className={`p-4 border-t ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                    {chatMode === 'ai' ? (
-                      <div className={`text-center p-3 rounded-xl border border-dashed ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300'}`}>
-                        <p className={`text-xs font-bold flex items-center justify-center gap-1.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}><Bot className="w-4 h-4"/> AI กำลังดูแลการสนทนานี้ แอดมินสามารถดูได้อย่างเดียว</p>
-                        <p className={`text-[10px] mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-600/70'}`}>สลับเป็นโหมด 'แอดมินตอบเอง' ด้านบน หากต้องการพิมพ์ข้อความ</p>
+                  <div className={`flex-1 flex flex-col min-w-0 ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50/50'}`}>
+                    {!activeChat ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto animate-in fade-in zoom-in-95 duration-500">
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 relative ${isDarkMode ? 'bg-slate-800' : 'bg-white'} shadow-md border ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                          <MessageSquare className="w-10 h-10 text-indigo-500 animate-pulse" />
+                        </div>
+                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                          {inboxPlatformFilter === 'All' ? 'ยินดีต้อนรับสู่ AIVA Inbox' : `ช่องทาง ${inboxPlatformFilter}`}
+                        </h3>
+                        <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {visibleChats.length === 0 
+                            ? 'ยังไม่มีการสนทนาใหม่ในระบบ หรือการเชื่อมต่อยังไม่เริ่มต้น'
+                            : 'กรุณาเลือกรายการห้องสนทนาทางด้านซ้ายมือเพื่อเริ่มต้นพูดคุยหรือจัดการ'}
+                        </p>
+                        {visibleChats.length === 0 && (
+                          <button
+                            onClick={() => setActiveTab('integrations')}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] text-xs flex items-center gap-2"
+                          >
+                            <Plug className="w-4 h-4" /> ไปหน้าตั้งค่าการเชื่อมต่อ
+                          </button>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <input type="text" placeholder="พิมพ์ข้อความตอบกลับลูกค้า..." className={`flex-1 border rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-200 placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
-                        <button className={`px-5 py-3 rounded-xl shadow-sm transition-colors flex items-center justify-center ${isDarkMode ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}><Send className="w-4 h-4" /></button>
-                      </div>
+                      <>
+                        <div className={`h-16 px-6 border-b flex items-center justify-between shrink-0 backdrop-blur-sm ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-slate-100'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-500'}`}>
+                              {activeChat.user.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{activeChat.user}</h3>
+                              <p className="text-[10px] text-slate-400">ผ่านช่องทาง {activeChat.platform}</p>
+                            </div>
+                          </div>
+                          
+                          <div className={`flex items-center p-1 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                            <div className="group relative">
+                              <button 
+                                onClick={() => setChatMode('ai')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${chatMode === 'ai' ? (isDarkMode ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'bg-white text-emerald-600 shadow-sm') : (isDarkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}
+                              >
+                                <Bot className="w-3.5 h-3.5" /> AI กำลังดูแล
+                              </button>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                สลับให้บอท AI ช่วยตอบอัตโนมัติ
+                              </span>
+                            </div>
+                            <div className="group relative">
+                              <button 
+                                onClick={() => setChatMode('human')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${chatMode === 'human' ? 'bg-rose-500 text-white shadow-sm' : (isDarkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}
+                              >
+                                <Users className="w-3.5 h-3.5" /> แอดมินตอบเอง
+                              </button>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                ปิดระบบบอทชั่วคราวและพิมพ์แชตเอง
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                          <div className="text-center mb-6">
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>วันนี้ 10:00 AM</span>
+                          </div>
+
+                          {(chatMessages[selectedChat] || (USE_MOCK ? MOCK_CHATS[selectedChat] : []) || []).map((msg, idx) => (
+                            <div key={idx} className={`flex items-start gap-3 max-w-[90%] ${msg.sender === 'user' ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${
+                                msg.sender === 'user' 
+                                  ? (isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-500') 
+                                  : (isDarkMode ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-indigo-100 text-indigo-600 border border-indigo-200')
+                              }`}>
+                                {msg.sender === 'user' ? 'C' : <Bot className="w-4 h-4"/>}
+                              </div>
+                              <div className={`flex flex-col gap-2 ${msg.sender === 'user' ? 'items-start' : 'items-end'}`}>
+                                {msg.text && (
+                                  <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm whitespace-pre-wrap leading-relaxed ${
+                                    msg.sender === 'user' 
+                                      ? (isDarkMode ? 'bg-slate-700 text-slate-100 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm') 
+                                      : (isDarkMode ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-indigo-600 text-white rounded-tr-sm')
+                                  }`}>
+                                    {msg.text}
+                                  </div>
+                                )}
+                                {msg.image && (
+                                  <div className={`rounded-2xl overflow-hidden shadow-sm max-w-[200px] border ${isDarkMode ? 'border-slate-700' : 'border-slate-200'} ${msg.sender === 'user' ? 'rounded-tl-sm' : 'rounded-tr-sm'}`}>
+                                    <img src={msg.image} alt="attachment" className="w-full h-auto object-cover" />
+                                  </div>
+                                )}
+                                {msg.buttons && (
+                                  <div className={`flex flex-wrap gap-2 ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
+                                    {msg.buttons.map((btn, i) => (
+                                      <button key={i} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 border-indigo-500/40 text-indigo-400 hover:bg-slate-700' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>
+                                        {btn}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                {msg.carousel && (
+                                  <div className={`flex gap-3 overflow-x-auto custom-scrollbar pb-2 max-w-[320px] ${msg.sender === 'user' ? 'flex-row' : 'flex-row-reverse'}`}>
+                                    {msg.carousel.map((item, i) => (
+                                      <div key={i} className={`flex-shrink-0 w-36 rounded-2xl overflow-hidden border shadow-sm flex flex-col ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                        <img src={item.image} alt={item.title} className="w-full h-36 object-cover" />
+                                        <div className="p-3 flex flex-col flex-1">
+                                          <p className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{item.title}</p>
+                                          <p className="text-[11px] text-indigo-500 font-black mt-0.5 mb-2">{item.price}</p>
+                                          <button className={`w-full py-1.5 mt-auto rounded-lg text-[10px] font-bold transition-colors ${isDarkMode ? 'bg-indigo-500 text-white hover:bg-indigo-400' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}>ดูรายละเอียด</button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <span className="text-[9px] text-slate-400 px-1">{msg.sender === 'ai' && <Bot className="w-3 h-3 inline mr-0.5 opacity-50"/>}{msg.time}</span>
+                              </div>
+                            </div>
+                          ))}
+                          <div ref={chatEndRef} />
+                        </div>
+
+                        <div className={`p-4 border-t ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                          {chatMode === 'ai' ? (
+                            <div className={`text-center p-3 rounded-xl border border-dashed ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300'}`}>
+                              <p className={`text-xs font-bold flex items-center justify-center gap-1.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}><Bot className="w-4 h-4"/> AI กำลังดูแลการสนทนานี้ แอดมินสามารถดูได้อย่างเดียว</p>
+                              <p className={`text-[10px] mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-600/70'}`}>สลับเป็นโหมด 'แอดมินตอบเอง' ด้านบน หากต้องการพิมพ์ข้อความ</p>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
+                                placeholder="พิมพ์ข้อความตอบกลับลูกค้า..." 
+                                className={`flex-1 border rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-200 placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800'}`} 
+                              />
+                              <div className="group relative flex">
+                                <button onClick={handleSendChatMessage} className={`px-5 py-3 rounded-xl shadow-sm transition-colors flex items-center justify-center ${isDarkMode ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}><Send className="w-4 h-4" /></button>
+                                <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                  ส่งข้อความ (Enter)
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
+            );
+          })()}
           {/* TAB: REPLY COMMENT */}
           {activeTab === 'replycomment' && (
             <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
@@ -2330,9 +2404,9 @@ export default function Platform() {
                   <div className="mb-6 shrink-0"><h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><Flame className="w-6 h-6 text-rose-500" /> AIVA Lead Score</h2></div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 mb-6">
-                     <StatCard title="HOT LEADS (พร้อมโอน)" value="12" icon={Flame} color="rose" isDark={isDarkMode} />
-                     <StatCard title="WARM LEADS (ลังเล)" value="45" icon={Sun} color="amber" isDark={isDarkMode} />
-                     <StatCard title="COLD LEADS (ถามเฉยๆ)" value="89" icon={Moon} color="blue" isDark={isDarkMode} />
+                     <StatCard title="HOT LEADS (พร้อมโอน)" value={USE_MOCK ? "12" : "0"} icon={Flame} color="rose" isDark={isDarkMode} />
+                     <StatCard title="WARM LEADS (ลังเล)" value={USE_MOCK ? "45" : "0"} icon={Sun} color="amber" isDark={isDarkMode} />
+                     <StatCard title="COLD LEADS (ถามเฉยๆ)" value={USE_MOCK ? "89" : "0"} icon={Moon} color="blue" isDark={isDarkMode} />
                   </div>
 
                   <div className={`rounded-2xl border shadow-sm flex flex-col flex-1 overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} min-h-0`}>
@@ -2351,7 +2425,14 @@ export default function Platform() {
                           </tr>
                         </thead>
                         <tbody className={`divide-y ${isDarkMode ? 'divide-slate-700/50' : 'divide-slate-100'}`}>
-                          {leadScores.map((lead) => (
+                          {leadScores.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="px-6 py-12 text-center text-slate-400 font-medium">
+                                ไม่มีข้อมูลลูกค้าพร้อมโอน (Lead Score)
+                              </td>
+                            </tr>
+                          ) : (
+                            leadScores.map((lead) => (
                             <tr key={lead.id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}>
                               <td className={`px-4 py-4 font-bold truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{lead.name}</td>
                               <td className="px-4 py-4 text-center">
@@ -2374,7 +2455,7 @@ export default function Platform() {
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                          )))}
                         </tbody>
                       </table>
                     </div>
@@ -2393,9 +2474,9 @@ export default function Platform() {
                 <>
                   <div className="mb-6 shrink-0"><h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><AlertOctagon className="w-6 h-6 text-rose-600" /> AIVA Lost Revenue Detector</h2></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 mb-6">
-                     <StatCard title="💰 ยอดขายที่เสียไป" value="฿142,500" icon={TrendingDown} color="rose" isDark={isDarkMode} />
-                     <StatCard title="🎯 โอกาสที่กู้คืนได้" value="฿85,400" icon={RefreshCcw} color="amber" isDark={isDarkMode} />
-                     <StatCard title="✅ กู้คืนสำเร็จแล้ว" value="฿45,600" icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
+                     <StatCard title="💰 ยอดขายที่เสียไป" value={USE_MOCK ? "฿142,500" : "฿0"} icon={TrendingDown} color="rose" isDark={isDarkMode} />
+                     <StatCard title="🎯 โอกาสที่กู้คืนได้" value={USE_MOCK ? "฿85,400" : "฿0"} icon={RefreshCcw} color="amber" isDark={isDarkMode} />
+                     <StatCard title="✅ กู้คืนสำเร็จแล้ว" value={USE_MOCK ? "฿45,600" : "฿0"} icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
                   </div>
                   <div className={`bg-white rounded-2xl shadow-sm border flex flex-col flex-1 overflow-hidden saas-card min-h-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'border-slate-200'}`}>
                     <div className={`p-5 border-b flex justify-between items-center shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50'}`}>
@@ -2413,7 +2494,14 @@ export default function Platform() {
                           </tr>
                         </thead>
                         <tbody className={`divide-y ${isDarkMode ? 'divide-slate-700/50' : 'divide-slate-100'}`}>
-                          {lostRevenues.map((item) => (
+                          {lostRevenues.length === 0 ? (
+                            <tr>
+                              <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">
+                                ไม่มีข้อมูลออเดอร์ที่หลุด (Lost Revenue)
+                              </td>
+                            </tr>
+                          ) : (
+                            lostRevenues.map((item) => (
                             <tr key={item.id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}>
                               <td className="px-6 py-4">
                                 <div className={`font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>{item.name}</div>
@@ -2438,7 +2526,7 @@ export default function Platform() {
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          )))}
                         </tbody>
                       </table>
                     </div>
