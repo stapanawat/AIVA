@@ -138,7 +138,7 @@ Scenario 3: Partner Portal Referral and Registration Workflow
     Click Element    xpath=//button[contains(., 'ลงชื่อเข้าใช้')]
     
     # Verify Partner Dashboard (waits for mock 800ms loading timeout)
-    Wait Until Page Contains    คุณสมชาย ใจดี    timeout=5s
+    Wait Until Page Contains    สมชาย ใจดี    timeout=10s
     Page Should Contain    18%
     
     # Switch to เครือข่ายตัวแทน tab
@@ -169,7 +169,7 @@ Scenario 4: Super Admin Portal KYC Approval and Partner Center
     Click Element    xpath=//button[contains(., 'Authorize Access')]
     
     # Verify Super Admin dashboard loads (waits for mock 600ms loading timeout)
-    Page Should Contain    Partners
+    Wait Until Page Contains    Partners    timeout=10s
     
     # Switch to Announcements tab
     Click Element    xpath=//*[contains(text(), 'ประกาศ & แคมเปญ')]

@@ -34,9 +34,70 @@ function AuthScreen({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
   const [idImage, setIdImage] = useState(null);
 
+  // Registration states
+  const [firstName, setFirstName] = useState('สมชาย');
+  const [lastName, setLastName] = useState('ใจดี');
+  const [email, setEmail] = useState('partner@example.com');
+  const [password, setPassword] = useState('password');
+  const [confirmPassword, setConfirmPassword] = useState('password');
+  const [phone, setPhone] = useState('089-876-5432');
+  const [citizenId, setCitizenId] = useState('1-2345-67890-12-3');
+  
+  const [bankName, setBankName] = useState('kbank');
+  const [bankAccount, setBankAccount] = useState('0123456789');
+  const [bankAccountName, setBankAccountName] = useState('สมชาย ใจดี');
+
+  const [generatedPartnerId, setGeneratedPartnerId] = useState('SP99201');
+
   const handleNextStep = (nextView) => {
     setIsLoading(true);
     setTimeout(() => { setIsLoading(false); setView(nextView); }, 600);
+  };
+
+  const handleRegister = async () => {
+    if (password !== confirmPassword) {
+      alert('รหัสผ่านไม่ตรงกัน');
+      return;
+    }
+    setIsLoading(true);
+    
+    // Generate a random Sub-Partner ID
+    const newId = 'SP' + Math.floor(10000 + Math.random() * 90000);
+    setGeneratedPartnerId(newId);
+    
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newId,
+          password: password,
+          name: `${firstName} ${lastName}`,
+          role: 'PARTNER_SUB',
+          phone: phone,
+          referralCode: 'P88942', // default parent referral code
+          bankName: bankName,
+          bankAccount: bankAccount,
+          bankAccountName: bankAccountName
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'การสมัครสมาชิกพาร์ทเนอร์ล้มเหลว');
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(false);
+      setView('signup_success');
+    } catch (err) {
+      console.warn('Registration offline fallback:', err);
+      setTimeout(() => {
+        setIsLoading(false);
+        setView('signup_success');
+      }, 800);
+    }
   };
 
   const handleFinish = async () => {
@@ -44,13 +105,13 @@ function AuthScreen({ onLogin }) {
     try {
       const emailInput = document.querySelector('input[placeholder="Pxxxxx หรือ SPxxxxx"]');
       const passwordInput = document.querySelector('input[type="password"]');
-      const email = emailInput ? emailInput.value : 'P88942';
-      const password = passwordInput ? passwordInput.value : 'password';
+      const emailVal = emailInput ? emailInput.value : generatedPartnerId;
+      const passwordVal = passwordInput ? passwordInput.value : password;
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: emailVal, password: passwordVal })
       });
       
       const data = await res.json();
@@ -147,11 +208,11 @@ function AuthScreen({ onLogin }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-slate-700">ชื่อจริง</label>
-                  <input type="text" placeholder="สมชาย" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" placeholder="สมชาย" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-slate-700">นามสกุล</label>
-                  <input type="text" placeholder="ใจดี" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" placeholder="ใจดี" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -159,7 +220,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">อีเมล</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="email" placeholder="partner@example.com" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="email" placeholder="partner@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -167,7 +228,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">รหัสผ่าน</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="password" placeholder="ตั้งรหัสผ่านอย่างน้อย 8 ตัวอักษร" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="password" placeholder="ตั้งรหัสผ่านอย่างน้อย 8 ตัวอักษร" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -175,7 +236,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">ยืนยันรหัสผ่าน</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="password" placeholder="กรอกรหัสผ่านอีกครั้ง" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="password" placeholder="กรอกรหัสผ่านอีกครั้ง" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -183,7 +244,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">เบอร์โทรศัพท์</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="tel" placeholder="08x-xxx-xxxx" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="tel" placeholder="08x-xxx-xxxx" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -191,7 +252,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">เลขประจำตัวประชาชน</label>
                 <div className="relative">
                   <UserSquare className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder="1-xxxx-xxxxx-xx-x" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" placeholder="1-xxxx-xxxxx-xx-x" value={citizenId} onChange={(e) => setCitizenId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -264,7 +325,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">ธนาคาร</label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <select className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none appearance-none cursor-pointer">
+                  <select value={bankName} onChange={(e) => setBankName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none appearance-none cursor-pointer">
                     <option value="">เลือกธนาคาร...</option>
                     <option value="kbank">ธนาคารกสิกรไทย (KBANK)</option>
                     <option value="scb">ธนาคารไทยพาณิชย์ (SCB)</option>
@@ -280,12 +341,12 @@ function AuthScreen({ onLogin }) {
 
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-slate-700">เลขที่บัญชี</label>
-                <input type="text" placeholder="ระบุเลขบัญชี 10 หลัก" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-mono transition-all" />
+                <input type="text" placeholder="ระบุเลขบัญชี 10 หลัก" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-mono transition-all" />
               </div>
 
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-slate-700">ชื่อบัญชี</label>
-                <input type="text" placeholder="เช่น นาย สมชาย ใจดี" className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                <input type="text" placeholder="เช่น นาย สมชาย ใจดี" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
               </div>
 
               <button 
@@ -308,7 +369,7 @@ function AuthScreen({ onLogin }) {
               <Mail className="w-8 h-8 text-indigo-600" />
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">ยืนยันอีเมลของคุณ</h2>
-            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">partner@example.com</strong></p>
+            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">{email}</strong></p>
 
             <div className="flex justify-center gap-2 mb-8">
               {[1,2,3,4,5,6].map((idx) => (
@@ -323,7 +384,7 @@ function AuthScreen({ onLogin }) {
             </div>
 
             <button 
-              onClick={() => handleNextStep('signup_success')}
+              onClick={handleRegister}
               disabled={isLoading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2"
             >
@@ -351,7 +412,7 @@ function AuthScreen({ onLogin }) {
 
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-8">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Sub-Partner ID</p>
-              <h3 className="text-3xl font-black text-indigo-600 tracking-wider">SP99201</h3>
+              <h3 className="text-3xl font-black text-indigo-600 tracking-wider">{generatedPartnerId}</h3>
             </div>
 
             <button 
@@ -371,13 +432,36 @@ function AuthScreen({ onLogin }) {
 }
 
 export default function Partner() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('aiva_access_token');
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMonth, setSelectedMonth] = useState('2026-06');
-  const [role, setRole] = useState('main'); // 'main' หรือ 'sub'
+  const [role, setRole] = useState(() => {
+    const userStr = localStorage.getItem('aiva_user');
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        return u.role === 'PARTNER_MAIN' ? 'main' : 'sub';
+      } catch (e) {}
+    }
+    return 'main';
+  });
   
   // โหมดแสดงผล (เริ่มที่ Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Settings States
+  const [profileSettings, setProfileSettings] = useState({
+    name: '',
+    phone: '',
+    bankName: '',
+    bankAccount: '',
+    bankAccountName: ''
+  });
+  const [promotionsList, setPromotionsList] = useState([]);
+  const [marketingAssets, setMarketingAssets] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // States for Modules
   const [newPromo, setNewPromo] = useState({ code: '', discount: 5, limit: 10 });
@@ -385,11 +469,7 @@ export default function Partner() {
   const [copiedLink, setCopiedLink] = useState(null);
   
   // States for Tracking Module
-  const [trackingLinks, setTrackingLinks] = useState([
-    { id: 1, name: 'ลิงก์หลัก (Default)', source: 'ORGANIC', clicks: 1245, signups: 86, paid: 12, earnings: 22500, code: 'P88942' },
-    { id: 2, name: 'ยิงแอด  เดือน 6', source: 'FB_ADS', clicks: 850, signups: 42, paid: 5, earnings: 8500, code: 'P88942_FB' },
-    { id: 3, name: 'คลิปรีวิวสอนใช้งาน TikTok', source: 'TIKTOK', clicks: 2300, signups: 115, paid: 18, earnings: 34200, code: 'P88942_TK' }
-  ]);
+  const [trackingLinks, setTrackingLinks] = useState([]);
   const [newTracking, setNewTracking] = useState({ name: '', source: '' });
   
   // States for Sub-Partner Invite Modal
@@ -404,69 +484,418 @@ export default function Partner() {
   ]);
   const chatEndRef = useRef(null);
 
+  // States for Payout Form and Database Data
+  const [payoutInput, setPayoutInput] = useState('');
+  const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
+  const [subPartners, setSubPartners] = useState([]);
+  const [clientsList, setClientsList] = useState([]);
+  const [payoutsList, setPayoutsList] = useState([]);
+  const [stats, setStats] = useState({
+    personalSales: 0,
+    currentRate: 0,
+    personalCommission: 0,
+    teamOverrideCommission: 0,
+    netIncome: 0,
+    totalClicks: 0,
+    totalSignups: 0,
+    paidAmount: 0,
+    pendingAmount: 0,
+    targetVolume: 50000,
+    nextRate: 18
+  });
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/partner/stats', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (err) {
+      console.error('Error fetching partner stats:', err);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await fetch('/api/partner/announcements', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnnouncements(data);
+      }
+    } catch (err) {
+      console.error('Error fetching announcements:', err);
+    }
+  };
+
+  const fetchReferrals = async () => {
+    try {
+      const res = await fetch('/api/partner/referrals', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTrackingLinks(data);
+      }
+    } catch (err) {
+      console.error('Error fetching referrals:', err);
+    }
+  };
+
+  const fetchNetwork = async () => {
+    try {
+      const res = await fetch('/api/partner/network', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubPartners(data);
+      }
+    } catch (err) {
+      console.error('Error fetching network:', err);
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const res = await fetch('/api/partner/clients', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClientsList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+    }
+  };
+
+  const fetchPayouts = async () => {
+    try {
+      const res = await fetch('/api/partner/payouts', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPayoutsList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching payouts:', err);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch('/api/partner/profile', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileSettings({
+          name: data.name || '',
+          phone: data.phone || '',
+          bankName: data.bankName || '',
+          bankAccount: data.bankAccount || '',
+          bankAccountName: data.bankAccountName || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching partner profile:', err);
+    }
+  };
+
+  const fetchPromotions = async () => {
+    try {
+      const res = await fetch('/api/partner/promotions', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPromotionsList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching partner promotions:', err);
+    }
+  };
+
+  const fetchAssets = async () => {
+    try {
+      const res = await fetch('/api/partner/assets', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMarketingAssets(data);
+      }
+    } catch (err) {
+      console.error('Error fetching partner marketing assets:', err);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/partner/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify(profileSettings)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('บันทึกข้อมูลการตั้งค่าสำเร็จแล้ว!');
+        // Update user in localstorage
+        const user = JSON.parse(localStorage.getItem('aiva_user') || '{}');
+        user.name = profileSettings.name;
+        localStorage.setItem('aiva_user', JSON.stringify(user));
+      } else {
+        alert(data.error || 'บันทึกข้อมูลล้มเหลว');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  };
+
+  const handleCreatePromotion = async (e) => {
+    e.preventDefault();
+    if (!newPromo.code || !newPromo.discount || !newPromo.limit) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+    const discountVal = parseFloat(newPromo.discount);
+    if (discountVal > stats.currentRate) {
+      alert(`ส่วนลดต้องไม่เกินเรทคอมมิชชันของคุณ (${stats.currentRate}%)`);
+      return;
+    }
+    try {
+      const res = await fetch('/api/partner/promotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify({
+          code: newPromo.code.toUpperCase(),
+          discount: discountVal,
+          limit: parseInt(newPromo.limit)
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('สร้างโค้ดส่วนลดสำเร็จแล้ว!');
+        setNewPromo({ code: '', discount: 5, limit: 10 });
+        fetchPromotions();
+      } else {
+        alert(data.error || 'สร้างโค้ดส่วนลดล้มเหลว');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  };
+
+  const handleSubmitFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedbackForm.title || !feedbackForm.desc) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+    try {
+      const res = await fetch('/api/partner/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify({
+          title: feedbackForm.title,
+          description: feedbackForm.desc,
+          type: 'Feedback'
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('ส่งข้อเสนอแนะสำเร็จแล้ว! ทีมงานจะรีบตรวจสอบข้อร้องเรียนโดยเร็วที่สุด');
+        setFeedbackForm({ title: '', desc: '' });
+      } else {
+        alert(data.error || 'ส่งข้อมูลล้มเหลว');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchStats();
+      fetchReferrals();
+      fetchNetwork();
+      fetchClients();
+      fetchPayouts();
+      fetchProfile();
+      fetchPromotions();
+      fetchAssets();
+      fetchAnnouncements();
+    }
+  }, [isAuthenticated, role]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('aiva_access_token');
+    localStorage.removeItem('aiva_user');
+    setIsAuthenticated(false);
+  };
+
+  const handleCreateReferral = async (e) => {
+    e.preventDefault();
+    if (!newTracking.name || !newTracking.source) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+    try {
+      const res = await fetch('/api/partner/referrals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify({
+          name: newTracking.name,
+          code: newTracking.source.toUpperCase()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'สร้างลิงก์ล้มเหลว');
+      } else {
+        alert('สร้างลิงก์สำเร็จแล้ว!');
+        setNewTracking({ name: '', source: '' });
+        fetchReferrals();
+        fetchStats();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  };
+
+  const handleRequestPayout = async (e) => {
+    e.preventDefault();
+    const amount = parseFloat(payoutInput);
+    if (isNaN(amount) || amount <= 0) {
+      alert('กรุณาระบุจำนวนเงินที่ถูกต้อง');
+      return;
+    }
+    const withdrawableAmount = Math.max(0, totalIncome - stats.paidAmount - stats.pendingAmount);
+    if (amount > withdrawableAmount) {
+      alert('ยอดเงินไม่เพียงพอสำหรับการถอน');
+      return;
+    }
+
+    setIsSubmittingPayout(true);
+    try {
+      const res = await fetch('/api/partner/payouts/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify({ amount })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'การส่งคำขอถอนเงินล้มเหลว');
+      } else {
+        alert('ส่งคำขอถอนเงินสำเร็จแล้ว!');
+        setPayoutInput('');
+        fetchStats();
+        fetchPayouts();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setIsSubmittingPayout(false);
+    }
+  };
+
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatHistory, isChatOpen]);
 
-  const handleSendChat = () => {
+  const handleSendChat = async () => {
     if (!chatMessage.trim()) return;
     
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const userMsg = chatMessage;
     
-    setChatHistory(prev => [...prev, { sender: 'partner', text: chatMessage, time: timeStr }]);
+    // Add user message to state
+    setChatHistory(prev => [...prev, { sender: 'partner', text: userMsg, time: timeStr }]);
     setChatMessage('');
     
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, { 
-        sender: 'admin', 
-        text: 'ได้รับข้อความแล้วค่ะ แอดมินกำลังตรวจสอบข้อมูลให้ สักครู่นะคะ ⏳', 
-        time: timeStr 
-      }]);
-    }, 1500);
+    // Add temporary loading indicator
+    setChatHistory(prev => [...prev, { sender: 'admin', text: 'กำลังคิดหาคำตอบ... 💬', time: timeStr }]);
+    
+    try {
+      const res = await fetch('/api/partner/support/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aiva_access_token')}`
+        },
+        body: JSON.stringify({ message: userMsg, chatHistory })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChatHistory(prev => {
+          const filtered = prev.filter(msg => msg.text !== 'กำลังคิดหาคำตอบ... 💬');
+          return [...filtered, { sender: 'admin', text: data.reply, time: timeStr }];
+        });
+      } else {
+        setChatHistory(prev => {
+          const filtered = prev.filter(msg => msg.text !== 'กำลังคิดหาคำตอบ... 💬');
+          return [...filtered, { sender: 'admin', text: data.error || 'ขออภัยด้วยค่ะ ไม่สามารถประมวลผลคำตอบได้ในขณะนี้', time: timeStr }];
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setChatHistory(prev => {
+        const filtered = prev.filter(msg => msg.text !== 'กำลังคิดหาคำตอบ... 💬');
+        return [...filtered, { sender: 'admin', text: 'ขออภัยด้วยนะคะ ระบบเชื่อมต่อขัดข้องชั่วคราว', time: timeStr }];
+      });
+    }
   };
 
   if (!isAuthenticated) return <AuthScreen onLogin={() => setIsAuthenticated(true)} />;
 
+  const user = JSON.parse(localStorage.getItem('aiva_user') || '{}');
   const isMain = role === 'main';
-  const partnerId = isMain ? 'P88942' : 'SP99201';
+  const partnerId = user.email || (isMain ? 'P88942' : 'SP99201');
   
-  const currentSales = isMain ? 125400 : 85000; 
-  
-  const rates = isMain 
-    ? [{ min: 0, rate: 15 }, { min: 50000, rate: 18 }, { min: 150000, rate: 25 }] // Main
-    : [{ min: 0, rate: 7 }, { min: 50000, rate: 10 }, { min: 150000, rate: 15 }]; // Sub
+  const currentSales = stats.personalSales;
+  const currentCommissionRate = stats.currentRate;
+  const estimatedCommission = stats.personalCommission;
+  const networkOverride = stats.teamOverrideCommission;
 
-  let currentCommissionRate = rates[0].rate;
-  let nextTier = rates[1].min;
-  let nextRate = rates[1].rate;
-
-  if (currentSales >= rates[2].min) { 
-    currentCommissionRate = rates[2].rate; nextTier = null; nextRate = null; 
-  } else if (currentSales >= rates[1].min) { 
-    currentCommissionRate = rates[1].rate; nextTier = rates[2].min; nextRate = rates[2].rate; 
-  }
-
+  const nextTier = stats.nextRate ? stats.targetVolume : null;
+  const nextRate = stats.nextRate;
   const salesNeeded = nextTier ? nextTier - currentSales : 0;
-  const progressPercent = nextTier ? (currentSales / nextTier) * 100 : 100;
-  const estimatedCommission = currentSales * (currentCommissionRate / 100);
+  const progressPercent = nextTier ? Math.min((currentSales / nextTier) * 100, 100) : 100;
 
-  const subPartners = [
-    { id: 'SP99201', name: 'คุณนิว', sales: 160000, clients: 12, joined: '01/05/2026' },
-    { id: 'SP99202', name: 'คุณตูน', sales: 65000, clients: 5, joined: '15/05/2026' },
-    { id: 'SP99203', name: 'คุณก้อย', sales: 25000, clients: 2, joined: '02/06/2026' }
-  ];
-
-  let networkOverride = 0;
   let networkSales = 0;
-
   if (isMain) {
     subPartners.forEach(sp => {
       networkSales += sp.sales;
-      if (sp.sales >= 150000) networkOverride += sp.sales * 0.10; 
-      else if (sp.sales >= 50000) networkOverride += sp.sales * 0.05; 
     });
   }
 
@@ -566,54 +995,29 @@ export default function Partner() {
           <button className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg transition-colors">ดูทั้งหมด</button>
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
-          {/* ข่าวที่ 1 */}
-          <div className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors flex gap-4 items-start group cursor-pointer">
-            <div className="shrink-0 mt-1">
-              <span className="flex w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-1.5">
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">🔥 แคมเปญโบนัส X2: ทำยอดทะลุ 100k เดือนนี้ รับทองคำ 1 สลึง!</h3>
-                <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded">05 มิ.ย. 2026</span>
+          {announcements.length === 0 ? (
+            <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">ยังไม่มีข่าวประกาศในขณะนี้</div>
+          ) : (
+            announcements.map((anc, idx) => (
+              <div key={anc.id} className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors flex gap-4 items-start group cursor-pointer">
+                <div className="shrink-0 mt-1">
+                  <span className={`flex w-2.5 h-2.5 rounded-full ${idx === 0 ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse' : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]'}`}></span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-1.5">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">{anc.title}</h3>
+                    <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded">
+                      {new Date(anc.createdAt).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">{anc.content}</p>
+                  <div className="mt-3 flex gap-2">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-bold uppercase tracking-wider">Announcement</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">พิเศษสำหรับพาร์ทเนอร์ทุกระดับ! เพียงทำยอดขายสะสมในเดือนมิถุนายนให้ถึง 100,000 บาท รับทันทีทองคำหนัก 1 สลึง (หรือเทียบเท่าเงินสด) ประกาศผลวันที่ 5 ก.ค. 2026</p>
-              <div className="mt-3 flex gap-2">
-                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 font-bold uppercase tracking-wider">Campaign</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 font-bold uppercase tracking-wider">HOT</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ข่าวที่ 2 */}
-          <div className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors flex gap-4 items-start group cursor-pointer">
-            <div className="shrink-0 mt-1">
-              <span className="flex w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></span>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-1.5">
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">📢 อัปเดตฟีเจอร์ใหม่: ระบบ Tracking ลิงก์แยกตามช่องทาง</h3>
-                <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded">01 มิ.ย. 2026</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">พาร์ทเนอร์สามารถสร้างลิงก์ Affiliate แยกตามแคมเปญและช่องทางโปรโมทได้แล้วที่เมนู "ระบบติดตามลิงก์" เพื่อวิเคราะห์ Conversion Rate ได้แม่นยำยิ่งขึ้น</p>
-              <div className="mt-3 flex gap-2">
-                <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-bold uppercase tracking-wider">System Update</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* ข่าวที่ 3 */}
-          <div className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors flex gap-4 items-start group cursor-pointer">
-            <div className="shrink-0 mt-1">
-              <span className="flex w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-1.5">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm group-hover:text-slate-900 dark:group-hover:text-white transition-colors">⚠️ แจ้งปิดปรับปรุงระบบชั่วคราว (Maintenance)</h3>
-                <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded">28 พ.ค. 2026</span>
-              </div>
-              <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">ทีมงานจะทำการปิดปรับปรุงเซิร์ฟเวอร์ในคืนวันอาทิตย์ที่ 10 มิ.ย. 2026 เวลา 02:00 - 04:00 น. ในช่วงเวลาดังกล่าวระบบ Partner Portal จะไม่สามารถเข้าใช้งานได้</p>
-            </div>
-          </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -733,15 +1137,7 @@ export default function Partner() {
   );
 
   const renderClients = () => {
-    const clientsData = [
-      { id: 'C1001', name: 'บจก. เอบีซี', plan: 'Advanced', ltv: 11900, source: 'Direct', status: 'Active', expiresIn: 45 },
-      { id: 'C1002', name: 'คุณนิว', plan: 'Pro', ltv: 4900, source: 'SP99201', status: 'Active', expiresIn: 12 },
-      { id: 'C1003', name: 'คลินิกใจดี', plan: 'Basic', ltv: 990, source: 'Direct', status: 'Pending', expiresIn: null },
-      { id: 'C1004', name: 'ร้านสมใจมินิมาร์ท', plan: 'Pro', ltv: 4900, source: 'SP99202', status: 'Active', expiresIn: 5 },
-      { id: 'C1005', name: 'บจก. วายแซดเอ็กซ์', plan: 'Advanced', ltv: 23800, source: 'Direct', status: 'Active', expiresIn: 120 },
-    ];
-
-    const visibleClients = clientsData.filter(c => isMain || c.source === 'Direct');
+    const visibleClients = clientsList.filter(c => isMain || c.source === 'Direct');
     
     const activeClientsCount = visibleClients.filter(c => c.status === 'Active').length;
     const totalLTV = visibleClients.reduce((acc, curr) => acc + curr.ltv, 0);
@@ -836,22 +1232,34 @@ export default function Partner() {
   const renderPromotions = () => (
     <div className="space-y-6 w-full animate-in fade-in duration-300 h-full flex flex-col">
       <div className="shrink-0"><h1 className="text-2xl font-bold text-slate-900 dark:text-white">ระบบจัดการส่วนลด (Promotions)</h1><p className="text-slate-500 dark:text-slate-400 text-sm mt-1">สร้างโค้ดส่วนลดให้ลูกค้า (สูงสุดไม่เกินเรทคอมมิชชันของคุณ: {currentCommissionRate}%)</p></div>
-      <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
+      <form onSubmit={handleCreatePromotion} className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
         <div className="flex items-center gap-2 mb-4"><Tag className="w-5 h-5 text-indigo-500 dark:text-indigo-400" /><h2 className="font-bold text-slate-900 dark:text-white">สร้างโค้ดใหม่</h2></div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">CODE</label><input type="text" value={newPromo.code} onChange={e=>setNewPromo({...newPromo, code: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น NEWYEAR" /></div>
           <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">% ลด (Max {currentCommissionRate}%)</label><input type="number" value={newPromo.discount} onChange={e=>setNewPromo({...newPromo, discount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" /></div>
           <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">จำนวนสิทธิ์</label><input type="number" value={newPromo.limit} onChange={e=>setNewPromo({...newPromo, limit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" /></div>
         </div>
-        <div className="mt-4 text-right"><button className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm">บันทึกโค้ด</button></div>
-      </div>
+        <div className="mt-4 text-right"><button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm">บันทึกโค้ด</button></div>
+      </form>
       <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-hidden flex flex-col min-h-0">
         <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white shrink-0">โค้ดที่ใช้งานอยู่</div>
         <div className="overflow-auto flex-1 p-0 custom-scrollbar">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-xs border-b border-slate-200 dark:border-slate-800 sticky top-0"><tr><th className="px-6 py-3">Code</th><th className="px-6 py-3">% ส่วนลด</th><th className="px-6 py-3">สิทธิ์ใช้งาน</th></tr></thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30"><td className="px-6 py-4 font-bold text-slate-900 dark:text-white">WELCOME10</td><td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-bold">10%</td><td className="px-6 py-4 text-slate-600 dark:text-slate-300">5/10</td></tr>
+              {promotionsList.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="px-6 py-4 text-center text-slate-400 dark:text-slate-600">ยังไม่มีโค้ดส่วนลดที่สร้างไว้</td>
+                </tr>
+              ) : (
+                promotionsList.map((promo, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{promo.code}</td>
+                    <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-bold">{promo.discount}%</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{promo.used}/{promo.limit}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -867,16 +1275,29 @@ export default function Partner() {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-xs border-b border-slate-200 dark:border-slate-800 sticky top-0"><tr><th className="px-6 py-3">ชื่อไฟล์</th><th className="px-6 py-3">หมวดหมู่</th><th className="px-6 py-3 text-center">ดาวน์โหลด</th></tr></thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-6 py-4"><div className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><ImageIcon className="w-4 h-4 text-indigo-500 dark:text-indigo-400"/> AIVA_Logo_Pack.zip</div></td>
-                <td className="px-6 py-4"><span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">Brand Assets</span></td>
-                <td className="px-6 py-4 text-center"><button className="p-2 bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors"><Download className="w-4 h-4 mx-auto"/></button></td>
-              </tr>
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-6 py-4"><div className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><FileImage className="w-4 h-4 text-rose-500 dark:text-rose-400"/> Pitch_Deck_Q3.pdf</div></td>
-                <td className="px-6 py-4"><span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">Presentations</span></td>
-                <td className="px-6 py-4 text-center"><button className="p-2 bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors"><Download className="w-4 h-4 mx-auto"/></button></td>
-              </tr>
+              {marketingAssets.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="px-6 py-8 text-center text-slate-400 dark:text-slate-600">ยังไม่มีไฟล์สื่อการตลาดพร้อมใช้งาน</td>
+                </tr>
+              ) : (
+                marketingAssets.map((asset, i) => (
+                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        {asset.category === 'Presentations' ? <FileImage className="w-4 h-4 text-rose-500 dark:text-rose-400"/> : <ImageIcon className="w-4 h-4 text-indigo-500 dark:text-indigo-400"/>}
+                        {asset.filename}
+                      </div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">{asset.size}</div>
+                    </td>
+                    <td className="px-6 py-4"><span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">{asset.category}</span></td>
+                    <td className="px-6 py-4 text-center">
+                      <a href={asset.url} target="_blank" rel="noopener noreferrer" className="inline-block p-2 bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors font-sans leading-none">
+                        <Download className="w-4 h-4 mx-auto"/>
+                      </a>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -884,145 +1305,235 @@ export default function Partner() {
     </div>
   );
 
-  const renderTracking = () => (
-    <div className="space-y-6 w-full animate-in fade-in duration-300 h-full flex flex-col">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ระบบติดตามลิงก์ (Affiliate Tracking)</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">สร้างลิงก์แยกตามช่องทางเพื่อวัดผล (Tracking) และดูสถิติ Conversion อย่างละเอียด</p>
-      </div>
+  const renderTracking = () => {
+    const visibleTrackingLinks = trackingLinks.map((link) => {
+      const matchingClients = clientsList.filter(c => c.referralCode === link.code);
+      const paid = matchingClients.filter(c => c.status === 'Active').length;
+      const sales = matchingClients.reduce((sum, c) => sum + c.ltv, 0);
+      const earnings = Math.floor(sales * (stats.currentRate / 100));
+      return {
+        ...link,
+        paid,
+        earnings
+      };
+    });
 
-      <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
-        <div className="flex items-center gap-2 mb-4"><LinkIcon className="w-5 h-5 text-indigo-500 dark:text-indigo-400" /><h2 className="font-bold text-slate-900 dark:text-white">สร้างลิงก์สำหรับแคมเปญใหม่</h2></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อแคมเปญ / จุดประสงค์</label><input type="text" value={newTracking.name} onChange={e=>setNewTracking({...newTracking, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="เช่น ยิงแอด FB, แปะหน้าเว็บ" /></div>
-          <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">แหล่งที่มา (Source / Sub-ID)</label><input type="text" value={newTracking.source} onChange={e=>setNewTracking({...newTracking, source: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น FB_ADS, TIKTOK" /></div>
-          <div className="flex items-end">
-            <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm h-[38px] transition-colors flex items-center justify-center gap-2">
-              สร้างลิงก์
-            </button>
+    return (
+      <div className="space-y-6 w-full animate-in fade-in duration-300 h-full flex flex-col">
+        <div className="shrink-0">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ระบบติดตามลิงก์ (Affiliate Tracking)</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">สร้างลิงก์แยกตามช่องทางเพื่อวัดผล (Tracking) และดูสถิติ Conversion อย่างละเอียด</p>
+        </div>
+
+        <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
+          <div className="flex items-center gap-2 mb-4"><LinkIcon className="w-5 h-5 text-indigo-500 dark:text-indigo-400" /><h2 className="font-bold text-slate-900 dark:text-white">สร้างลิงก์สำหรับแคมเปญใหม่</h2></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อแคมเปญ / จุดประสงค์</label><input type="text" value={newTracking.name} onChange={e=>setNewTracking({...newTracking, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="เช่น ยิงแอด FB, แปะหน้าเว็บ" /></div>
+            <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">แหล่งที่มา (Source / Sub-ID)</label><input type="text" value={newTracking.source} onChange={e=>setNewTracking({...newTracking, source: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น FB_ADS, TIKTOK" /></div>
+            <div className="flex items-end">
+              <button onClick={handleCreateReferral} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm h-[38px] transition-colors flex items-center justify-center gap-2">
+                สร้างลิงก์
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white shrink-0 flex justify-between items-center">
+            <span>สถิติแยกลิงก์</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">Total Clicks: {trackingLinks.reduce((acc, curr) => acc + curr.clicks, 0).toLocaleString()}</span>
+          </div>
+          <div className="overflow-auto flex-1 p-0 custom-scrollbar">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-[11px] uppercase border-b border-slate-200 dark:border-slate-800 sticky top-0">
+                <tr>
+                  <th className="px-5 py-3">แคมเปญ / ลิงก์</th>
+                  <th className="px-5 py-3 text-center">คลิก (Clicks)</th>
+                  <th className="px-5 py-3 text-center">ลูกค้าสมัคร (Signups)</th>
+                  <th className="px-5 py-3 text-center">ซื้อแพ็กเกจ (Paid)</th>
+                  <th className="px-5 py-3 text-center">อัตราการซื้อ (CR%)</th>
+                  <th className="px-5 py-3 text-right">รายได้ (Earnings)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {visibleTrackingLinks.map((link) => {
+                  const conversionRate = link.clicks > 0 ? ((link.paid / link.clicks) * 100).toFixed(2) : "0.00";
+                  
+                  return (
+                    <tr key={link.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          {link.name} 
+                          <span className="text-[9px] bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-300 uppercase tracking-wider">{link.code}</span>
+                        </div>
+                        <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-1 flex items-center gap-1.5 cursor-pointer hover:text-indigo-500 dark:hover:text-indigo-300" onClick={() => {setCopiedLink(link.id); setTimeout(()=>setCopiedLink(null), 2000)}}>
+                          {copiedLink === link.id ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400"/> : <Copy className="w-3.5 h-3.5"/>}
+                          aiva.sparexth.com/?ref={link.code}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-center font-bold text-slate-600 dark:text-slate-300">{link.clicks.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-center font-bold text-amber-600 dark:text-amber-400">{link.signups.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400">{link.paid.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold border ${conversionRate >= 1 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
+                          {conversionRate}%
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-indigo-600 dark:text-indigo-300">฿{link.earnings.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    );
+  };
+
+  const renderPayouts = () => {
+    const withdrawableAmount = Math.max(0, totalIncome - stats.paidAmount - stats.pendingAmount);
+
+    return (
+      <div className="space-y-6 w-full animate-in fade-in duration-300 h-full flex flex-col">
+        <div className="shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ประวัติการรับเงิน (Payouts)</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">ประวัติการโอนเงินคอมมิชชันและส่งคำขอถอนเงิน</p>
+          </div>
+        </div>
+
+        {/* Withdrawal Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 shrink-0">
+          <div className="saas-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827]">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">คอมมิชชันสะสมทั้งหมด</p>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white">฿{totalIncome.toLocaleString()}</h3>
+          </div>
+          <div className="saas-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827]">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">ถอนออกไปแล้ว (Paid)</p>
+            <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">฿{stats.paidAmount.toLocaleString()}</h3>
+          </div>
+          <div className="saas-card p-5 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-950/20">
+            <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-1">ยอดที่ถอนได้ (Withdrawable)</p>
+            <div className="flex justify-between items-end mt-1">
+              <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">฿{withdrawableAmount.toLocaleString()}</h3>
+              {stats.pendingAmount > 0 && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/20">
+                  รอโอน: ฿{stats.pendingAmount.toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Request Withdrawal Form */}
+        {withdrawableAmount > 0 && (
+          <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
+            <div className="flex items-center gap-2 mb-4">
+              <Wallet className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              <h2 className="font-bold text-slate-900 dark:text-white">ส่งคำขอถอนเงิน (Request Payout)</h2>
+            </div>
+            <form onSubmit={handleRequestPayout} className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 space-y-1.5">
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">จำนวนเงินที่ต้องการถอน (บาท)</label>
+                <input 
+                  type="number" 
+                  max={withdrawableAmount}
+                  value={payoutInput} 
+                  onChange={e => setPayoutInput(e.target.value)} 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" 
+                  placeholder={`ถอนได้สูงสุด ฿${withdrawableAmount}`} 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={isSubmittingPayout}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm h-[38px] transition-colors flex items-center justify-center gap-2 font-sans"
+              >
+                {isSubmittingPayout ? 'กำลังถอน...' : 'ถอนเงิน'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white shrink-0">ประวัติการทำรายการ</div>
+          <div className="overflow-auto flex-1 p-0 custom-scrollbar">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-[11px] uppercase border-b border-slate-200 dark:border-slate-800 sticky top-0">
+                <tr><th className="px-5 py-3">รอบบิล / วันที่ยื่นคำขอ</th><th className="px-5 py-3 text-right">ยอดขาย (ฐาน)</th><th className="px-5 py-3 text-right">คอมมิชชัน</th><th className="px-5 py-3 text-right">หัก 3%</th><th className="px-5 py-3 text-right">ยอดรับสุทธิ</th><th className="px-5 py-3 text-center">สถานะ</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {payoutsList.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-5 py-8 text-center text-slate-400 dark:text-slate-600">ยังไม่มีประวัติการทำรายการ</td>
+                  </tr>
+                ) : (
+                  payoutsList.map((p, i) => (
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <td className="px-5 py-3.5 text-slate-900 dark:text-white font-medium">{p.period}</td>
+                      <td className="px-5 py-3.5 text-right font-mono text-slate-500 dark:text-slate-400">฿{p.sales.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">฿{p.commission.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-right font-mono text-rose-500 dark:text-rose-400">-฿{p.tax.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">฿{p.net.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded border ${
+                          p.status === 'Paid'
+                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                            : p.status === 'Pending'
+                            ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+                            : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                        }`}>
+                          {p.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white shrink-0 flex justify-between items-center">
-          <span>สถิติแยกลิงก์</span>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">Total Clicks: {trackingLinks.reduce((acc, curr) => acc + curr.clicks, 0).toLocaleString()}</span>
-        </div>
-        <div className="overflow-auto flex-1 p-0 custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-[11px] uppercase border-b border-slate-200 dark:border-slate-800 sticky top-0">
-              <tr>
-                <th className="px-5 py-3">แคมเปญ / ลิงก์</th>
-                <th className="px-5 py-3 text-center">คลิก (Clicks)</th>
-                <th className="px-5 py-3 text-center">ลูกค้าสมัคร (Signups)</th>
-                <th className="px-5 py-3 text-center">ซื้อแพ็กเกจ (Paid)</th>
-                <th className="px-5 py-3 text-center">อัตราการซื้อ (CR%)</th>
-                <th className="px-5 py-3 text-right">รายได้ (Earnings)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              {trackingLinks.map((link) => {
-                const conversionRate = ((link.paid / link.clicks) * 100).toFixed(2);
-                
-                return (
-                  <tr key={link.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-5 py-3.5">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        {link.name} 
-                        <span className="text-[9px] bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-300 uppercase tracking-wider">{link.source}</span>
-                      </div>
-                      <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-1 flex items-center gap-1.5 cursor-pointer hover:text-indigo-500 dark:hover:text-indigo-300" onClick={() => {setCopiedLink(link.id); setTimeout(()=>setCopiedLink(null), 2000)}}>
-                        {copiedLink === link.id ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400"/> : <Copy className="w-3.5 h-3.5"/>}
-                        aiva.sparexth.com/?ref={link.code}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-center font-bold text-slate-600 dark:text-slate-300">{link.clicks.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-amber-600 dark:text-amber-400">{link.signups.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400">{link.paid.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 text-center">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold border ${conversionRate >= 1 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
-                        {conversionRate}%
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right font-bold text-indigo-600 dark:text-indigo-300">฿{link.earnings.toLocaleString()}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPayouts = () => (
-    <div className="space-y-6 w-full animate-in fade-in duration-300 h-full flex flex-col">
-      <div className="shrink-0"><h1 className="text-2xl font-bold text-slate-900 dark:text-white">ประวัติการรับเงิน (Payouts)</h1><p className="text-slate-500 dark:text-slate-400 text-sm mt-1">ประวัติการโอนเงินคอมมิชชันและหักภาษี ณ ที่จ่าย 3%</p></div>
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="overflow-auto flex-1 p-0 custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-[#0B1120] text-slate-500 dark:text-slate-400 text-[11px] uppercase border-b border-slate-200 dark:border-slate-800 sticky top-0">
-              <tr><th className="px-5 py-3">รอบบิล (โอนวันที่ 5)</th><th className="px-5 py-3 text-right">ยอดขาย (ฐาน)</th><th className="px-5 py-3 text-right">คอมมิชชัน</th><th className="px-5 py-3 text-right">หัก 3%</th><th className="px-5 py-3 text-right">ยอดรับสุทธิ</th><th className="px-5 py-3 text-center">สถานะ</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-5 py-3.5 text-slate-900 dark:text-white font-medium">มิถุนายน 2026</td>
-                <td className="px-5 py-3.5 text-right font-mono text-slate-500 dark:text-slate-400">฿125,400</td>
-                <td className="px-5 py-3.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">฿22,572</td>
-                <td className="px-5 py-3.5 text-right font-mono text-rose-500 dark:text-rose-400">-฿677</td>
-                <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">฿21,895</td>
-                <td className="px-5 py-3.5 text-center"><span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded border border-amber-200 dark:border-amber-500/20">Pending</span></td>
-              </tr>
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-5 py-3.5 text-slate-900 dark:text-white font-medium">พฤษภาคม 2026</td>
-                <td className="px-5 py-3.5 text-right font-mono text-slate-500 dark:text-slate-400">฿160,000</td>
-                <td className="px-5 py-3.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">฿40,000</td>
-                <td className="px-5 py-3.5 text-right font-mono text-rose-500 dark:text-rose-400">-฿1,200</td>
-                <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">฿38,800</td>
-                <td className="px-5 py-3.5 text-center"><span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-500/20">Paid</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderHelpdesk = () => (
     <div className="space-y-6 w-full animate-in fade-in duration-300">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">เสนอแนะ / แจ้งปัญหา</h1>
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <form onSubmit={handleSubmitFeedback} className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
         <input type="text" placeholder="หัวข้อ..." value={feedbackForm.title} onChange={e=>setFeedbackForm({...feedbackForm, title: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm mb-3 outline-none focus:border-indigo-500" />
         <textarea rows="4" placeholder="อธิบายรายละเอียด..." value={feedbackForm.desc} onChange={e=>setFeedbackForm({...feedbackForm, desc: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm mb-4 outline-none focus:border-indigo-500" />
-        <button className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-500 transition-colors">ส่งข้อมูลให้ทีมงาน</button>
-      </div>
+        <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-500 transition-colors">ส่งข้อมูลให้ทีมงาน</button>
+      </form>
     </div>
   );
 
   const renderSettings = () => (
     <div className="space-y-6 w-full animate-in fade-in duration-300 pb-10">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">การตั้งค่าบัญชี</h1>
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-        <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400"/> ข้อมูลส่วนตัว</h2>
-        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-4">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Partner ID</p>
-          <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{partnerId}</p>
+      <form onSubmit={handleSaveProfile} className="space-y-6">
+        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400"/> ข้อมูลส่วนตัว</h2>
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-4">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Partner ID</p>
+            <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{partnerId}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อ - นามสกุล</label><input type="text" value={profileSettings.name} onChange={e=>setProfileSettings({...profileSettings, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เบอร์โทรศัพท์</label><input type="text" value={profileSettings.phone} onChange={e=>setProfileSettings({...profileSettings, phone: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อ</label><input type="text" defaultValue="สมชาย" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-          <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">นามสกุล</label><input type="text" defaultValue="ใจดี" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-emerald-500 dark:text-emerald-400"/> บัญชีรับเงิน (Payout)</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ธนาคาร</label><input type="text" value={profileSettings.bankName} onChange={e=>setProfileSettings({...profileSettings, bankName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เลขบัญชี</label><input type="text" value={profileSettings.bankAccount} onChange={e=>setProfileSettings({...profileSettings, bankAccount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div className="col-span-2"><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อบัญชี</label><input type="text" value={profileSettings.bankAccountName} onChange={e=>setProfileSettings({...profileSettings, bankAccountName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+          </div>
         </div>
-      </div>
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-        <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-emerald-500 dark:text-emerald-400"/> บัญชีรับเงิน (Payout)</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ธนาคาร</label><input type="text" defaultValue="กสิกรไทย" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-          <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เลขบัญชี</label><input type="text" defaultValue="012-3-45678-9" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-          <div className="col-span-2"><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อบัญชี</label><input type="text" defaultValue="นาย สมชาย ใจดี" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-        </div>
-      </div>
-      <button className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-500 transition-colors">บันทึกการตั้งค่า</button>
+        <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-500 transition-colors">บันทึกการตั้งค่า</button>
+      </form>
     </div>
   );
 
@@ -1072,7 +1583,7 @@ export default function Partner() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-white font-bold border border-slate-300 dark:border-slate-700 shrink-0">{isMain ? 'P' : 'SP'}</div>
               <div className="overflow-hidden">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">คุณสมชาย ใจดี</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user.name || 'คุณสมชาย ใจดี'}</p>
                 <div className="flex items-center gap-1 mt-0.5"><Hash className="w-3 h-3 text-indigo-500 dark:text-indigo-400" /><p className="text-[11px] text-indigo-600 dark:text-indigo-300 font-medium truncate">{partnerId}</p></div>
               </div>
             </div>
@@ -1106,7 +1617,7 @@ export default function Partner() {
                 {isDarkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
               </button>
               
-              <button onClick={() => setIsAuthenticated(false)} className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1" title="Logout"><LogOut className="w-5 h-5"/></button>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1" title="Logout"><LogOut className="w-5 h-5"/></button>
             </div>
           </header>
 

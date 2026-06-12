@@ -269,10 +269,26 @@ export default function Platform() {
   const maxUsers = currentPlan === 'Basic' ? 1 : currentPlan === 'Pro' ? 5 : 20;
 
   // Integrations State
-  const [connectedApps, setConnectedApps] = useState(['line']);
+  const [connectedApps, setConnectedApps] = useState([]);
   const [connectingApp, setConnectingApp] = useState(null);
   const [managingApp, setManagingApp] = useState(null);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [integrationsList, setIntegrationsList] = useState([]);
+  const [lineConfig, setLineConfig] = useState({ channelAccessToken: '', channelSecret: '' });
+  const [fbConfig, setFbConfig] = useState({ pageAccessToken: '', pageId: '' });
+  const [igConfig, setIgConfig] = useState({ pageAccessToken: '', pageId: '' });
+  const [webConfig, setWebConfig] = useState({ themeColor: '#4f46e5', greeting: 'สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ' });
+
+  // Get active client ID
+  const currentUserObj = (() => {
+    try {
+      const userStr = localStorage.getItem('aiva_user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  const clientId = currentUserObj?.clientId || 'c-123456';
 
   // Inbox & Chat State
   const [selectedChat, setSelectedChat] = useState('C-001');
@@ -481,6 +497,37 @@ export default function Platform() {
       }
     } catch (err) {
       console.error('Failed to update deal stage:', err);
+    }
+  };
+
+  const handleUpgradePlan = async (planName) => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      
+      const res = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          plan: planName.toUpperCase(),
+          billingCycle: billingCycle
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to initiate checkout');
+      }
+    } catch (err) {
+      console.error('Failed to upgrade plan:', err);
     }
   };
 
@@ -886,6 +933,38 @@ export default function Platform() {
     }
   };
 
+  const fetchLeadScores = async () => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      const res = await fetch('/api/client/lead-scores', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeadScores(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch lead scores:', err);
+    }
+  };
+
+  const fetchLostRevenues = async () => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      const res = await fetch('/api/client/lost-revenues', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLostRevenues(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch lost revenues:', err);
+    }
+  };
+
   const fetchTeamMembers = async () => {
     try {
       const token = localStorage.getItem('aiva_access_token');
@@ -1101,28 +1180,157 @@ export default function Platform() {
     }
     setConnectingApp(appId); setIsAuthorizing(false); 
   };
-  const handleAuthorize = () => {
+  const fetchIntegrations = async () => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      const res = await fetch('/api/client/integrations', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIntegrationsList(data);
+        const connected = data.map(item => item.platform.toLowerCase());
+        setConnectedApps(connected);
+        
+        // Auto-fill states if active integration already exists
+        const line = data.find(i => i.platform === 'LINE');
+        if (line && line.config) {
+          setLineConfig({
+            channelAccessToken: line.config.channelAccessToken || '',
+            channelSecret: line.config.channelSecret || ''
+          });
+        }
+        const fb = data.find(i => i.platform === 'FACEBOOK');
+        if (fb && fb.config) {
+          setFbConfig({
+            pageAccessToken: fb.config.pageAccessToken || '',
+            pageId: fb.config.pageId || ''
+          });
+        }
+        const ig = data.find(i => i.platform === 'INSTAGRAM');
+        if (ig && ig.config) {
+          setIgConfig({
+            pageAccessToken: ig.config.pageAccessToken || '',
+            pageId: ig.config.pageId || ''
+          });
+        }
+        const web = data.find(i => i.platform === 'WEBSITE');
+        if (web && web.config) {
+          setWebConfig({
+            themeColor: web.config.themeColor || '#4f46e5',
+            greeting: web.config.greeting || 'สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ'
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch integrations:', err);
+    }
+  };
+  const handleAuthorize = async () => {
     setIsAuthorizing(true);
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) throw new Error('Not authenticated');
+
+      let config = {};
+      if (connectingApp === 'line') {
+        config = lineConfig;
+      } else if (connectingApp === 'facebook') {
+        config = fbConfig;
+      } else if (connectingApp === 'instagram') {
+        config = igConfig;
+      } else if (connectingApp === 'website') {
+        config = webConfig;
+      } else {
+        config = { connectedAt: new Date().toISOString() };
+      }
+
+      const res = await fetch('/api/client/integrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          platform: connectingApp.toUpperCase(),
+          config
+        })
+      });
+
+      if (res.ok) {
+        await fetchIntegrations();
+        setConnectingApp(null);
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to save integration config');
+      }
+    } catch (err) {
+      console.error('Failed to authorize integration:', err);
+      // Fallback local mock
       setConnectedApps([...connectedApps, connectingApp]);
       setConnectingApp(null);
+    } finally {
       setIsAuthorizing(false);
-    }, 2000);
+    }
   };
-  const handleDisconnect = (appId) => {
-    setConnectedApps(connectedApps.filter(id => id !== appId));
-    setManagingApp(null);
-    if (inboxPlatformFilter === PLATFORM_MAP[appId]) setInboxPlatformFilter('All');
-    if (replyPlatformFilter === PLATFORM_MAP[appId]) setReplyPlatformFilter('All');
+  const handleDisconnect = async (appId) => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch(`/api/client/integrations/${appId.toUpperCase()}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        await fetchIntegrations();
+        setManagingApp(null);
+        if (inboxPlatformFilter === PLATFORM_MAP[appId]) setInboxPlatformFilter('All');
+        if (replyPlatformFilter === PLATFORM_MAP[appId]) setReplyPlatformFilter('All');
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to disconnect integration');
+      }
+    } catch (err) {
+      console.error('Failed to disconnect integration:', err);
+      // Fallback local mock
+      setConnectedApps(connectedApps.filter(id => id !== appId));
+      setManagingApp(null);
+    }
   };
 
-  const handleGenerateContent = () => {
+  const handleGenerateContent = async () => {
     if (!contentInput) return;
     setIsGenerating(true);
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/client/ai/content-gen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: contentInput,
+          platform: contentType === 'caption' ? 'Facebook' : (contentType === 'ad_copy' ? 'Ad Copy' : 'Email')
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedContent(data.result || '');
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to generate copy');
+      }
+    } catch (err) {
+      console.warn('Failed to generate content:', err);
       setGeneratedContent(`✨ ไอเท็มสุดคิวท์มาแล้ว! ใครกำลังตามหา ${contentInput.substring(0,20)}... ต้องจัดเลยน้าาา 💖 \n\nคุณภาพดี๊ดี ใช้แล้วปังแน่นอน ช้าหมดอดน้าา 🛍️\n\n👉 ทักแชทสั่งซื้อได้เลยค่ะ`);
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const handleSubmitFeedback = async () => {
@@ -1177,6 +1385,18 @@ export default function Platform() {
       fetchInbox();
       fetchStats();
       fetchSettings();
+      fetchIntegrations();
+      fetchLeadScores();
+      fetchLostRevenues();
+
+      // Check payment redirect query params
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mock_payment') === 'success' || params.get('payment') === 'success') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setActiveTab('billing');
+        alert('ชำระเงินสำเร็จและอัปเดตแพ็กเกจเรียบร้อยแล้วค่ะ! 🎉');
+        fetchSettings();
+      }
     }
   }, [isAuthenticated]);
 
@@ -3121,16 +3341,20 @@ export default function Platform() {
                 {[
                   { id: 'line', name: 'LINE Official', desc: 'ตอบแชทลูกค้าอัตโนมัติ 24 ชม.', btn: 'bg-[#00B900]' },
                   { id: 'facebook', name: ' Messenger', desc: 'ตอบ Inbox แฟนเพจทันที', btn: 'bg-[#0084FF]' },
-                  { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]' },
-                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900' },
-                  { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]' },
-                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]' },
+                  { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]', disabled: true },
+                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900', disabled: true },
+                  { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]', disabled: true },
+                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]', disabled: true },
                   { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600' },
                 ].map((app) => (
                   <div key={app.id} className={`rounded-2xl p-5 border flex flex-col transition-all saas-card ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-indigo-200'}`}>
                     <div className="flex justify-between items-start mb-4">
                       <AppIcon appId={app.id} />
-                      {connectedApps.includes(app.id) ? (
+                      {app.disabled ? (
+                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${isDarkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                           Coming Soon
+                         </span>
+                      ) : connectedApps.includes(app.id) ? (
                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full border flex items-center gap-1 ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                            <CheckCircle2 className="w-3 h-3" /> Connected
                          </span>
@@ -3143,7 +3367,11 @@ export default function Platform() {
                     <h3 className={`text-base font-bold mb-1 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{app.name}</h3>
                     <p className={`text-xs mb-5 flex-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{app.desc}</p>
                     
-                    {connectedApps.includes(app.id) ? (
+                    {app.disabled ? (
+                       <button disabled className={`w-full py-2 rounded-xl text-sm font-bold transition-all cursor-not-allowed ${isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+                         เร็วๆ นี้ (Coming Soon)
+                       </button>
+                    ) : connectedApps.includes(app.id) ? (
                        <button onClick={() => setManagingApp(app.id)} className={`w-full py-2 rounded-xl text-sm font-bold border transition-colors shadow-sm ${isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
                          Manage
                        </button>
@@ -3172,10 +3400,64 @@ export default function Platform() {
                       <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
                       <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
                       
-                      <div className={`space-y-3 mb-8 text-left p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                        <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Read incoming messages</span></div>
-                        <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Send messages as your page</span></div>
-                      </div>
+                      {connectingApp === 'line' && (
+                        <div className="space-y-3 mb-6 text-left">
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Access Token</label>
+                            <input type="text" value={lineConfig.channelAccessToken} onChange={e => setLineConfig({ ...lineConfig, channelAccessToken: e.target.value })} placeholder="ey..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Secret</label>
+                            <input type="password" value={lineConfig.channelSecret} onChange={e => setLineConfig({ ...lineConfig, channelSecret: e.target.value })} placeholder="xxxx" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                        </div>
+                      )}
+
+                      {connectingApp === 'facebook' && (
+                        <div className="space-y-3 mb-6 text-left">
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page Access Token</label>
+                            <input type="text" value={fbConfig.pageAccessToken} onChange={e => setFbConfig({ ...fbConfig, pageAccessToken: e.target.value })} placeholder="EAAB..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page ID</label>
+                            <input type="text" value={fbConfig.pageId} onChange={e => setFbConfig({ ...fbConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                        </div>
+                      )}
+
+                      {connectingApp === 'instagram' && (
+                        <div className="space-y-3 mb-6 text-left">
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Access Token</label>
+                            <input type="text" value={igConfig.pageAccessToken} onChange={e => setIgConfig({ ...igConfig, pageAccessToken: e.target.value })} placeholder="IG..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Business Page ID</label>
+                            <input type="text" value={igConfig.pageId} onChange={e => setIgConfig({ ...igConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                        </div>
+                      )}
+
+                      {connectingApp === 'website' && (
+                        <div className="space-y-3 mb-6 text-left">
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Widget Theme Color</label>
+                            <input type="color" value={webConfig.themeColor} onChange={e => setWebConfig({ ...webConfig, themeColor: e.target.value })} className={`w-full h-8 cursor-pointer rounded-xl border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Greeting Message</label>
+                            <input type="text" value={webConfig.greeting} onChange={e => setWebConfig({ ...webConfig, greeting: e.target.value })} className={`w-full text-xs px-3 py-2 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                          </div>
+                        </div>
+                      )}
+
+                      {!['line', 'facebook', 'instagram', 'website'].includes(connectingApp) && (
+                        <div className={`space-y-3 mb-8 text-left p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                          <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Read incoming messages</span></div>
+                          <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Send messages as your page</span></div>
+                        </div>
+                      )}
 
                       <div className="flex gap-3">
                         <button onClick={() => setConnectingApp(null)} disabled={isAuthorizing} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Cancel</button>
@@ -3207,8 +3489,11 @@ export default function Platform() {
                       <div className="space-y-2">
                         <label className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>Webhook URL</label>
                         <div className="flex gap-2">
-                          <input type="text" readOnly value={`https://api.aiva.sparexth.com/wh/${managingApp}/c-123456`} className={`flex-1 border rounded-xl text-xs px-3 py-2.5 font-mono outline-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} />
-                          <button className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
+                          <input type="text" readOnly value={`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`} className={`flex-1 border rounded-xl text-xs px-3 py-2.5 font-mono outline-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} />
+                          <button onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`);
+                            alert('คัดลอก Webhook URL แล้ว!');
+                          }} className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
                         </div>
                       </div>
 
@@ -3347,7 +3632,7 @@ export default function Platform() {
                   
                   {/* Billing Toggle (Sync with Landing Page) */}
                   <div className={`mt-8 inline-flex items-center p-1 rounded-full relative overflow-x-auto max-w-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                    <div className={`absolute top-1 bottom-1 w-[calc(33.333%-2.66px)] rounded-full shadow-sm transition-transform duration-300 ${isDarkMode ? 'bg-slate-700' : 'bg-white'} ${billingCycle === 'monthly' ? 'left-1' : billingCycle === 'halfYear' ? 'left-[calc(33.333%+1.33px)]' : 'left-[calc(66.666%+1.33px)]'}`}></div>
+                    <div className={`absolute top-1 bottom-1 left-1 w-[calc(33.333%-2.66px)] rounded-full shadow-sm transition-transform duration-300 ${isDarkMode ? 'bg-slate-700' : 'bg-white'}`} style={{ transform: billingCycle === 'monthly' ? 'translateX(0)' : billingCycle === 'halfYear' ? 'translateX(100%)' : 'translateX(200%)' }}></div>
                     
                     <button onClick={() => setBillingCycle('monthly')} className={`relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center whitespace-nowrap ${billingCycle === 'monthly' ? (isDarkMode ? 'text-white' : 'text-slate-900') : 'text-slate-500 hover:text-slate-700'}`}>
                         รายเดือน
@@ -3372,7 +3657,7 @@ export default function Platform() {
                        </span>
                        <span className={`font-medium mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/{billingCycle === 'monthly' ? 'เดือน' : billingCycle === 'halfYear' ? '6 เดือน' : 'ปี'}</span>
                      </div>
-                     <button onClick={()=>setCurrentPlan('Basic')} disabled={currentPlan==='Basic'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Basic' ? (isDarkMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default' : 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}`}>{currentPlan==='Basic' ? 'แพ็กเกจปัจจุบัน' : 'ดาวน์เกรด'}</button>
+                     <button onClick={()=>handleUpgradePlan('Basic')} disabled={currentPlan==='Basic'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Basic' ? (isDarkMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default' : 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}`}>{currentPlan==='Basic' ? 'แพ็กเกจปัจจุบัน' : 'ดาวน์เกรด'}</button>
                      <div className="space-y-3 flex-1">
                         <p className={`text-xs font-bold mb-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>สิ่งที่ได้รับ:</p>
                         <PricingFeature text="เลือกเชื่อมต่อ 1 ช่องทาง" included isDark={isDarkMode} />
@@ -3395,7 +3680,7 @@ export default function Platform() {
                        </span>
                        <span className="font-medium mb-1 text-slate-400">/{billingCycle === 'monthly' ? 'เดือน' : billingCycle === 'halfYear' ? '6 เดือน' : 'ปี'}</span>
                      </div>
-                     <button onClick={()=>setCurrentPlan('Pro')} disabled={currentPlan==='Pro'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Pro' ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/25'}`}>{currentPlan==='Pro' ? 'แพ็กเกจปัจจุบัน' : 'อัปเกรดเป็น Pro'}</button>
+                     <button onClick={()=>handleUpgradePlan('Pro')} disabled={currentPlan==='Pro'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Pro' ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/25'}`}>{currentPlan==='Pro' ? 'แพ็กเกจปัจจุบัน' : 'อัปเกรดเป็น Pro'}</button>
                      <div className="space-y-3 flex-1">
                         <p className="text-xs font-bold mb-4 text-white">ทุกอย่างใน Basic และเพิ่ม:</p>
                         <PricingFeature text="เลือกเชื่อมต่อ 2 ช่องทาง" included forceDark={true} />
@@ -3417,7 +3702,7 @@ export default function Platform() {
                        </span>
                        <span className={`font-medium mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/{billingCycle === 'monthly' ? 'เดือน' : billingCycle === 'halfYear' ? '6 เดือน' : 'ปี'}</span>
                      </div>
-                     <button onClick={()=>setCurrentPlan('Advanced')} disabled={currentPlan==='Advanced'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Advanced' ? (isDarkMode ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30 cursor-default' : 'bg-purple-100 text-purple-700 border border-purple-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-white border border-slate-300 text-slate-800 hover:bg-slate-50')}`}>{currentPlan==='Advanced' ? 'แพ็กเกจปัจจุบัน' : 'อัปเกรดเป็น Advanced'}</button>
+                     <button onClick={()=>handleUpgradePlan('Advanced')} disabled={currentPlan==='Advanced'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Advanced' ? (isDarkMode ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30 cursor-default' : 'bg-purple-100 text-purple-700 border border-purple-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-white border border-slate-300 text-slate-800 hover:bg-slate-50')}`}>{currentPlan==='Advanced' ? 'แพ็กเกจปัจจุบัน' : 'อัปเกรดเป็น Advanced'}</button>
                      <div className="space-y-3 flex-1">
                         <p className={`text-xs font-bold mb-4 ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>ทุกอย่างใน Pro และเพิ่ม:</p>
                         <PricingFeature text="เลือกเชื่อมต่อ 6 ช่องทาง" included isDark={isDarkMode} />

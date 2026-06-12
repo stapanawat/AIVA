@@ -23,7 +23,7 @@ export default function App() {
     return () => window.removeEventListener('aiva_logout', handleLogout);
   }, []);
 
-  // Capture Google Login token and user profile from URL parameters
+  // Capture Google Login token, user profile, or payment redirect from URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
@@ -34,6 +34,14 @@ export default function App() {
       // Clean query params from URL without reloading page
       window.history.replaceState({}, document.title, window.location.pathname);
       setRoute('platform');
+    }
+
+    // Check if redirecting from payment portal
+    if (params.get('mock_payment') === 'success' || params.get('payment') === 'success') {
+      const storedToken = localStorage.getItem('aiva_access_token');
+      if (storedToken) {
+        setRoute('platform');
+      }
     }
   }, []);
 

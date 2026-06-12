@@ -1,5 +1,6 @@
 const express = require('express');
 const clientController = require('../controllers/clientController');
+const integrationController = require('../controllers/integrationController');
 const authenticate = require('../middlewares/auth');
 const { authorizeRoles, checkTenantAccess } = require('../middlewares/authorize');
 const { createLeadRules = null } = require('../middlewares/validate') || {}; // Safely handle if validate doesn't export it
@@ -41,6 +42,11 @@ router.post('/team/invite', clientController.inviteTeamMember);
 router.get('/settings', clientController.getSettings);
 router.post('/settings', clientController.updateSettings);
 
+// Integrations
+router.get('/integrations', integrationController.getIntegrations);
+router.post('/integrations', integrationController.connectIntegration);
+router.delete('/integrations/:platform', integrationController.disconnectIntegration);
+
 // AI Copy Generation
 router.post('/ai/content-gen', clientController.generateAIContent);
 
@@ -56,5 +62,9 @@ router.put('/rules/:id/toggle', clientController.toggleFollowUpRule);
 // Feedback
 router.get('/feedback', clientController.getFeedbacks);
 router.post('/feedback', clientController.createFeedback);
+
+// Lead Scores & Lost Revenues
+router.get('/lead-scores', clientController.getLeadScores);
+router.get('/lost-revenues', clientController.getLostRevenues);
 
 module.exports = router;

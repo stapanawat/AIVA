@@ -133,7 +133,200 @@ const generateMarketingCopy = async (promptText, platform = 'Facebook') => {
   }
 };
 
+const generateGoalStrategy = async (target, months, currentMRR, currentCustomers) => {
+  try {
+    const prompt = `You are an expert SaaS business consultant and CFO AI advisor.
+The user has set a sales goal of ฿${Number(target).toLocaleString()} over the next ${months} months.
+Current Business Stats:
+- Monthly Recurring Revenue (MRR): ฿${Number(currentMRR).toLocaleString()}
+- Active Customer Count: ${currentCustomers}
+
+Please calculate:
+1. The target monthly recurring revenue required to hit this goal.
+2. Cost breakdown estimations (e.g. AI API usage, sales commissions, marketing/ads, server hosting, operation/salaries).
+3. A list of 5 concrete, actionable strategies (as bullet points) to acquire customers, upsell current users, or reduce churn.
+
+Reply in a structured JSON format with EXACTLY these fields:
+{
+  "monthlyTarget": number,
+  "costs": {
+    "api": number,
+    "comm": number,
+    "mkt": number,
+    "server": number,
+    "op": number,
+    "total": number
+  },
+  "profit": number,
+  "actions": [
+    { "type": "partner" | "campaign" | "marketing" | "product" | "retention", "text": "string description" },
+    ... (exactly 5 items)
+  ]
+}`;
+
+    if (!ai) {
+      const costAPI = target * 0.06;
+      const costComm = target * 0.22;
+      const costMkt = target * 0.15;
+      const costServer = target * 0.04;
+      const costOp = target * 0.10;
+      const totalCost = costAPI + costComm + costMkt + costServer + costOp;
+      return {
+        monthlyTarget: target / months,
+        costs: { api: costAPI, comm: costComm, mkt: costMkt, server: costServer, op: costOp, total: totalCost },
+        profit: target - totalCost,
+        actions: [
+          { type: 'partner', text: `รับสมัคร Partner ระดับ Gold/Silver เพิ่มอีก 15 ราย` },
+          { type: 'campaign', text: `จัดแคมเปญแจกโบนัสคอมมิชชันเพิ่ม 3% สำหรับยอดขายที่เกินเป้า` },
+          { type: 'marketing', text: `เน้นทำการตลาดกลุ่มเป้าหมาย SME บนช่องทาง Facebook/TikTok` },
+          { type: 'product', text: `ออกฟีเจอร์ Premium เชื่อมต่อระบบ POS เพื่อดันแผน Advanced` },
+          { type: 'retention', text: `จัดสัมมนาช่วยเหลือแนะนำเคล็ดลับเพื่อลดอัตรา Churn Rate` }
+        ]
+      };
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error('[Gemini Goal Strategy Error]:', error);
+    throw error;
+  }
+};
+
+const generateFeedbackInsights = async (feedbacks) => {
+  try {
+    const feedbackSummary = feedbacks.map((f, i) => `[Feedback #${i+1}] Platform: ${f.client?.name || 'Client'}, Title: ${f.title}, Desc: ${f.description}, CreatedAt: ${f.createdAt}`).join('\n');
+
+    const prompt = `You are a product manager and AI customer feedback analyst.
+Here is a list of active feedback and support tickets from AIVA SaaS platform users:
+${feedbackSummary || 'No feedback submitted yet.'}
+
+Please analyze:
+1. The overall customer sentiment (a decimal number out of 5.0, e.g. 4.5).
+2. The most used or requested feature category.
+3. Identify the TOP 3 most urgent/frequent pain points or feedback requests.
+4. Suggest a timeline roadmap (Q3/Q4 split) to solve these items.
+
+Reply in a structured JSON format with EXACTLY these fields:
+{
+  "sentiment": number,
+  "mostUsedFeature": "string name",
+  "topFeedbacks": [
+    { "rank": number, "title": "string title", "priority": "High Priority" | "Feature Request", "desc": "short description of issue & count", "pkg": "string tier affected", "barColor": "bg-rose-500" | "bg-amber-500" | "bg-emerald-500" }
+  ],
+  "roadmap": {
+    "q3_phase1": { "title": "string title", "desc": "string summary", "bullets": ["bullet 1", "bullet 2"] },
+    "q3_phase2": { "title": "string title", "desc": "string summary", "bullets": ["bullet 1", "bullet 2"] },
+    "q4": { "title": "string title", "desc": "string summary", "bullets": ["bullet 1", "bullet 2"] }
+  }
+}`;
+
+    if (!ai || feedbacks.length === 0) {
+      return {
+        sentiment: 4.8,
+        mostUsedFeature: "Multi-PDF Sync",
+        topFeedbacks: [
+          { rank: 1, title: "การเชื่อมต่อ POS ล่มบ่อย", priority: "High Priority", desc: "พบการแจ้งปัญหาเกี่ยวกับเครื่อง POS ของลูกค้าร้านอาหาร", pkg: "Advanced Plan", barColor: "bg-rose-500" },
+          { rank: 2, title: "ต้องการ AI ช่วยตอบคอมเมนต์ Facebook", priority: "Feature Request", desc: "ลูกค้าร้องขอระบบจัดการตอบคอมเมนต์และไลก์อัตโนมัติ", pkg: "Pro Plan", barColor: "bg-amber-500" },
+          { rank: 3, title: "ระบบสรุปยอดขายรายวันผ่าน LINE", priority: "Feature Request", desc: "แจ้งสรุปยอดหลังปิดร้านสำหรับเจ้าของกิจการผ่านแชท", pkg: "Basic & Pro Plan", barColor: "bg-emerald-500" }
+        ],
+        roadmap: {
+          q3_phase1: { title: "Q3/Phase 1: Stability First", desc: "มุ่งเน้นแก้ปัญหาที่มีผลกระทบต่อ Churn Rate ทันที", bullets: ["ปรับปรุงการเชื่อมต่อ API ของ POS เสถียรขึ้น", "เพิ่มความจุอัปโหลดไฟล์คู่มือ PDF"] },
+          q3_phase2: { title: "Q3/Phase 2: Social Commerce", desc: "ตอบโจทย์ฟีเจอร์ตอบโพสต์เพื่อเพิ่มการต่ออายุ", bullets: ["เปิดตัว AI Auto-Comment Reply เฟสแรก", "รองรับ Instagram DM Webhook"] },
+          q4: { title: "Q4: Exec & Analytics", desc: "ดึงดูดลูกค้าระดับพรีเมียมและกลุ่มผู้บริหาร", bullets: ["ส่งรายงานบรีฟยอดขายผ่าน LINE Voice", "การประเมินวิเคราะห์พยากรณ์รายได้ถัดไป"] }
+        }
+      };
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error('[Gemini Feedback Insights Error]:', error);
+    throw error;
+  }
+};
+
+const generateSupportChatResponse = async (userMessage, chatHistory = [], partnerRole = 'PARTNER_MAIN') => {
+  try {
+    const roleText = partnerRole === 'PARTNER_MAIN' ? 'Main Partner' : 'Sub-Partner';
+    const systemInstruction = `
+You are the AIVA AI Support Assistant, helping our registered business partners (${roleText}).
+Provide polite, highly helpful, and accurate answers in Thai, utilizing emojis to be friendly.
+
+AIVA Partner Program Quick Rules:
+- Main Partner commission tiers:
+  * Gold (25% rate) for monthly sales >= ฿150,000
+  * Silver (18% rate) for monthly sales >= ฿50,000
+  * Bronze (15% rate) otherwise
+- Sub-Partner commission tiers:
+  * Gold (15% rate) for monthly sales >= ฿150,000
+  * Silver (10% rate) for monthly sales >= ฿50,000
+  * Bronze (7% rate) otherwise
+- Team override commission (only for Main Partners):
+  * 10% override on Sub-Partner monthly sales if they achieve >= ฿150,000
+  * 5% override if they achieve >= ฿50,000
+- Withdrawals and payouts:
+  * Payouts are processed on the 5th of every month.
+  * Subject to 3% withholding tax (ภาษีหัก ณ ที่จ่าย 3%) under Thai law.
+  * Withdrawable amount = Net Commission - (Paid + Pending).
+
+If asked about something unrelated, politely steer the conversation back to the AIVA Partner Program or support.
+`;
+
+    if (!ai) {
+      return `สวัสดีค่ะ! ทีมงาน AIVA Support ได้รับข้อความ: "${userMessage}" แล้วค่ะ ยินดีช่วยเหลือคุณที่เป็นพาร์ทเนอร์ในบทบาท ${roleText} นะคะ`;
+    }
+
+    const contents = [];
+    for (const msg of chatHistory) {
+      contents.push({
+        role: msg.sender === 'partner' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      });
+    }
+
+    contents.push({
+      role: 'user',
+      parts: [{ text: userMessage }]
+    });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.6,
+        maxOutputTokens: 600,
+      }
+    });
+
+    return response.text || 'ขออภัยด้วยค่ะ ไม่สามารถวิเคราะห์คำตอบได้ในขณะนี้';
+  } catch (error) {
+    console.error('[Gemini Support Chat Error]:', error);
+    return 'ขออภัยด้วยนะคะ ระบบตอบกลับอัตโนมัติขัดข้องชั่วคราว มีคำถามอะไรฝากไว้ได้เลยค่ะ';
+  }
+};
+
 module.exports = {
   generateResponse,
-  generateMarketingCopy
+  generateMarketingCopy,
+  generateGoalStrategy,
+  generateFeedbackInsights,
+  generateSupportChatResponse
 };

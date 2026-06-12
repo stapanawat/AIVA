@@ -17,4 +17,14 @@ router.get('/payouts', partnerController.getPayouts);
 router.post('/payouts/request', partnerController.requestPayout);
 router.get('/clients', partnerController.getClients);
 
+// New Mock-to-Production Endpoints
+router.get('/profile', partnerController.getPartnerProfile);
+router.post('/profile', partnerController.updatePartnerProfile);
+router.post('/feedback', partnerController.createPartnerFeedback);
+router.post('/support/chat', partnerController.handlePartnerSupportChat);
+router.get('/promotions', partnerController.getPartnerPromotions);
+router.post('/promotions', partnerController.createPartnerPromotion);
+router.get('/assets', partnerController.getMarketingAssets);
+router.get('/announcements', partnerController.getAnnouncements);
+
 module.exports = router;

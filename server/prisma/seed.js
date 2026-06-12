@@ -26,7 +26,10 @@ async function main() {
   // 2. Create Partner
   const partner = await prisma.user.upsert({
     where: { email: 'P88942' },
-    update: {},
+    update: {
+      name: 'สมชาย ใจดี',
+      phone: '0898765432',
+    },
     create: {
       email: 'P88942',
       passwordHash,
@@ -39,7 +42,10 @@ async function main() {
 
   const partner2 = await prisma.user.upsert({
     where: { email: 'P11223' },
-    update: {},
+    update: {
+      name: 'บจก. มาร์เก็ตติ้ง จำกัด',
+      phone: '021234567',
+    },
     create: {
       email: 'P11223',
       passwordHash,

@@ -8,6 +8,7 @@ router.post('/register', registerRules, authController.register);
 router.post('/login', loginRules, authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
+router.post('/referral/click', authController.trackReferralClick);
 
 // Google OAuth 2.0 routes
 router.get('/google', authController.googleLogin);

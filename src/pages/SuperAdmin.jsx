@@ -134,8 +134,12 @@ export default function SuperAdmin() {
   const [payoutsData, setPayoutsData] = useState(USE_MOCK ? MOCK_PAYOUT_DATA : {});
   const [announcements, setAnnouncements] = useState(USE_MOCK ? MOCK_ANNOUNCEMENTS : []);
   const [tickets, setTickets] = useState(USE_MOCK ? MOCK_TICKETS : []);
+  const [insightsData, setInsightsData] = useState(null);
+  const [isFetchingInsights, setIsFetchingInsights] = useState(false);
   const [broadcastForm, setBroadcastForm] = useState({ title: '', type: 'Campaign', target: 'ALL', content: '' });
   const [activeTab, setActiveTab] = useState('partners');
+  const [assets, setAssets] = useState([]);
+  const [assetForm, setAssetForm] = useState({ name: '', category: 'Presentations', size: '', url: '' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -349,6 +353,195 @@ export default function SuperAdmin() {
     }
   };
 
+  const formatBytes = (bytes, decimals = 1) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
+  const fetchMarketInsights = async () => {
+    setIsFetchingInsights(true);
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/insights', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInsightsData(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch insights:', err);
+    } finally {
+      setIsFetchingInsights(false);
+    }
+  };
+
+  const handleCalculateGoal = async () => {
+    setIsCalculatingGoal(true);
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/goal-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          target: Number(goalTarget),
+          months: Number(goalMonths)
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Map types to Lucide React icons
+        const typeToIcon = {
+          partner: Users,
+          campaign: Target,
+          marketing: Megaphone,
+          product: Lightbulb,
+          retention: BrainCircuit
+        };
+
+        const mappedActions = (data.actions || []).map(act => ({
+          ...act,
+          icon: typeToIcon[act.type] || Lightbulb
+        }));
+
+        setGoalResult({
+          monthlyTarget: data.monthlyTarget,
+          costs: data.costs,
+          profit: data.profit,
+          actions: mappedActions
+        });
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to calculate strategy');
+      }
+    } catch (err) {
+      console.warn('Failed to calculate goal strategy:', err);
+      // Fallback local calculation
+      const costAPI = goalTarget * 0.06;
+      const costComm = goalTarget * 0.22;
+      const costMkt = goalTarget * 0.15;
+      const costServer = goalTarget * 0.04;
+      const costOp = goalTarget * 0.10;
+      const totalCost = costAPI + costComm + costMkt + costServer + costOp;
+      const profit = goalTarget - totalCost;
+      const newPartnersNeeded = Math.ceil((goalTarget * 0.4) / 100000);
+      setGoalResult({
+        monthlyTarget: goalTarget / goalMonths,
+        costs: { api: costAPI, comm: costComm, mkt: costMkt, server: costServer, op: costOp, total: totalCost },
+        profit: profit,
+        actions: [
+          { icon: Users, text: `รับสมัคร Partner ระดับ Gold/Silver เพิ่มอีก ${newPartnersNeeded} รายภายใน ${Math.max(1, Math.floor(goalMonths/3))} เดือนแรก`, type: 'partner' },
+          { icon: Target, text: 'จัดแคมเปญอัดฉีด: แจกโบนัสคอมมิชชันเพิ่ม 3% สำหรับ Partner ที่ทำยอดเกิน 1 ล้านบาท/เดือน', type: 'campaign' },
+          { icon: Megaphone, text: `เพิ่มงบยิงแอด Facebook/TikTok เป็น ฿${Math.floor(costMkt / goalMonths).toLocaleString()} ต่อเดือน เน้นกลุ่มเจ้าของธุรกิจ SME`, type: 'marketing' },
+          { icon: Lightbulb, text: 'เปิดตัวฟีเจอร์ "เชื่อมต่อ POS" ในแพ็กเกจ Advanced (11,900.-) เพื่ออัปเซลล์ลูกค้ากลุ่ม Pro เดิมให้ขยับแพ็กเกจ', type: 'product' },
+          { icon: BrainCircuit, text: 'ทำระบบ Webinar อบรมการใช้งาน AI ฟรีทุกสัปดาห์ เพื่อลดอัตราการยกเลิก (Churn Rate) ลง 1.5%', type: 'retention' }
+        ]
+      });
+    } finally {
+      setIsCalculatingGoal(false);
+    }
+  };
+
+  const fetchAssets = async () => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      const res = await fetch('/api/admin/assets', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAssets(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch assets:', err);
+    }
+  };
+
+  const handleCreateAsset = async (e) => {
+    if (e) e.preventDefault();
+    if (!assetForm.name.trim() || !assetForm.category) {
+      alert('กรุณากรอกชื่อไฟล์และเลือกหมวดหมู่');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/assets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          name: assetForm.name,
+          category: assetForm.category,
+          size: assetForm.size || '1.0 MB',
+          url: assetForm.url || 'https://aiva.sparexth.com/assets/mock_download.zip'
+        })
+      });
+      if (res.ok) {
+        alert('อัปโหลดไฟล์สื่อสำเร็จ!');
+        fetchAssets();
+        setAssetForm({ name: '', category: 'Presentations', size: '', url: '' });
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to create asset');
+      }
+    } catch (err) {
+      console.error('Error creating asset:', err);
+    }
+  };
+
+  const handleDeleteAsset = async (assetId) => {
+    if (!window.confirm('คุณต้องการลบไฟล์สื่อการตลาดนี้ใช่หรือไม่?')) return;
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/assets/' + assetId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        fetchAssets();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to delete asset');
+      }
+    } catch (err) {
+      console.error('Error deleting asset:', err);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId, status) => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/tickets/' + ticketId + '/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchTickets();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to update ticket status');
+      }
+    } catch (err) {
+      console.error('Error updating ticket status:', err);
+    }
+  };
+
   const handleCreateAnnouncement = async () => {
     if (!broadcastForm.title.trim() || !broadcastForm.content.trim()) {
       alert('กรุณากรอกหัวข้อและรายละเอียดให้ครบถ้วน');
@@ -365,7 +558,9 @@ export default function SuperAdmin() {
         body: JSON.stringify({
           title: broadcastForm.title,
           content: broadcastForm.content,
-          targetTier: broadcastForm.target
+          targetTier: broadcastForm.target,
+          type: broadcastForm.type,
+          audience: broadcastType.toUpperCase()
         })
       });
       if (res.ok) {
@@ -400,6 +595,8 @@ export default function SuperAdmin() {
       fetchAnnouncements();
       fetchTickets();
       fetchCustomers();
+      fetchAssets();
+      fetchMarketInsights();
     }
   }, [isAuthenticated]);
 
@@ -418,35 +615,7 @@ export default function SuperAdmin() {
   const totalPartnerRev = mainPartnerRev + subPartnerRev;
 
   // --- HANDLER FOR GOAL PLANNER ---
-  const handleCalculateGoal = () => {
-    setIsCalculatingGoal(true);
-    // Simulate AI calculation delay
-    setTimeout(() => {
-      const costAPI = goalTarget * 0.06;
-      const costComm = goalTarget * 0.22;
-      const costMkt = goalTarget * 0.15;
-      const costServer = goalTarget * 0.04;
-      const costOp = goalTarget * 0.10;
-      const totalCost = costAPI + costComm + costMkt + costServer + costOp;
-      const profit = goalTarget - totalCost;
-      
-      const newPartnersNeeded = Math.ceil((goalTarget * 0.4) / 100000);
-      
-      setGoalResult({
-        monthlyTarget: goalTarget / goalMonths,
-        costs: { api: costAPI, comm: costComm, mkt: costMkt, server: costServer, op: costOp, total: totalCost },
-        profit: profit,
-        actions: [
-          { icon: Users, text: `รับสมัคร Partner ระดับ Gold/Silver เพิ่มอีก ${newPartnersNeeded} รายภายใน ${Math.max(1, Math.floor(goalMonths/3))} เดือนแรก`, type: 'partner' },
-          { icon: Target, text: `จัดแคมเปญอัดฉีด: แจกโบนัสคอมมิชชันเพิ่ม 3% สำหรับ Partner ที่ทำยอดเกิน 1 ล้านบาท/เดือน`, type: 'campaign' },
-          { icon: Megaphone, text: `เพิ่มงบยิงแอด Facebook/TikTok เป็น ฿${Math.floor(costMkt / goalMonths).toLocaleString()} ต่อเดือน เน้นกลุ่มเจ้าของธุรกิจ SME`, type: 'marketing' },
-          { icon: Lightbulb, text: `เปิดตัวฟีเจอร์ "เชื่อมต่อ POS" ในแพ็กเกจ Advanced (11,900.-) เพื่ออัปเซลล์ลูกค้ากลุ่ม Pro เดิมให้ขยับแพ็กเกจ`, type: 'product' },
-          { icon: BrainCircuit, text: `ทำระบบ Webinar อบรมการใช้งาน AI ฟรีทุกสัปดาห์ เพื่อลดอัตราการยกเลิก (Churn Rate) ลง 1.5%`, type: 'retention' }
-        ]
-      });
-      setIsCalculatingGoal(false);
-    }, 2000);
-  };
+  
 
   if (!isAuthenticated) return <AdminAuth onLogin={() => setIsAuthenticated(true)} />;
 
@@ -732,15 +901,15 @@ export default function SuperAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="admin-card rounded-2xl p-5 border flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-2"><div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400"><TrendingUp className="w-5 h-5" /></div></div>
-                  <div><h3 className="text-3xl font-black text-white">4.8<span className="text-lg text-slate-500 font-normal">/5</span></h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Overall Sentiment</p><p className="text-xs text-emerald-400 mt-1">+0.2 จากไตรมาสก่อน</p></div>
+                  <div><h3 className="text-3xl font-black text-white">{(insightsData?.sentiment || 4.8).toFixed(1)}<span className="text-lg text-slate-500 font-normal">/5</span></h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Overall Sentiment</p><p className="text-xs text-emerald-400 mt-1">+0.2 จากไตรมาสก่อน</p></div>
                 </div>
                 <div className="admin-card rounded-2xl p-5 border flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-2"><div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400"><Activity className="w-5 h-5" /></div></div>
-                  <div><h3 className="text-2xl font-black text-white leading-tight">Multi-PDF Sync</h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Most Used Feature</p><p className="text-xs text-slate-500 mt-1">ถูกใช้งาน 85% ของลูกค้าทั้งหมด</p></div>
+                  <div><h3 className="text-2xl font-black text-white leading-tight">{insightsData?.mostUsedFeature || "Multi-PDF Sync"}</h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Most Used Feature</p><p className="text-xs text-slate-500 mt-1">วิเคราะห์จากสถิติโมเดลความรู้</p></div>
                 </div>
                 <div className="admin-card rounded-2xl p-5 border flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-2"><div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400"><MessageSquare className="w-5 h-5" /></div></div>
-                  <div><h3 className="text-3xl font-black text-white">1,204</h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Feedback Processed</p><p className="text-xs text-indigo-400 mt-1">วิเคราะห์โดย AI</p></div>
+                  <div><h3 className="text-3xl font-black text-white">{insightsData?.topFeedbacks ? 'Live' : '1,204'}</h3><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Feedback Processed</p><p className="text-xs text-indigo-400 mt-1">วิเคราะห์โดย AI</p></div>
                 </div>
               </div>
 
@@ -751,53 +920,55 @@ export default function SuperAdmin() {
                 <div className="admin-card rounded-2xl p-6 border flex flex-col">
                   <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2"><BarChart2 className="w-5 h-5 text-rose-400"/> TOP 3 Feedback & Pain Points</h3>
                   <div className="space-y-4 flex-1">
-                    {[
+                    {(insightsData?.topFeedbacks || [
                       {
                         rank: 1,
                         title: "การเชื่อมต่อ POS ล่มบ่อย",
                         priority: "High Priority",
-                        priorityColor: "text-rose-400 bg-rose-500/10 border-rose-500/20",
                         desc: "พบการแจ้งปัญหา 45 ครั้งในสัปดาห์นี้ ส่วนใหญ่เกิดกับลูกค้าร้านอาหาร",
                         pkg: "Advanced Plan",
-                        pkgColor: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-                        bar: "bg-rose-500"
+                        barColor: "bg-rose-500"
                       },
                       {
                         rank: 2,
                         title: "ต้องการ AI ช่วยตอบคอมเมนต์ Facebook",
                         priority: "Feature Request",
-                        priorityColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
                         desc: "ลูกค้าร้องขอฟีเจอร์นี้เพื่อลดเวลาแอดมินเพจในการตอบคำถามซ้ำๆ",
                         pkg: "Pro Plan",
-                        pkgColor: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-                        bar: "bg-amber-500"
+                        barColor: "bg-amber-500"
                       },
                       {
                         rank: 3,
                         title: "ระบบสรุปยอดขายรายวันผ่าน LINE",
                         priority: "Feature Request",
-                        priorityColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
                         desc: "เจ้าของกิจการต้องการรับบรีฟสั้นๆ ทุก 4 ทุ่ม โดยไม่ต้องล็อกอินเข้าหน้าเว็บ",
                         pkg: "Basic & Pro Plan",
-                        pkgColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-                        bar: "bg-emerald-500"
+                        barColor: "bg-emerald-500"
                       }
-                    ].map((item) => (
-                      <div key={item.rank} className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 relative overflow-hidden flex flex-col gap-2 hover:border-slate-600 transition-colors">
-                        <div className={`absolute top-0 left-0 w-1 h-full ${item.bar}`}></div>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 pl-2">
-                          <div className="flex items-start gap-2">
-                            <span className="text-lg font-black text-slate-600 leading-none">#{item.rank}</span>
-                            <h4 className="font-bold text-slate-200 text-sm leading-tight">{item.title}</h4>
+                    ]).map((item) => {
+                      const isHigh = item.priority === 'High Priority';
+                      const priorityColor = isHigh ? "text-rose-400 bg-rose-500/10 border-rose-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                      const isAdv = item.pkg && item.pkg.includes('Advanced');
+                      const pkgColor = isAdv ? "text-purple-400 bg-purple-500/10 border-purple-500/20" : "text-blue-400 bg-blue-500/10 border-blue-500/20";
+                      const bar = item.barColor || item.bar || (isHigh ? "bg-rose-500" : "bg-amber-500");
+
+                      return (
+                        <div key={item.rank} className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 relative overflow-hidden flex flex-col gap-2 hover:border-slate-600 transition-colors">
+                          <div className={`absolute top-0 left-0 w-1 h-full ${bar}`}></div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 pl-2">
+                            <div className="flex items-start gap-2">
+                              <span className="text-lg font-black text-slate-600 leading-none">#{item.rank}</span>
+                              <h4 className="font-bold text-slate-200 text-sm leading-tight">{item.title}</h4>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 shrink-0 pl-6 sm:pl-0">
+                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${pkgColor}`}>{item.pkg}</span>
+                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${priorityColor}`}>{item.priority}</span>
+                            </div>
                           </div>
-                          <div className="flex flex-wrap gap-1.5 shrink-0 pl-6 sm:pl-0">
-                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.pkgColor}`}>{item.pkg}</span>
-                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.priorityColor}`}>{item.priority}</span>
-                          </div>
+                          <p className="text-xs text-slate-400 pl-6 leading-relaxed">{item.desc}</p>
                         </div>
-                        <p className="text-xs text-slate-400 pl-6 leading-relaxed">{item.desc}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -807,35 +978,43 @@ export default function SuperAdmin() {
                   <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2 relative z-10"><Lightbulb className="w-5 h-5 text-amber-400"/> AI Suggested Roadmap (Q3-Q4)</h3>
                   
                   <div className="relative z-10 space-y-6">
-                    <div className="relative pl-6 border-l border-slate-700">
-                      <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-rose-500 border-2 border-[#1E293B]"></span>
-                      <h4 className="text-sm font-bold text-white">Q3/Phase 1: Stability First</h4>
-                      <p className="text-xs text-slate-400 mt-1 mb-2">มุ่งเน้นแก้ Pain point ที่มีผลกระทบต่อ Churn Rate ทันที</p>
-                      <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
-                        <li>Rewrite ระบบเชื่อม API ของ POS ใหม่ทั้งหมด</li>
-                        <li>ขยาย Limit ของ Multi-PDF เป็น 50MB/ไฟล์</li>
-                      </ul>
-                    </div>
+                    {(() => {
+                      const roadmap = insightsData?.roadmap || {
+                        q3_phase1: { title: "Q3/Phase 1: Stability First", desc: "มุ่งเน้นแก้ Pain point ที่มีผลกระทบต่อ Churn Rate ทันที", bullets: ["Rewrite ระบบเชื่อม API ของ POS ใหม่ทั้งหมด", "ขยาย Limit ของ Multi-PDF เป็น 50MB/ไฟล์"] },
+                        q3_phase2: { title: "Q3/Phase 2: Social Commerce", desc: "ตอบโจทย์ Feature Request ที่ถูกขอมากที่สุดเพื่อ Upsell", bullets: ["เปิดตัวฟีเจอร์ AI Auto-Comment Reply", "เพิ่ม Channel Instagram DM Integration"] },
+                        q4: { title: "Q4: Exec & Analytics", desc: "ดึงดูดลูกค้าระดับ Enterprise และผู้บริหาร", bullets: ["Line Broadcast สรุปยอดขายรายวันด้วย AI Voice", "Predictive Analytics (พยากรณ์ยอดขายเดือนหน้า)"] }
+                      };
+                      return (
+                        <>
+                          <div className="relative pl-6 border-l border-slate-700">
+                            <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-rose-500 border-2 border-[#1E293B]"></span>
+                            <h4 className="text-sm font-bold text-white">{roadmap.q3_phase1.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1 mb-2">{roadmap.q3_phase1.desc}</p>
+                            <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                              {(roadmap.q3_phase1.bullets || []).map((b, i) => <li key={i}>{b}</li>)}
+                            </ul>
+                          </div>
 
-                    <div className="relative pl-6 border-l border-slate-700">
-                      <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-indigo-500 border-2 border-[#1E293B]"></span>
-                      <h4 className="text-sm font-bold text-white">Q3/Phase 2: Social Commerce</h4>
-                      <p className="text-xs text-slate-400 mt-1 mb-2">ตอบโจทย์ Feature Request ที่ถูกขอมากที่สุดเพื่อ Upsell</p>
-                      <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
-                        <li>เปิดตัวฟีเจอร์ AI Auto-Comment Reply</li>
-                        <li>เพิ่ม Channel Instagram DM Integration</li>
-                      </ul>
-                    </div>
+                          <div className="relative pl-6 border-l border-slate-700">
+                            <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-indigo-500 border-2 border-[#1E293B]"></span>
+                            <h4 className="text-sm font-bold text-white">{roadmap.q3_phase2.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1 mb-2">{roadmap.q3_phase2.desc}</p>
+                            <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                              {(roadmap.q3_phase2.bullets || []).map((b, i) => <li key={i}>{b}</li>)}
+                            </ul>
+                          </div>
 
-                    <div className="relative pl-6 border-l border-slate-700/0">
-                      <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1E293B]"></span>
-                      <h4 className="text-sm font-bold text-white">Q4: Exec & Analytics</h4>
-                      <p className="text-xs text-slate-400 mt-1 mb-2">ดึงดูดลูกค้าระดับ Enterprise และผู้บริหาร</p>
-                      <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
-                        <li>Line Broadcast สรุปยอดขายรายวันด้วย AI Voice</li>
-                        <li>Predictive Analytics (พยากรณ์ยอดขายเดือนหน้า)</li>
-                      </ul>
-                    </div>
+                          <div className="relative pl-6 border-l border-slate-700/0">
+                            <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1E293B]"></span>
+                            <h4 className="text-sm font-bold text-white">{roadmap.q4.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1 mb-2">{roadmap.q4.desc}</p>
+                            <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                              {(roadmap.q4.bullets || []).map((b, i) => <li key={i}>{b}</li>)}
+                            </ul>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                   
                   <button className="w-full mt-auto bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold py-3 rounded-xl transition-colors shadow-sm relative z-10">
@@ -915,10 +1094,10 @@ export default function SuperAdmin() {
                             <p className="text-[10px] text-slate-500">ฟีเจอร์ที่ดึงดูด: Multi-PDF ถามตอบหลักสูตร</p>
                           </div>
                         </div>
-                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">+28%</span>
+                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">+30%</span>
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-700/50">
-                        <p className="text-xs text-slate-400"><span className="text-indigo-400 font-bold">💡 Action:</span> จัดสัมมนาออนไลน์ (Webinar) หัวข้อ "ใช้ AI ลดเวลาแอดมินตอบคำถามผู้ปกครอง"</p>
+                        <p className="text-xs text-slate-400"><span className="text-indigo-400 font-bold">💡 Action:</span> ขยายฟังก์ชันระบบ Knowledge Base ให้รองรับการเชื่อมโยงหลายๆ ไฟล์คู่มือพร้อมกัน</p>
                       </div>
                     </div>
                   </div>
@@ -927,9 +1106,7 @@ export default function SuperAdmin() {
               </div>
 
             </div>
-          )}
-
-          {/* TAB: GOAL PLANNER (NEW) */}
+          )}{/* TAB: GOAL PLANNER (NEW) */}
           {activeTab === 'goal-planner' && (
             <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
               <div className="shrink-0 mb-6">
@@ -1326,21 +1503,21 @@ export default function SuperAdmin() {
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">ประเภท (Type)</label>
-                       <select className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none">
+                       <select value={broadcastForm.type} onChange={e => setBroadcastForm({...broadcastForm, type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none">
                          {broadcastType === 'partner' ? (
-                           <><option>Campaign (อัดฉีดโปรโมชั่น)</option><option>Product Update (อัปเดตฟีเจอร์)</option><option>Event (กิจกรรม/สัมมนา)</option><option>Important (ประกาศสำคัญ)</option></>
+                           <><option value="Campaign">Campaign (อัดฉีดโปรโมชั่น)</option><option value="Product Update">Product Update (อัปเดตฟีเจอร์)</option><option value="Event">Event (กิจกรรม/สัมมนา)</option><option value="Important">Important (ประกาศสำคัญ)</option></>
                          ) : (
-                           <><option>Discount/Promo (โปรโมชั่นส่วนลด)</option><option>Product Update (อัปเดตฟีเจอร์)</option><option>Tips & Tricks (แนะนำการใช้งาน)</option><option>Important (ประกาศสำคัญ)</option></>
+                           <><option value="Discount/Promo">Discount/Promo (โปรโมชั่นส่วนลด)</option><option value="Product Update">Product Update (อัปเดตฟีเจอร์)</option><option value="Tips & Tricks">Tips & Tricks (แนะนำการใช้งาน)</option><option value="Important">Important (ประกาศสำคัญ)</option></>
                          )}
                        </select>
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">กลุ่มเป้าหมาย (Target)</label>
-                       <select className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none">
+                       <select value={broadcastForm.target} onChange={e => setBroadcastForm({...broadcastForm, target: e.target.value})} className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none">
                          {broadcastType === 'partner' ? (
-                           <><option>All Partners (ทุกคน)</option><option>Gold & Silver Tier เท่านั้น</option><option>Bronze Tier เท่านั้น</option></>
+                           <><option value="ALL">All Partners (ทุกคน)</option><option value="GOLD_ONLY">Gold Tier เท่านั้น</option><option value="SILVER_AND_UP">Silver & Up เท่านั้น</option></>
                          ) : (
-                           <><option>All Customers (ทุกคน)</option><option>Basic & Pro (เพื่อกระตุ้น Upsell)</option><option>Advanced Plan เท่านั้น</option><option>เฉพาะกลุ่มธุรกิจ: คลินิก/ความงาม</option></>
+                           <><option value="ALL">All Customers (ทุกคน)</option><option value="BASIC_PRO">Basic & Pro (เพื่อกระตุ้น Upsell)</option><option value="ADVANCED_ONLY">Advanced Plan เท่านั้น</option></>
                          )}
                        </select>
                      </div>
@@ -1348,7 +1525,7 @@ export default function SuperAdmin() {
                        <label className="text-xs font-bold text-slate-400 uppercase">รายละเอียด / โค้ดส่วนลด</label>
                        <textarea value={broadcastForm.content} onChange={e => setBroadcastForm({...broadcastForm, content: e.target.value})} rows="3" placeholder="พิมพ์รายละเอียด หรือใส่รหัส Promo Code..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"></textarea>
                      </div>
-                     <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm mt-2 flex items-center justify-center gap-2">
+                     <button onClick={handleCreateAnnouncement} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm mt-2 flex items-center justify-center gap-2">
                        <Send className="w-4 h-4"/> กดส่ง (Broadcast)
                      </button>
                    </div>
@@ -1508,35 +1685,72 @@ export default function SuperAdmin() {
 
                <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
                  {/* Upload Form */}
-                 <div className="lg:w-1/3 flex flex-col gap-6 shrink-0">
-                   <div className="admin-card rounded-2xl p-6 border flex flex-col items-center justify-center text-center h-48 border-dashed border-slate-600 bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                 <form onSubmit={handleCreateAsset} className="lg:w-1/3 flex flex-col gap-6 shrink-0">
+                   <label className="admin-card rounded-2xl p-6 border flex flex-col items-center justify-center text-center h-48 border-dashed border-slate-600 bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                     <input 
+                       type="file" 
+                       className="hidden" 
+                       onChange={(e) => {
+                         if (e.target.files && e.target.files[0]) {
+                           const file = e.target.files[0];
+                           setAssetForm(prev => ({
+                             ...prev,
+                             name: file.name,
+                             size: formatBytes(file.size),
+                             url: '/uploads/' + file.name
+                           }));
+                         }
+                       }} 
+                     />
                      <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><UploadCloud className="w-6 h-6"/></div>
-                     <p className="text-sm font-bold text-slate-200">คลิกเพื่ออัปโหลดไฟล์</p>
-                     <p className="text-[10px] text-slate-500 mt-1">รองรับ PDF, PNG, JPG, ZIP (Max 50MB)</p>
-                   </div>
+                     <p className="text-sm font-bold text-slate-200">
+                       {assetForm.name ? 'เลือกไฟล์: ' + assetForm.name : 'คลิกเพื่ออัปโหลดไฟล์'}
+                     </p>
+                     <p className="text-[10px] text-slate-500 mt-1">
+                       {assetForm.size ? 'ขนาด: ' + assetForm.size : 'รองรับ PDF, PNG, JPG, ZIP (Max 50MB)'}
+                     </p>
+                   </label>
                    
                    <div className="admin-card rounded-2xl p-6 border space-y-4">
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">ชื่อไฟล์แสดงผล</label>
-                       <input type="text" placeholder="เช่น Pitch Deck Q3" className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+                       <input 
+                         type="text" 
+                         value={assetForm.name}
+                         onChange={(e) => {
+                           const val = e.target.value;
+                           setAssetForm(prev => ({ ...prev, name: val }));
+                         }}
+                         placeholder="เช่น Pitch Deck Q3" 
+                         className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" 
+                       />
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-xs font-bold text-slate-400 uppercase">หมวดหมู่</label>
-                       <select className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none">
-                         <option>Presentations</option><option>Brand Assets</option><option>Marketing</option>
+                       <select 
+                         value={assetForm.category}
+                         onChange={(e) => {
+                           const val = e.target.value;
+                           setAssetForm(prev => ({ ...prev, category: val }));
+                         }}
+                         className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 appearance-none"
+                       >
+                         <option value="Presentations">Presentations</option>
+                         <option value="Brand Assets">Brand Assets</option>
+                         <option value="Marketing">Marketing</option>
                        </select>
                      </div>
-                     <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm mt-2 flex items-center justify-center gap-2">
+                     <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm mt-2 flex items-center justify-center gap-2">
                        <UploadCloud className="w-4 h-4"/> เริ่มอัปโหลดและซิงค์
                      </button>
                    </div>
-                 </div>
+                 </form>
 
                  {/* Asset List (Fit View) */}
                  <div className="lg:w-2/3 admin-card rounded-2xl border flex flex-col flex-1 overflow-hidden min-h-0">
                    <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center shrink-0">
                      <h3 className="font-bold text-white text-sm">ไฟล์สื่อที่พร้อมใช้งาน</h3>
-                     <span className="text-xs font-bold bg-slate-900 text-slate-400 px-2.5 py-1 rounded border border-slate-700">3 ไฟล์</span>
+                     <span className="text-xs font-bold bg-slate-900 text-slate-400 px-2.5 py-1 rounded border border-slate-700">{assets.length} ไฟล์</span>
                    </div>
                    <div className="overflow-auto custom-scrollbar flex-1 p-0">
                      <table className="w-full text-left text-sm whitespace-nowrap">
@@ -1544,19 +1758,39 @@ export default function SuperAdmin() {
                          <tr><th className="px-4 py-2.5">ชื่อไฟล์</th><th className="px-4 py-2.5">หมวดหมู่</th><th className="px-4 py-2.5 text-center w-24">ดาวน์โหลด</th><th className="px-4 py-2.5 text-center w-28">สถานะการซิงค์</th><th className="px-4 py-2.5 text-center w-16">จัดการ</th></tr>
                        </thead>
                        <tbody className="divide-y divide-slate-800/50">
-                         {[
-                           { name: 'AIVA Logo Pack (PNG/SVG)', cat: 'Brand Assets', dl: 142, size: '12.5 MB', date: '05/06/2026' },
-                           { name: 'Pitch Deck Q3 2026', cat: 'Presentations', dl: 85, size: '24.1 MB', date: '01/06/2026' },
-                           { name: 'Facebook Ads Banner (Set A)', cat: 'Marketing', dl: 256, size: '8.2 MB', date: '28/05/2026' }
-                         ].map((f,i) => (
-                           <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                             <td className="px-4 py-3"><div className="font-bold text-slate-200">{f.name}</div><div className="text-[10px] text-slate-500 mt-0.5">{f.size} • อัปโหลด: {f.date}</div></td>
-                             <td className="px-4 py-3"><span className="text-[10px] font-bold bg-slate-800 border border-slate-700 px-2 py-1 rounded text-slate-300">{f.cat}</span></td>
-                             <td className="px-4 py-3 text-center font-mono text-slate-400">{f.dl}</td>
-                             <td className="px-4 py-3 text-center"><span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20"><Sparkles className="w-3 h-3"/> Synced</span></td>
-                             <td className="px-4 py-3 text-center"><button className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"><Trash2 className="w-4 h-4 mx-auto"/></button></td>
+                         {assets.length === 0 ? (
+                           <tr>
+                             <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                               ยังไม่มีไฟล์สื่อการตลาดพร้อมใช้งาน
+                             </td>
                            </tr>
-                         ))}
+                         ) : (
+                           assets.map((f, i) => (
+                             <tr key={f.id} className="hover:bg-slate-800/30 transition-colors">
+                               <td className="px-4 py-3">
+                                 <div className="font-bold text-slate-200">{f.filename}</div>
+                                 <div className="text-[10px] text-slate-500 mt-0.5">{f.size} • อัปโหลด: {new Date(f.createdAt).toLocaleDateString('th-TH')}</div>
+                               </td>
+                               <td className="px-4 py-3">
+                                 <span className="text-[10px] font-bold bg-slate-800 border border-slate-700 px-2 py-1 rounded text-slate-300">{f.category}</span>
+                               </td>
+                               <td className="px-4 py-3 text-center font-mono text-slate-400">{f.downloads || 0}</td>
+                               <td className="px-4 py-3 text-center">
+                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                                   <Sparkles className="w-3 h-3"/> Synced
+                                 </span>
+                               </td>
+                               <td className="px-4 py-3 text-center">
+                                 <button 
+                                   onClick={() => handleDeleteAsset(f.id)}
+                                   className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
+                                 >
+                                   <Trash2 className="w-4 h-4 mx-auto"/>
+                                 </button>
+                               </td>
+                             </tr>
+                           ))
+                         )}
                        </tbody>
                      </table>
                    </div>
@@ -1564,8 +1798,7 @@ export default function SuperAdmin() {
                </div>
             </div>
           )}
-
-          {/* TAB: HELPDESK TICKETS */}
+                    {/* TAB: HELPDESK TICKETS */}
           {activeTab === 'tickets' && (
             <div className="h-full flex flex-col max-w-7xl mx-auto animate-in fade-in duration-300">
                <div className="shrink-0 mb-6 flex justify-between items-end">
@@ -1612,7 +1845,7 @@ export default function SuperAdmin() {
                                  {t.type === 'Billing' && <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded"><DollarSign className="w-3 h-3 inline pb-0.5"/> การเงิน</span>}
                                </td>
                                <td className="px-4 py-3 text-center">
-                                 <select className={`text-[10px] font-bold rounded-lg px-2 py-1.5 outline-none appearance-none cursor-pointer border ${t.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : t.status === 'In Progress' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                 <select value={t.status} onChange={(e) => handleUpdateTicketStatus(t.id, e.target.value)} className={`text-[10px] font-bold rounded-lg px-2 py-1.5 outline-none appearance-none cursor-pointer border ${t.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : t.status === 'In Progress' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                                    <option>{t.status}</option>
                                    {t.status !== 'Pending' && <option>Pending</option>}
                                    {t.status !== 'In Progress' && <option>In Progress</option>}

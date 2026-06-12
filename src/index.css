@@ -6,6 +6,11 @@ body {
   margin: 0;
 }
 
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
 /* Custom Scrollbar for better UI experience */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

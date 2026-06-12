@@ -159,6 +159,24 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     }
   }, [activeModal, processingState, paymentMethod, taxType]);
 
+  // Capture referral code from URL and track click
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      sessionStorage.setItem('aiva_referral_code', ref);
+      // Track click on backend
+      fetch('/api/auth/referral/click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: ref })
+      })
+      .then(res => res.json())
+      .then(data => console.log('[Referral Click Tracked]', data))
+      .catch(err => console.error('[Referral Click Error]', err));
+    }
+  }, []);
+
   // Countdown timer for PromptPay
   useEffect(() => {
     if (activeModal === 'checkout' && paymentMethod === 'promptpay') {
@@ -216,6 +234,8 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     setProcessingTitle('ชำระเงินสำเร็จ!');
     setProcessingDesc('ยินดีต้อนรับเข้าสู่ครอบครัว AIVA นี่คือรหัสประจำตัวของคุณสำหรับใช้ล็อกอิน');
 
+    const referralCode = sessionStorage.getItem('aiva_referral_code') || null;
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -224,7 +244,10 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
           email,
           password: 'aiva2026',
           name,
-          role: 'CLIENT_OWNER'
+          role: 'CLIENT_OWNER',
+          referralCode,
+          plan: checkoutPlan,
+          billingCycle
         })
       });
 
@@ -596,15 +619,15 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                 
                 {/* Billing Toggle */}
                 <div className="mt-10 inline-flex items-center p-1 bg-slate-200/70 rounded-full relative overflow-x-auto max-w-full shadow-inner">
-                    <div id="billing-slider" className="absolute top-1 bottom-1 left-1 w-[calc(33.333%-2.66px)] bg-white rounded-full shadow-sm transition-transform duration-300"></div>
+                    <div id="billing-slider" className="absolute top-1 bottom-1 left-1 w-[calc(33.333%-2.66px)] bg-white rounded-full shadow-sm transition-transform duration-300" style={{ transform: billingCycle === 'monthly' ? 'translateX(0)' : billingCycle === 'halfYear' ? 'translateX(100%)' : 'translateX(200%)' }}></div>
                     
-                    <button onClick={() => setBillingCycle('monthly')} id="btn-monthly" className="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center whitespace-nowrap">
+                    <button onClick={() => setBillingCycle('monthly')} id="btn-monthly" className={`relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center whitespace-nowrap ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}>
                         รายเดือน
                     </button>
-                    <button onClick={() => setBillingCycle('halfYear')} id="btn-halfYear" className="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                    <button onClick={() => setBillingCycle('halfYear')} id="btn-halfYear" className={`relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${billingCycle === 'halfYear' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}>
                         ราย 6 เดือน <span className="bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded-full shrink-0 shadow-sm">ลด 3%</span>
                     </button>
-                    <button onClick={() => setBillingCycle('yearly')} id="btn-yearly" className="relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                    <button onClick={() => setBillingCycle('yearly')} id="btn-yearly" className={`relative z-10 px-3 sm:px-4 py-2.5 text-sm font-bold transition-colors rounded-full w-[110px] sm:w-[150px] flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}>
                         รายปี <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full shrink-0 shadow-sm">ลด 15%</span>
                     </button>
                 </div>

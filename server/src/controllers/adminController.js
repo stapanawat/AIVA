@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const geminiService = require('../services/geminiService');
 
 // 1. Partner Management
 const getPartners = async (req, res, next) => {
@@ -162,7 +163,7 @@ const approvePayout = async (req, res, next) => {
 // 3. Broadcast Announcement Operations
 const createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, targetTier } = req.body;
+    const { title, content, targetTier, type, audience } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ error: 'Announcement title and content are required.' });
@@ -172,7 +173,9 @@ const createAnnouncement = async (req, res, next) => {
       data: {
         title,
         content,
-        targetTier: targetTier || 'ALL'
+        targetTier: targetTier || 'ALL',
+        type: type || 'Product Update',
+        audience: audience || 'BOTH'
       }
     });
 
@@ -191,9 +194,10 @@ const getAnnouncements = async (req, res, next) => {
       id: a.id,
       title: a.title,
       content: a.content,
-      type: a.title.includes('แคมเปญ') || a.title.includes('Campaign') ? 'Campaign' : 'Product Update',
+      type: a.type || (a.title.includes('แคมเปญ') || a.title.includes('Campaign') ? 'Campaign' : 'Product Update'),
+      audience: a.audience || 'BOTH',
       target: a.targetTier === 'ALL' ? 'All Partners' : (a.targetTier === 'GOLD_ONLY' ? 'Gold Tier Only' : 'Silver & Up'),
-      views: 125,
+      views: a.views,
       status: 'Active',
       date: new Date(a.createdAt).toLocaleDateString('th-TH')
     }));
@@ -209,22 +213,31 @@ const getTickets = async (req, res, next) => {
       orderBy: { createdAt: 'desc' },
       include: {
         client: {
-          select: {
-            name: true
-          }
+          select: { name: true }
+        },
+        partner: {
+          select: { name: true, email: true }
         }
       }
     });
 
-    const formatted = feedbacks.map(f => ({
-      id: f.id,
-      type: f.type,
-      title: f.title,
-      description: f.description,
-      status: f.status,
-      date: new Date(f.createdAt).toLocaleDateString('th-TH'),
-      customerName: f.client?.name || 'ลูกค้าทั่วไป'
-    }));
+    const formatted = feedbacks.map(f => {
+      // Map ticket type safely (Bug, Feature, Billing)
+      let typeLabel = 'Bug';
+      if (f.type.toLowerCase() === 'feature') typeLabel = 'Feature';
+      else if (f.type.toLowerCase() === 'billing') typeLabel = 'Billing';
+
+      return {
+        id: f.id,
+        sender: f.partnerId ? 'PARTNER' : 'CUSTOMER',
+        name: f.partnerId ? (f.partner?.name || 'พาร์ทเนอร์') : (f.client?.name || 'ลูกค้าทั่วไป'),
+        issue: f.title,
+        description: f.description,
+        time: new Date(f.createdAt).toLocaleDateString('th-TH'),
+        type: typeLabel,
+        status: f.status
+      };
+    });
 
     res.json(formatted);
   } catch (error) {
@@ -243,6 +256,9 @@ const getCustomers = async (req, res, next) => {
             email: true,
             referralCode: true
           }
+        },
+        chats: {
+          select: { id: true }
         }
       }
     });
@@ -256,7 +272,7 @@ const getCustomers = async (req, res, next) => {
     });
 
     const formatted = clients.map(c => {
-      const usage = Math.floor(20 + (c.id.charCodeAt(0) % 50));
+      const usage = Math.min(100, Math.floor((c.chats.length / 50) * 100)) || 12;
       let partnerLabel = 'DIRECT';
 
       const refCode = c.owner?.referralCode;
@@ -291,6 +307,117 @@ const getCustomers = async (req, res, next) => {
   }
 };
 
+const getGoalPlan = async (req, res, next) => {
+  try {
+    const { target, months } = req.body;
+    if (!target || !months) {
+      return res.status(400).json({ error: 'Target sales and months are required.' });
+    }
+
+    const clients = await prisma.client.findMany();
+    const planPrices = { BASIC: 990, PRO: 2990, ADVANCED: 11900 };
+    const currentMRR = clients.reduce((sum, c) => sum + (planPrices[c.plan] || 990), 0);
+    const currentCustomers = clients.length;
+
+    const strategy = await geminiService.generateGoalStrategy(target, months, currentMRR, currentCustomers);
+    res.json(strategy);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMarketInsights = async (req, res, next) => {
+  try {
+    const feedbacks = await prisma.feedback.findMany({
+      include: {
+        client: {
+          select: { name: true }
+        }
+      }
+    });
+
+    const insights = await geminiService.generateFeedbackInsights(feedbacks);
+    res.json(insights);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateTicketStatus = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required.' });
+    }
+
+    const updatedFeedback = await prisma.feedback.update({
+      where: { id: ticketId },
+      data: {
+        status,
+        updatedAt: new Date()
+      }
+    });
+
+    res.json(updatedFeedback);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAssets = async (req, res, next) => {
+  try {
+    const assets = await prisma.marketingAsset.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(assets);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createAsset = async (req, res, next) => {
+  try {
+    const { name, category, size, url } = req.body;
+
+    if (!name || !category) {
+      return res.status(400).json({ error: 'Name and category are required.' });
+    }
+
+    const assetUrl = url || 'https://aiva.sparexth.com/assets/mock_download.zip';
+    const assetSize = size || '5.2 MB';
+
+    const asset = await prisma.marketingAsset.create({
+      data: {
+        filename: name,
+        category,
+        url: assetUrl,
+        size: assetSize,
+        downloads: 0
+      }
+    });
+
+    res.status(201).json(asset);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteAsset = async (req, res, next) => {
+  try {
+    const assetId = req.params.id;
+
+    await prisma.marketingAsset.delete({
+      where: { id: assetId }
+    });
+
+    res.json({ message: 'Marketing asset deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPartners,
   updatePartnerKyc,
@@ -299,5 +426,11 @@ module.exports = {
   createAnnouncement,
   getAnnouncements,
   getTickets,
-  getCustomers
+  getCustomers,
+  getGoalPlan,
+  getMarketInsights,
+  updateTicketStatus,
+  getAssets,
+  createAsset,
+  deleteAsset
 };

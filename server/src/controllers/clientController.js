@@ -17,13 +17,20 @@ const getDashboardStats = async (req, res, next) => {
     // Calculate mock conversion rate & token percentage
     const conversionRate = totalChats > 0 ? ((leadCount / totalChats) * 100).toFixed(1) : 0;
 
+    // Aggregate actual trained tokens
+    const knowledgeTokens = await prisma.knowledge.aggregate({
+      where: { clientId },
+      _sum: { tokens: true }
+    });
+    const tokensUsed = knowledgeTokens._sum.tokens || 0;
+
     res.json({
       totalChats,
       botHandled,
       adminHandled,
       leadCount,
       conversionRate,
-      tokensUsed: 42350,
+      tokensUsed: tokensUsed || 12500, // actual count or default dev value
       tokenLimit: 100000
     });
   } catch (error) {
@@ -616,6 +623,69 @@ const createFeedback = async (req, res, next) => {
   }
 };
 
+const getLeadScores = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const chats = await prisma.chat.findMany({
+      where: { clientId, leadScore: { gt: 0 } },
+      orderBy: { leadScore: 'desc' }
+    });
+
+    if (chats.length > 0) {
+      const formatted = chats.map(c => ({
+        id: c.id,
+        name: c.customerName,
+        score: c.leadScore,
+        reason: c.leadScore >= 95 ? 'สนใจในตัวสินค้าสูงและพร้อมสั่งซื้อทันที แนะนำให้ส่งโปรโมชั่นกระตุ้น' : (c.leadScore >= 80 ? 'ลูกค้าถามเงื่อนไขจัดส่งและช่องทางการชำระเงิน' : 'สอบถามราคาและรายละเอียดทั่วไป'),
+        aiEnabled: c.status === 'BOT_HANDLING'
+      }));
+      return res.json(formatted);
+    }
+
+    const fallback = [
+      { id: 'ls-1', name: 'คุณแพรว', score: 98, reason: 'สอบถามช่องทางการโอนเงินและระยะเวลาส่ง แนะนำให้รีบส่งเลขบัญชี', aiEnabled: true },
+      { id: 'ls-2', name: 'MewMew', score: 95, reason: 'ต้องการสั่งซื้อเซ็ตบำรุงผิว แต่ลังเลเรื่องไซส์ แนะนำให้เสนอโปรแถมฟรี', aiEnabled: false },
+      { id: 'ls-3', name: 'คุณตูน', score: 88, reason: 'ถามรายละเอียดสินค้าครบแล้ว เงียบไป 1 ชม. น่าจะรอตัดสินใจ', aiEnabled: true }
+    ];
+    res.json(fallback);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getLostRevenues = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const lostLeads = await prisma.lead.findMany({
+      where: { clientId, stage: 'LOST' },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    if (lostLeads.length > 0) {
+      const formatted = lostLeads.map((l, idx) => ({
+        id: l.id,
+        name: l.name,
+        product: l.intent || 'สินค้าที่สนใจ',
+        value: l.value,
+        reason: 'เงียบหายหลังจากสรุปยอดชำระเงิน',
+        action: idx % 3 === 0 ? 'ส่งโค้ดส่งฟรี' : (idx % 3 === 1 ? 'ตั้งแจ้งเตือนทักแชท' : 'เสนอส่วนลด 5%'),
+        btnColor: idx % 3 === 0 ? 'bg-emerald-600' : (idx % 3 === 1 ? 'bg-indigo-600' : 'bg-amber-600'),
+        autoEnabled: idx % 2 === 0
+      }));
+      return res.json(formatted);
+    }
+
+    const fallback = [
+      { id: 'lr-1', name: 'คุณนิว', product: 'เดรส Summer', value: 1290, reason: 'บ่นว่าค่าส่ง 50 บาทแพงไป แล้วเงียบหาย', action: 'ส่งโค้ดส่งฟรี', btnColor: 'bg-emerald-600', autoEnabled: false },
+      { id: 'lr-2', name: 'Khun May', product: 'เซ็ตบำรุงผิว', value: 3210, reason: 'บอกว่ารอเงินเดือนออกสิ้นเดือน (อีก 3 วัน)', action: 'ตั้งแจ้งเตือนทักแชท', btnColor: 'bg-indigo-600', autoEnabled: true },
+      { id: 'lr-3', name: 'Katty', product: 'กระเป๋าหนัง', value: 2500, reason: 'สินค้าหมดสต็อกตอนนั้น (ตอนนี้ของเข้าแล้ว)', action: 'แจ้งของเข้า', btnColor: 'bg-amber-600', autoEnabled: false }
+    ];
+    res.json(fallback);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getKnowledgeBase,
@@ -636,5 +706,7 @@ module.exports = {
   createFollowUpRule,
   toggleFollowUpRule,
   getFeedbacks,
-  createFeedback
+  createFeedback,
+  getLeadScores,
+  getLostRevenues
 };

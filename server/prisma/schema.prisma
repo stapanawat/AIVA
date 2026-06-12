@@ -16,6 +16,9 @@ model User {
   phone         String?
   status        String         @default("ACTIVE") // "ACTIVE", "SUSPENDED"
   referralCode  String?
+  bankName        String?
+  bankAccount     String?
+  bankAccountName String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
@@ -25,6 +28,8 @@ model User {
   referrals     Referral[]
   payouts       Payout[]
   refreshTokens RefreshToken[]
+  promotions    Promotion[]
+  feedbacks     Feedback[]
 }
 
 model Client {
@@ -54,6 +59,7 @@ model Client {
   branches           Branch[]
   followUpRules      FollowUpRule[]
   feedbacks          Feedback[]
+  integrations       Integration[]
 }
 
 model TeamMember {
@@ -166,6 +172,9 @@ model Announcement {
   title      String
   content    String
   targetTier String   @default("ALL") // "ALL", "GOLD_ONLY", "SILVER_AND_UP"
+  type       String   @default("Product Update")
+  audience   String   @default("BOTH") // "PARTNER", "CUSTOMER", "BOTH"
+  views      Int      @default(0)
   createdAt  DateTime @default(now())
 }
 
@@ -195,7 +204,8 @@ model FollowUpRule {
 
 model Feedback {
   id          String   @id @default(uuid())
-  clientId    String
+  clientId    String?
+  partnerId   String?
   type        String   // "bug", "feature", etc.
   title       String
   description String
@@ -203,5 +213,42 @@ model Feedback {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  partner     User?    @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id        String   @id @default(uuid())
+  clientId  String
+  platform  String   // "LINE", "FACEBOOK", "INSTAGRAM", "TIKTOK", "YOUTUBE", "LAZADA", "WEBSITE"
+  status    String   @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  config    Json     // Stores platform-specific tokens, pageIds, webhooks, or widget configs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, platform])
+}
+
+model Promotion {
+  id          String   @id @default(uuid())
+  partnerId   String
+  code        String   @unique
+  discount    Float    // percentage discount
+  limit       Int      // max usage limit
+  used        Int      @default(0) // current usage count
+  createdAt   DateTime @default(now())
+
+  partner     User     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+}
+
+model MarketingAsset {
+  id        String   @id @default(uuid())
+  filename  String
+  category  String   // "Brand Assets", "Presentations", etc.
+  url       String
+  size      String   // e.g. "12.5 MB"
+  downloads Int      @default(0)
+  createdAt DateTime @default(now())
 }

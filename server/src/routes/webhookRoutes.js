@@ -76,28 +76,40 @@ router.post('/simulate-bot', async (req, res, next) => {
   }
 });
 
-/**
- * Mock LINE OA Webhook endpoint
- * POST /api/webhooks/line
- */
-router.post('/line', async (req, res, next) => {
+// LINE Webhook Handler Function
+const handleLineWebhook = async (req, res, next) => {
   try {
     const { events } = req.body;
     if (!events || events.length === 0) {
       return res.sendStatus(200);
     }
 
+    let clientId = req.params.clientId;
+    if (!clientId) {
+      const firstClient = await prisma.client.findFirst();
+      if (!firstClient) {
+        console.warn('[LINE Webhook] No client found in database to fallback to');
+        return res.sendStatus(200);
+      }
+      clientId = firstClient.id;
+    }
+
+    // Lookup client's LINE integration
+    const integration = await prisma.integration.findUnique({
+      where: {
+        clientId_platform: {
+          clientId,
+          platform: 'LINE'
+        }
+      }
+    });
+
+    const channelAccessToken = integration?.config?.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+
     for (const event of events) {
       if (event.type === 'message' && event.message.type === 'text') {
         const userMessage = event.message.text;
         const lineUserId = event.source.userId;
-
-        // Find or map Client ID associated with the Webhook token (mock maps to active client)
-        // For testing purposes, we grab the first client in the database
-        const firstClient = await prisma.client.findFirst();
-        if (!firstClient) continue;
-
-        const clientId = firstClient.id;
 
         // Retrieve or create chat session
         let chat = await prisma.chat.findFirst({
@@ -147,16 +159,16 @@ router.post('/line', async (req, res, next) => {
           }
         });
 
-        console.log(`[LINE Bot Auto-Reply SUCCESS]: ${aiReply}`);
+        console.log(`[LINE Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
         
         // Invoke LINE Message Reply API
-        if (replyToken && process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+        if (replyToken && channelAccessToken) {
           try {
             const lineResponse = await fetch('https://api.line.me/v2/bot/message/reply', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+                'Authorization': `Bearer ${channelAccessToken}`
               },
               body: JSON.stringify({
                 replyToken: replyToken,
@@ -180,6 +192,124 @@ router.post('/line', async (req, res, next) => {
     console.error('[LINE Webhook Router Error]:', error);
     res.sendStatus(500);
   }
-});
+};
+
+// Facebook Webhook Handler Function
+const handleFacebookWebhook = async (req, res, next) => {
+  try {
+    const { entry } = req.body;
+    if (!entry || entry.length === 0) {
+      return res.sendStatus(200);
+    }
+
+    let clientId = req.params.clientId;
+    if (!clientId) {
+      const firstClient = await prisma.client.findFirst();
+      if (!firstClient) return res.sendStatus(200);
+      clientId = firstClient.id;
+    }
+
+    const integration = await prisma.integration.findUnique({
+      where: {
+        clientId_platform: {
+          clientId,
+          platform: 'FACEBOOK'
+        }
+      }
+    });
+
+    const pageAccessToken = integration?.config?.pageAccessToken;
+    
+    for (const item of entry) {
+      const messaging = item.messaging;
+      if (!messaging) continue;
+      for (const event of messaging) {
+        if (event.message && event.message.text) {
+          const userMessage = event.message.text;
+          const senderId = event.sender.id;
+
+          // Retrieve or create chat session
+          let chat = await prisma.chat.findFirst({
+            where: { clientId, customerContact: senderId, platform: 'FACEBOOK' }
+          });
+
+          if (!chat) {
+            chat = await prisma.chat.create({
+              data: {
+                clientId,
+                customerName: 'Facebook Customer',
+                customerContact: senderId,
+                platform: 'FACEBOOK',
+                status: 'BOT_HANDLING'
+              }
+            });
+          }
+
+          // Save incoming customer message
+          await prisma.message.create({
+            data: {
+              chatId: chat.id,
+              sender: 'CUSTOMER',
+              content: userMessage
+            }
+          });
+
+          // Fetch recent messages
+          const history = await prisma.message.findMany({
+            where: { chatId: chat.id },
+            orderBy: { createdAt: 'desc' },
+            take: 6
+          });
+
+          // Generate AI reply
+          const aiReply = await generateResponse(clientId, userMessage, history.reverse());
+
+          // Save bot reply
+          await prisma.message.create({
+            data: {
+              chatId: chat.id,
+              sender: 'BOT',
+              content: aiReply
+            }
+          });
+
+          console.log(`[Facebook Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
+
+          // Invoke Facebook Send API if token is configured
+          if (pageAccessToken) {
+            try {
+              const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  recipient: { id: senderId },
+                  message: { text: aiReply }
+                })
+              });
+              if (!fbResponse.ok) {
+                const errText = await fbResponse.text();
+                console.error('[Facebook Send API Error]', errText);
+              }
+            } catch (fbErr) {
+              console.error('[Facebook Send Fetch Error]', fbErr);
+            }
+          }
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('[Facebook Webhook Error]:', error);
+    res.sendStatus(500);
+  }
+};
+
+// Mount Webhook endpoints supporting both standard and parameterized clientIds
+router.post('/line', handleLineWebhook);
+router.post('/line/:clientId', handleLineWebhook);
+
+router.post('/facebook', handleFacebookWebhook);
+router.post('/facebook/:clientId', handleFacebookWebhook);
 
 module.exports = router;

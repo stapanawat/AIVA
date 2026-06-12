@@ -4,7 +4,7 @@ const tokenService = require('../services/tokenService');
 
 const register = async (req, res, next) => {
   try {
-    const { email, password, name, role, phone, referralCode } = req.body;
+    const { email, password, name, role, phone, referralCode, bankName, bankAccount, bankAccountName } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -27,7 +27,10 @@ const register = async (req, res, next) => {
         name,
         role,
         phone,
-        referralCode
+        referralCode,
+        bankName,
+        bankAccount,
+        bankAccountName
       }
     });
 
@@ -51,8 +54,8 @@ const register = async (req, res, next) => {
         data: {
           name: `${name}'s Brand`,
           ownerId: user.id,
-          plan: 'BASIC',
-          billingCycle: 'monthly',
+          plan: req.body.plan ? req.body.plan.toUpperCase() : 'BASIC',
+          billingCycle: req.body.billingCycle || 'monthly',
         }
       });
       clientId = client.id;
@@ -678,6 +681,31 @@ const facebookCallback = async (req, res, next) => {
   }
 };
 
+const trackReferralClick = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Referral code is required.' });
+    }
+
+    const referral = await prisma.referral.findUnique({
+      where: { code }
+    });
+
+    if (referral) {
+      await prisma.referral.update({
+        where: { code },
+        data: { clicks: { increment: 1 } }
+      });
+      return res.json({ success: true, message: 'Click tracked successfully.' });
+    }
+
+    res.json({ success: true, message: 'Referral code valid (direct partner code).' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -688,6 +716,7 @@ module.exports = {
   lineLogin,
   lineCallback,
   facebookLogin,
-  facebookCallback
+  facebookCallback,
+  trackReferralClick
 };
 

@@ -16,6 +16,14 @@ router.post('/payouts/:id/approve', adminController.approvePayout);
 router.post('/broadcast', adminController.createAnnouncement);
 router.get('/announcements', adminController.getAnnouncements);
 router.get('/tickets', adminController.getTickets);
+router.post('/tickets/:id/status', adminController.updateTicketStatus);
 router.get('/customers', adminController.getCustomers);
+router.post('/goal-plan', adminController.getGoalPlan);
+router.get('/insights', adminController.getMarketInsights);
+
+// Assets Management Endpoints
+router.get('/assets', adminController.getAssets);
+router.post('/assets', adminController.createAsset);
+router.delete('/assets/:id', adminController.deleteAsset);
 
 module.exports = router;

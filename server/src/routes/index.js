@@ -5,6 +5,7 @@ const partnerRoutes = require('./partnerRoutes');
 const adminRoutes = require('./adminRoutes');
 const paymentRoutes = require('./paymentRoutes');
 const webhookRoutes = require('./webhookRoutes');
+const widgetRoutes = require('./widgetRoutes');
 
 const router = express.Router();
 
@@ -15,5 +16,6 @@ router.use('/partner', partnerRoutes);
 router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/webhooks', webhookRoutes);
+router.use('/widget', widgetRoutes);
 
 module.exports = router;

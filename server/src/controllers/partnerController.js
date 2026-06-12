@@ -314,7 +314,8 @@ const getClients = async (req, res, next) => {
       ltv: planPrices[c.plan] || 990,
       source: 'Direct',
       status: c.status === 'ACTIVE' ? 'Active' : 'Pending',
-      expiresIn: 45
+      expiresIn: 45,
+      referralCode: c.owner.referralCode
     }));
 
     // If main partner, also fetch sub partner referred clients
@@ -352,7 +353,8 @@ const getClients = async (req, res, next) => {
             ltv: planPrices[c.plan] || 990,
             source: sp.email,
             status: c.status === 'ACTIVE' ? 'Active' : 'Pending',
-            expiresIn: 45
+            expiresIn: 45,
+            referralCode: c.owner.referralCode
           });
         });
       }
@@ -411,6 +413,252 @@ const getPayouts = async (req, res, next) => {
   }
 };
 
+// 7. Get Partner Profile Settings
+const getPartnerProfile = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const user = await prisma.user.findUnique({
+      where: { id: partnerId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        bankName: true,
+        bankAccount: true,
+        bankAccountName: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Partner profile not found.' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 8. Update Partner Profile Settings
+const updatePartnerProfile = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const { name, phone, bankName, bankAccount, bankAccountName } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id: partnerId },
+      data: {
+        name,
+        phone,
+        bankName,
+        bankAccount,
+        bankAccountName,
+        updatedAt: new Date()
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        bankName: true,
+        bankAccount: true,
+        bankAccountName: true
+      }
+    });
+
+    res.json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 9. Create Partner Feedback (Ticket)
+const createPartnerFeedback = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const { title, description, type } = req.body;
+
+    if (!title || !description || !type) {
+      return res.status(400).json({ error: 'Title, description and type are required.' });
+    }
+
+    const feedback = await prisma.feedback.create({
+      data: {
+        partnerId,
+        title,
+        description,
+        type,
+        status: 'Pending'
+      }
+    });
+
+    res.status(201).json(feedback);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 10. Partner Support Chat with Gemini AI
+const handlePartnerSupportChat = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const { message, chatHistory } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message content is required.' });
+    }
+
+    const partnerUser = await prisma.user.findUnique({
+      where: { id: partnerId }
+    });
+
+    if (!partnerUser) {
+      return res.status(404).json({ error: 'Partner not found.' });
+    }
+
+    const geminiService = require('../services/geminiService');
+    const aiReply = await geminiService.generateSupportChatResponse(message, chatHistory || [], partnerUser.role);
+
+    res.json({ reply: aiReply });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 11. Promotions Operations
+const getPartnerPromotions = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const promotions = await prisma.promotion.findMany({
+      where: { partnerId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(promotions);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createPartnerPromotion = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const { code, discount, limit } = req.body;
+
+    if (!code || !discount || !limit) {
+      return res.status(400).json({ error: 'Code, discount, and limit are required.' });
+    }
+
+    // Check code uniqueness
+    const existingCode = await prisma.promotion.findUnique({
+      where: { code: code.toUpperCase() }
+    });
+    if (existingCode) {
+      return res.status(400).json({ error: 'Promotion code already exists.' });
+    }
+
+    const promotion = await prisma.promotion.create({
+      data: {
+        partnerId,
+        code: code.toUpperCase(),
+        discount: parseFloat(discount),
+        limit: parseInt(limit),
+        used: 0
+      }
+    });
+
+    res.status(201).json(promotion);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 12. Retrieve Marketing Assets
+const getMarketingAssets = async (req, res, next) => {
+  try {
+    const assets = await prisma.marketingAsset.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(assets);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 13. Retrieve Partner Announcements
+const getAnnouncements = async (req, res, next) => {
+  try {
+    const partnerId = req.user.id;
+    const partnerUser = await prisma.user.findUnique({
+      where: { id: partnerId }
+    });
+
+    if (!partnerUser) {
+      return res.status(404).json({ error: 'Partner not found' });
+    }
+
+    // Get referral campaigns stats to compute sales
+    const referrals = await prisma.referral.findMany({
+      where: { partnerId }
+    });
+
+    const referralCodes = referrals.map(r => r.code);
+    referralCodes.push(partnerUser.email);
+    referralCodes.push(partnerUser.id);
+
+    // Get referred client owners
+    const referredUsers = await prisma.user.findMany({
+      where: {
+        role: 'CLIENT_OWNER',
+        referralCode: { in: referralCodes }
+      }
+    });
+    const referredUserIds = referredUsers.map(u => u.id);
+
+    // Get client workspaces owned by referred owners
+    const clients = await prisma.client.findMany({
+      where: {
+        ownerId: { in: referredUserIds }
+      }
+    });
+
+    // Calculate personalSales based on plan price list
+    const planPrices = { BASIC: 990, PRO: 4900, ADVANCED: 11900 };
+    const personalSales = clients.reduce((sum, c) => sum + (planPrices[c.plan] || 990), 0);
+
+    // Determine tier
+    let tier = 'BRONZE';
+    if (personalSales >= 150000) {
+      tier = 'GOLD';
+    } else if (personalSales >= 50000) {
+      tier = 'SILVER';
+    }
+
+    // Fetch announcements targeted to partners or both
+    const announcements = await prisma.announcement.findMany({
+      where: {
+        audience: {
+          in: ['PARTNER', 'BOTH']
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Filter announcements based on partner's tier
+    const filteredAnnouncements = announcements.filter(anc => {
+      const target = anc.targetTier || 'ALL';
+      if (target === 'ALL') return true;
+      if (target === 'GOLD_ONLY' && tier === 'GOLD') return true;
+      if (target === 'SILVER_AND_UP' && (tier === 'SILVER' || tier === 'GOLD')) return true;
+      return false;
+    });
+
+    res.json(filteredAnnouncements);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPartnerStats,
   getReferrals,
@@ -418,5 +666,13 @@ module.exports = {
   getSubPartners,
   requestPayout,
   getClients,
-  getPayouts
+  getPayouts,
+  getPartnerProfile,
+  updatePartnerProfile,
+  createPartnerFeedback,
+  handlePartnerSupportChat,
+  getPartnerPromotions,
+  createPartnerPromotion,
+  getMarketingAssets,
+  getAnnouncements
 };
