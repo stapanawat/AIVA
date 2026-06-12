@@ -14,6 +14,9 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Public OAuth Callback for integrations (Must be before authentication middleware)
+router.get('/integrations/oauth/:platform/callback', integrationController.handleOAuthCallback);
+
 // Apply authentication and client role access controls
 router.use(authenticate);
 router.use(authorizeRoles('CLIENT_OWNER', 'CLIENT_ADMIN', 'CLIENT_STAFF'));
@@ -46,6 +49,7 @@ router.post('/settings', clientController.updateSettings);
 router.get('/integrations', integrationController.getIntegrations);
 router.post('/integrations', integrationController.connectIntegration);
 router.delete('/integrations/:platform', integrationController.disconnectIntegration);
+router.get('/integrations/oauth/:platform', integrationController.startOAuth);
 
 // AI Copy Generation
 router.post('/ai/content-gen', clientController.generateAIContent);

@@ -305,11 +305,231 @@ const handleFacebookWebhook = async (req, res, next) => {
   }
 };
 
+// Instagram Webhook Handler Function
+const handleInstagramWebhook = async (req, res, next) => {
+  try {
+    const { entry } = req.body;
+    if (!entry || entry.length === 0) {
+      return res.sendStatus(200);
+    }
+
+    let clientId = req.params.clientId;
+    if (!clientId) {
+      const firstClient = await prisma.client.findFirst();
+      if (!firstClient) return res.sendStatus(200);
+      clientId = firstClient.id;
+    }
+
+    const integration = await prisma.integration.findUnique({
+      where: {
+        clientId_platform: {
+          clientId,
+          platform: 'INSTAGRAM'
+        }
+      }
+    });
+
+    const pageAccessToken = integration?.config?.pageAccessToken;
+    
+    for (const item of entry) {
+      const messaging = item.messaging;
+      if (!messaging) continue;
+      for (const event of messaging) {
+        if (event.message && event.message.text) {
+          const userMessage = event.message.text;
+          const senderId = event.sender.id;
+
+          // Retrieve or create chat session
+          let chat = await prisma.chat.findFirst({
+            where: { clientId, customerContact: senderId, platform: 'INSTAGRAM' }
+          });
+
+          if (!chat) {
+            chat = await prisma.chat.create({
+              data: {
+                clientId,
+                customerName: 'Instagram Customer',
+                customerContact: senderId,
+                platform: 'INSTAGRAM',
+                status: 'BOT_HANDLING'
+              }
+            });
+          }
+
+          // Save incoming customer message
+          await prisma.message.create({
+            data: {
+              chatId: chat.id,
+              sender: 'CUSTOMER',
+              content: userMessage
+            }
+          });
+
+          // Fetch recent messages
+          const history = await prisma.message.findMany({
+            where: { chatId: chat.id },
+            orderBy: { createdAt: 'desc' },
+            take: 6
+          });
+
+          // Generate AI reply
+          const aiReply = await generateResponse(clientId, userMessage, history.reverse());
+
+          // Save bot reply
+          await prisma.message.create({
+            data: {
+              chatId: chat.id,
+              sender: 'BOT',
+              content: aiReply
+            }
+          });
+
+          console.log(`[Instagram Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
+
+          // Invoke Instagram Graph API if token is configured
+          if (pageAccessToken) {
+            try {
+              const igResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  recipient: { id: senderId },
+                  message: { text: aiReply }
+                })
+              });
+              if (!igResponse.ok) {
+                const errText = await igResponse.text();
+                console.error('[Instagram Send API Error]', errText);
+              }
+            } catch (igErr) {
+              console.error('[Instagram Send Fetch Error]', igErr);
+            }
+          }
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('[Instagram Webhook Error]:', error);
+    res.sendStatus(500);
+  }
+};
+
+// TikTok Webhook Handler Function
+const handleTikTokWebhook = async (req, res, next) => {
+  try {
+    const { event, content, open_id } = req.body;
+    if (!content || !open_id) {
+      return res.sendStatus(200);
+    }
+
+    let clientId = req.params.clientId;
+    if (!clientId) {
+      const firstClient = await prisma.client.findFirst();
+      if (!firstClient) return res.sendStatus(200);
+      clientId = firstClient.id;
+    }
+
+    const integration = await prisma.integration.findUnique({
+      where: {
+        clientId_platform: {
+          clientId,
+          platform: 'TIKTOK'
+        }
+      }
+    });
+
+    const accessToken = integration?.config?.accessToken;
+
+    // Retrieve or create chat session
+    let chat = await prisma.chat.findFirst({
+      where: { clientId, customerContact: open_id, platform: 'TIKTOK' }
+    });
+
+    if (!chat) {
+      chat = await prisma.chat.create({
+        data: {
+          clientId,
+          customerName: 'TikTok Customer',
+          customerContact: open_id,
+          platform: 'TIKTOK',
+          status: 'BOT_HANDLING'
+        }
+      });
+    }
+
+    // Save incoming customer message
+    await prisma.message.create({
+      data: {
+        chatId: chat.id,
+        sender: 'CUSTOMER',
+        content: content
+      }
+    });
+
+    // Fetch recent messages
+    const history = await prisma.message.findMany({
+      where: { chatId: chat.id },
+      orderBy: { createdAt: 'desc' },
+      take: 6
+    });
+
+    // Generate AI reply
+    const aiReply = await generateResponse(clientId, content, history.reverse());
+
+    // Save bot reply
+    await prisma.message.create({
+      data: {
+        chatId: chat.id,
+        sender: 'BOT',
+        content: aiReply
+      }
+    });
+
+    console.log(`[TikTok Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
+
+    // Invoke TikTok Send Message API if accessToken is configured
+    if (accessToken) {
+      try {
+        const ttResponse = await fetch(`https://open-api.tiktok.com/message/send/`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Token': accessToken
+          },
+          body: JSON.stringify({
+            recipient_open_id: open_id,
+            message_content: { text: aiReply }
+          })
+        });
+        if (!ttResponse.ok) {
+          const errText = await ttResponse.text();
+          console.error('[TikTok Send API Error]', errText);
+        }
+      } catch (ttErr) {
+        console.error('[TikTok Send Fetch Error]', ttErr);
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('[TikTok Webhook Error]:', error);
+    res.sendStatus(500);
+  }
+};
+
 // Mount Webhook endpoints supporting both standard and parameterized clientIds
 router.post('/line', handleLineWebhook);
 router.post('/line/:clientId', handleLineWebhook);
 
 router.post('/facebook', handleFacebookWebhook);
 router.post('/facebook/:clientId', handleFacebookWebhook);
+
+router.post('/instagram', handleInstagramWebhook);
+router.post('/instagram/:clientId', handleInstagramWebhook);
+
+router.post('/tiktok', handleTikTokWebhook);
+router.post('/tiktok/:clientId', handleTikTokWebhook);
 
 module.exports = router;

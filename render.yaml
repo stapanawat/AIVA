@@ -38,3 +38,11 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_PRICE_PRO_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_PRO_YEARLY
+        sync: false
+      - key: STRIPE_PRICE_ADVANCED_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_ADVANCED_YEARLY
+        sync: false

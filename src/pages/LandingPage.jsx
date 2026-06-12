@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { USE_MOCK } from '../config';
+import { 
+  Loader2, Send, ChevronRight, X, Headset, ArrowRight, Zap, 
+  CheckCircle2, ShieldCheck, User, CreditCard, Smartphone, QrCode, Clock, MessageCircle, Download, XCircle
+} from 'lucide-react';
 
 const questionsData = [
   {
@@ -95,6 +99,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   const [processingTitle, setProcessingTitle] = useState('ชำระเงินสำเร็จ!');
   const [processingDesc, setProcessingDesc] = useState('');
   const [generatedCustId, setGeneratedCustId] = useState('C125439');
+  const [processingType, setProcessingType] = useState('checkout'); // 'checkout' | 'sales'
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [countdown, setCountdown] = useState('05:00');
 
@@ -230,6 +235,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     const email = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : `client_${Date.now()}@aiva.com`;
     
     setActiveModal(null);
+    setProcessingType('checkout');
     setProcessingState('loading');
     setProcessingTitle('ชำระเงินสำเร็จ!');
     setProcessingDesc('ยินดีต้อนรับเข้าสู่ครอบครัว AIVA นี่คือรหัสประจำตัวของคุณสำหรับใช้ล็อกอิน');
@@ -278,6 +284,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   const handleContactSalesSubmit = (e) => {
     e.preventDefault();
     setIsSalesSubmitting(true);
+    setProcessingType('sales');
     setTimeout(() => {
       setIsSalesSubmitting(false);
       setActiveModal(null);
@@ -832,7 +839,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         เข้าสู่ระบบด้วย Google
                     </button>
                     <button onClick={handleLineLogin} className="w-full flex items-center justify-center gap-3 bg-[#00B900] hover:bg-[#00A000] text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm">
-                        <i data-lucide="message-circle" className="w-5 h-5"></i> เข้าสู่ระบบด้วย LINE
+                        <MessageCircle className="w-5 h-5" /> เข้าสู่ระบบด้วย LINE
                     </button>
                     <button onClick={handleFacebookLogin} className="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm">
                         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
@@ -841,7 +848,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                 </div>
 
                 <div className="mt-6 text-center" id="auth-loading" style={{display: isAuthLoading ? 'block' : 'none'}}>
-                    <i data-lucide="loader-2" className="w-6 h-6 text-indigo-600 animate-spin mx-auto"></i>
+                    <Loader2 className="w-6 h-6 text-indigo-600 animate-spin mx-auto" />
                     <p className="text-sm text-slate-500 mt-2">กำลังเข้าสู่ระบบ...</p>
                 </div>
             </div>
@@ -1092,12 +1099,12 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     <div id="contact-sales-modal" className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] transition-opacity duration-300 flex items-center justify-center p-4 ${activeModal === 'contactSales' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300 relative border border-slate-100" id="contact-sales-content">
             <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20">
-                <i data-lucide="x" className="w-5 h-5"></i>
+                <X className="w-5 h-5" />
             </button>
             
             <div className="p-8">
                 <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                    <i data-lucide="headset" className="w-7 h-7"></i>
+                    <Headset className="w-7 h-7" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">ติดต่อทีมขาย</h2>
                 <p className="text-sm text-slate-500 mb-8">ให้ผู้เชี่ยวชาญของเราช่วยประเมินและวางแผนการใช้งาน AIVA Advanced ให้เหมาะกับธุรกิจคุณ</p>
@@ -1121,7 +1128,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                     </div>
                     
                     <button type="submit" id="btn-submit-sales" disabled={isSalesSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mt-4">
-                        {isSalesSubmitting ? <><i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> กำลังส่งข้อมูล...</> : <>ส่งข้อมูลติดต่อ <i data-lucide="send" className="w-4 h-4"></i></>}
+                        {isSalesSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> กำลังส่งข้อมูล...</> : <>ส่งข้อมูลติดต่อ <Send className="w-4 h-4" /></>}
                     </button>
                 </form>
             </div>
@@ -1189,9 +1196,9 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                     >
                         {isQuizSubmitting ? (
-                          <><i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> กำลังส่งแบบประเมิน...</>
+                          <><Loader2 className="w-4 h-4 animate-spin" /> กำลังส่งแบบประเมิน...</>
                         ) : (
-                          <>ส่งแบบประเมิน <i data-lucide="arrow-right" className="w-4 h-4"></i></>
+                          <>ส่งแบบประเมิน <ArrowRight className="w-4 h-4" /></>
                         )}
                     </button>
                 </div>
@@ -1199,7 +1206,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             ) : (
               <div className="flex-1 p-8 flex flex-col items-center justify-center bg-white text-center">
                   <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${quizResult.passed ? 'bg-emerald-100 text-emerald-500' : 'bg-rose-100 text-rose-500'}`}>
-                      <i data-lucide={quizResult.passed ? 'check-circle-2' : 'x-circle'} className="w-12 h-12"></i>
+                      {quizResult.passed ? <CheckCircle2 className="w-12 h-12" /> : <XCircle className="w-12 h-12" />}
                   </div>
                   <h3 className={`text-2xl font-black mb-2 ${quizResult.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {quizResult.passed ? 'ยินดีด้วย คุณผ่านเกณฑ์!' : 'เสียใจด้วย คุณยังไม่ผ่านเกณฑ์'}
@@ -1232,7 +1239,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     <div id="processing-overlay" className={`fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex-col items-center justify-center p-4 ${processingState !== null ? 'flex' : 'hidden'}`}>
         {/* Spinner */}
         <div id="loading-spinner" className={`flex flex-col items-center ${processingState === 'loading' ? 'flex' : 'hidden'}`}>
-            <i data-lucide="loader-2" className="w-12 h-12 text-indigo-500 animate-spin mb-4"></i>
+            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">กำลังประมวลผล...</h3>
             <p className="text-slate-400 text-sm">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
         </div>
@@ -1240,32 +1247,42 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
         {/* Success Message */}
         <div id="success-message" className={`flex-col items-center bg-white p-8 rounded-[2rem] max-w-md w-full shadow-2xl text-center transform scale-95 animate-in zoom-in duration-300 ${processingState === 'success' ? 'flex' : 'hidden'}`}>
             <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-6 mx-auto">
-                <i data-lucide="check-circle-2" className="w-8 h-8"></i>
+                <CheckCircle2 className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2" id="success-title">{processingTitle}</h3>
             <p className="text-slate-500 mb-8" id="success-desc">{processingDesc}</p>
             
-            <div className="bg-indigo-50 border border-indigo-100 w-full p-6 rounded-2xl mb-8 relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full"></div>
-                <p className="text-xs font-bold text-indigo-800 uppercase tracking-widest mb-4">ข้อมูลเข้าใช้งานของคุณ (Login Credentials)</p>
-                <div className="flex justify-between items-center bg-white p-3 rounded-xl mb-3 shadow-sm border border-indigo-50/50">
-                    <span className="text-sm font-semibold text-slate-500">Customer ID:</span>
-                    <span className="font-mono font-black text-lg text-indigo-600" id="generated-cust-id">{generatedCustId}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-indigo-50/50">
-                    <span className="text-sm font-semibold text-slate-500">Password:</span>
-                    <span className="font-mono font-bold text-slate-800">aiva2026</span>
-                </div>
-                <p className="text-[10px] text-indigo-600/70 mt-4">* กรุณาคัดลอกและเปลี่ยนรหัสผ่านในการเข้าสู่ระบบครั้งแรก</p>
-            </div>
+            {processingType === 'checkout' && (
+              <div className="bg-indigo-50 border border-indigo-100 w-full p-6 rounded-2xl mb-8 relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full"></div>
+                  <p className="text-xs font-bold text-indigo-800 uppercase tracking-widest mb-4">ข้อมูลเข้าใช้งานของคุณ (Login Credentials)</p>
+                  <div className="flex justify-between items-center bg-white p-3 rounded-xl mb-3 shadow-sm border border-indigo-50/50">
+                      <span className="text-sm font-semibold text-slate-500">Customer ID:</span>
+                      <span className="font-mono font-black text-lg text-indigo-600" id="generated-cust-id">{generatedCustId}</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-indigo-50/50">
+                      <span className="text-sm font-semibold text-slate-500">Password:</span>
+                      <span className="font-mono font-bold text-slate-800">aiva2026</span>
+                  </div>
+                  <p className="text-[10px] text-indigo-600/70 mt-4">* กรุณาคัดลอกและเปลี่ยนรหัสผ่านในการเข้าสู่ระบบครั้งแรก</p>
+              </div>
+            )}
 
             <div className="flex flex-col w-full gap-3">
-                <button id="btn-goto-platform" onClick={() => { setProcessingState(null); onLogin(); }} className="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
-                    เข้าสู่ระบบ AIVA Platform <i data-lucide="arrow-right" className="w-4 h-4"></i>
-                </button>
-                <button onClick={(e) => { e.currentTarget.innerText = 'ดาวน์โหลดสำเร็จแล้ว'; e.currentTarget.style.backgroundColor = '#ecfdf5'; }} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="download" className="w-4 h-4"></i> ดาวน์โหลดใบกำกับภาษี
-                </button>
+                {processingType === 'checkout' ? (
+                  <>
+                    <button id="btn-goto-platform" onClick={() => { setProcessingState(null); onLogin(); }} className="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
+                        เข้าสู่ระบบ AIVA Platform <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => { e.currentTarget.innerText = 'ดาวน์โหลดสำเร็จแล้ว'; e.currentTarget.style.backgroundColor = '#ecfdf5'; }} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-sm flex items-center justify-center gap-2">
+                        <Download className="w-4 h-4" /> ดาวน์โหลดใบกำกับภาษี
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setProcessingState(null)} className="bg-slate-900 hover:bg-indigo-600 text-white px-8 py-3.5 rounded-full font-bold transition-colors w-full shadow-lg flex items-center justify-center gap-2">
+                      ตกลง
+                  </button>
+                )}
             </div>
         </div>
     </div>

@@ -75,7 +75,14 @@ export const fetchLeads = async () => {
         score: lead.value > 3000 ? 'Hot' : 'Warm',
         time: 'เพิ่งอัปเดต',
         value: lead.value,
-        status: lead.stage === 'NEW' ? 'New Leads' : lead.stage === 'CONTACTED' ? 'Contacted' : lead.stage === 'OFFER' ? 'Offer' : 'Won'
+        date: lead.createdAt ? (() => {
+          const d = new Date(lead.createdAt);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          return `${day}/${month}/${year}`;
+        })() : 'เพิ่งอัปเดต',
+        status: lead.stage === 'NEW' ? 'New' : lead.stage === 'CONTACTED' ? 'Contacted' : 'Converted'
       };
       const idx = list.findIndex(item => item.id === formattedLead.id || item.name === formattedLead.name);
       if (idx > -1) {

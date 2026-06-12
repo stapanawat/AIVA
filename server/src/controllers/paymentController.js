@@ -42,9 +42,15 @@ const createCheckoutSession = async (req, res, next) => {
       return res.status(404).json({ error: 'Client workspace not found.' });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      // Mock mode if Stripe is not configured
-      console.warn('[Stripe Payment] STRIPE_SECRET_KEY is missing. Simulating checkout URL.');
+    const isDevMode = process.env.PAYMENT_DEV_MODE === 'true' || 
+                      !process.env.STRIPE_SECRET_KEY || 
+                      process.env.STRIPE_SECRET_KEY === 'YOUR_STRIPE_SECRET_KEY' ||
+                      process.env.STRIPE_SECRET_KEY === 'YOUR_TEST_STRIPE_SECRET_KEY' ||
+                      process.env.STRIPE_SECRET_KEY === 'YOUR_PRODUCTION_STRIPE_SECRET_KEY';
+
+    if (isDevMode) {
+      // Mock mode if Stripe is not configured or dev mode is explicitly active
+      console.warn('[Stripe Payment] Running in Dev Mode / Mock Mode. Simulating checkout URL.');
       
       // Simulate database update directly for easier dev testing
       const targetEnd = new Date();

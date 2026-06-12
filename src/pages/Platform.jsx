@@ -739,6 +739,7 @@ export default function Platform() {
     }
     
     setIsSubmittingKnowledge(true);
+    let success = false;
     try {
       const token = localStorage.getItem('aiva_access_token');
       if (!token) throw new Error('Not authenticated');
@@ -786,6 +787,7 @@ export default function Platform() {
 
       if (res.ok) {
         fetchKnowledge();
+        success = true;
       } else {
         const errData = await res.json();
         alert(errData.error || 'Failed to save knowledge entry');
@@ -802,11 +804,14 @@ export default function Platform() {
         status: 'Trained'
       };
       setKnowledgeList(prev => [newItem, ...prev]);
+      success = true;
     } finally {
       setIsSubmittingKnowledge(false);
-      setShowAddKnowledge(false);
-      setSelectedFile(null);
-      setNewKnowledge({ type: 'text', title: '', content: '', url: '' });
+      if (success) {
+        setShowAddKnowledge(false);
+        setSelectedFile(null);
+        setNewKnowledge({ type: 'text', title: '', content: '', url: '' });
+      }
     }
   };
 
@@ -839,6 +844,13 @@ export default function Platform() {
 
   // --- API METHODS ---
   const fetchSettings = async () => {
+    const formatPlanName = (plan) => {
+      if (!plan) return 'Basic';
+      const p = plan.toUpperCase();
+      if (p === 'PRO') return 'Pro';
+      if (p === 'ADVANCED') return 'Advanced';
+      return 'Basic';
+    };
     try {
       const token = localStorage.getItem('aiva_access_token');
       if (!token) return;
@@ -860,7 +872,7 @@ export default function Platform() {
             brandName: client.name || 'GlobalTech Official',
             businessType: 'ecommerce'
           });
-          setCurrentPlan(client.plan || 'Basic');
+          setCurrentPlan(formatPlanName(client.plan));
         }
       }
     } catch (err) {
@@ -917,7 +929,14 @@ export default function Platform() {
             score: lead.value > 3000 ? 'Hot' : 'Warm',
             time: 'เพิ่งอัปเดต',
             value: lead.value,
-            status: lead.stage === 'NEW' ? 'New Leads' : lead.stage === 'CONTACTED' ? 'Contacted' : lead.stage === 'OFFER' ? 'Offer' : 'Won'
+            date: lead.createdAt ? (() => {
+              const d = new Date(lead.createdAt);
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year = d.getFullYear();
+              return `${day}/${month}/${year}`;
+            })() : 'เพิ่งอัปเดต',
+            status: lead.stage === 'NEW' ? 'New' : lead.stage === 'CONTACTED' ? 'Contacted' : 'Converted'
           };
           const idx = list.findIndex(item => item.id === formattedLead.id || item.name === formattedLead.name);
           if (idx > -1) {
@@ -1227,6 +1246,20 @@ export default function Platform() {
       console.warn('Failed to fetch integrations:', err);
     }
   };
+  const handleOAuthPopup = (platform) => {
+    const token = localStorage.getItem('aiva_access_token');
+    const width = 500;
+    const height = 650;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    window.open(
+      `/api/client/integrations/oauth/${platform}?token=${token}`,
+      `Connect ${platform}`,
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+    );
+  };
+
   const handleAuthorize = async () => {
     setIsAuthorizing(true);
     try {
@@ -1399,6 +1432,21 @@ export default function Platform() {
       }
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const handleOAuthMessage = (event) => {
+      if (event.data && event.data.type === 'oauth-success') {
+        const { platform } = event.data;
+        fetchIntegrations();
+        setConnectingApp(null);
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+    };
+  }, []);
 
   useEffect(() => {
     setPipelineData(leadsData);
@@ -3341,8 +3389,8 @@ export default function Platform() {
                 {[
                   { id: 'line', name: 'LINE Official', desc: 'ตอบแชทลูกค้าอัตโนมัติ 24 ชม.', btn: 'bg-[#00B900]' },
                   { id: 'facebook', name: ' Messenger', desc: 'ตอบ Inbox แฟนเพจทันที', btn: 'bg-[#0084FF]' },
-                  { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]', disabled: true },
-                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900', disabled: true },
+                  { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]' },
+                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900' },
                   { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]', disabled: true },
                   { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]', disabled: true },
                   { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600' },
@@ -3399,6 +3447,23 @@ export default function Platform() {
                       
                       <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
                       <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
+                      
+                      {['line', 'facebook', 'instagram', 'tiktok'].includes(connectingApp) && (
+                        <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                          <button
+                            type="button"
+                            onClick={() => handleOAuthPopup(connectingApp)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs"
+                          >
+                            <Plug className="w-4 h-4" /> เชื่อมต่ออัตโนมัติด้วย OAuth (แนะนำ)
+                          </button>
+                          <div className="flex items-center gap-3 my-4">
+                            <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">หรือกรอกค่าด้วยตนเอง</span>
+                            <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                          </div>
+                        </div>
+                      )}
                       
                       {connectingApp === 'line' && (
                         <div className="space-y-3 mb-6 text-left">

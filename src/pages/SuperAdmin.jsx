@@ -606,6 +606,77 @@ export default function SuperAdmin() {
     setIsAuthenticated(false);
   };
 
+  const handleDownloadZip50Tawi = () => {
+    const dummyZipContent = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x6d, 0x6f,
+      0x63, 0x6b, 0x5f, 0x35, 0x30, 0x5f, 0x74, 0x61, 0x77, 0x69, 0x2e, 0x74, 0x78, 0x74, 0x50, 0x4b,
+      0x01, 0x02, 0x1e, 0x03, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6d, 0x6f, 0x63, 0x6b,
+      0x5f, 0x35, 0x30, 0x5f, 0x74, 0x61, 0x77, 0x69, 0x2e, 0x74, 0x78, 0x74, 0x50, 0x4b, 0x05, 0x06,
+      0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x3a, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00,
+      0x00, 0x00
+    ]);
+    
+    const blob = new Blob([dummyZipContent], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `50_tawi_documents_${payoutMonth}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadBankCSV = () => {
+    if (!currentPayouts.list || currentPayouts.list.length === 0) {
+      alert('ไม่มีข้อมูลการจ่ายเงินสำหรับรอบบิลนี้');
+      return;
+    }
+    
+    const headers = ['Partner ID', 'Partner Name', 'Bank Name', 'Bank Account', 'Gross Commission (THB)', 'WHT (3%)', 'Net Amount (THB)', 'Status'];
+    const rows = currentPayouts.list.map(p => {
+      let bankName = 'ธนาคารกสิกรไทย (KBANK)';
+      let bankAccount = '012-3-45678-9';
+      if (p.partnerId === 'P11223') {
+        bankName = 'ธนาคารไทยพาณิชย์ (SCB)';
+        bankAccount = '111-2-23344-5';
+      } else if (p.partnerId === 'P99887') {
+        bankName = 'ธนาคารกรุงเทพ (BBL)';
+        bankAccount = '998-8-77665-5';
+      } else if (p.partnerId === 'P44556') {
+        bankName = 'ธนาคารกรุงไทย (KTB)';
+        bankAccount = '445-5-66778-8';
+      }
+      
+      return [
+        p.partnerId,
+        p.name,
+        bankName,
+        bankAccount,
+        p.comm,
+        p.wht,
+        p.net,
+        p.status
+      ];
+    });
+    
+    const csvContent = "\uFEFF" 
+      + [headers.join(','), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+      
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bank_payout_transfer_${payoutMonth}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // --- CALCULATIONS FOR PARTNER TAB ---
   const mainPartnerCount = (partners || []).length;
   const mainPartnerRev = (partners || []).reduce((sum, p) => sum + (p.rev || 0), 0);
@@ -1623,8 +1694,8 @@ export default function SuperAdmin() {
                     <input type="text" value={payoutSearch} onChange={e=>setPayoutSearch(e.target.value)} placeholder="ค้นหา Partner..." className="w-full pl-9 pr-4 py-2 text-sm bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <button className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-700 transition-colors"><FileText className="w-4 h-4"/> ZIP 50ทวิ</button>
-                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"><Download className="w-4 h-4"/> CSV แบงก์</button>
+                    <button onClick={handleDownloadZip50Tawi} className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-700 transition-colors"><FileText className="w-4 h-4"/> ZIP 50ทวิ</button>
+                    <button onClick={handleDownloadBankCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"><Download className="w-4 h-4"/> CSV แบงก์</button>
                   </div>
                 </div>
                 <div className="overflow-auto custom-scrollbar flex-1 p-0">
