@@ -327,7 +327,8 @@ const getTeamMembers = async (req, res, next) => {
             id: true,
             email: true,
             name: true,
-            status: true
+            status: true,
+            role: true
           }
         }
       }
@@ -338,7 +339,7 @@ const getTeamMembers = async (req, res, next) => {
       userId: member.user.id,
       email: member.user.email,
       name: member.user.name,
-      role: member.role,
+      role: member.user.role === 'CLIENT_OWNER' ? 'OWNER' : member.role,
       status: member.user.status,
       createdAt: member.createdAt
     }));

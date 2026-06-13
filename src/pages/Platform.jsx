@@ -394,9 +394,7 @@ export default function Platform() {
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
 
   // Team Management State
-  const [teamMembers, setTeamMembers] = useState([
-    { id: 'u1', name: 'สมชาย ใจดี', email: 'owner@globaltech.com', role: 'OWNER', status: 'Active', branch: 'All Branches' }
-  ]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMember, setNewMember] = useState({ name: '', email: '', role: 'ADMIN', branch: 'HQ' });
 
@@ -1017,7 +1015,7 @@ export default function Platform() {
       });
       if (res.ok) {
         const data = await res.json();
-        const list = [{ id: 'u1', name: 'สมชาย ใจดี', email: 'owner@globaltech.com', role: 'OWNER', status: 'Active', branch: 'All Branches' }];
+        const list = [];
         data.forEach(m => {
           const formatted = {
             id: m.id,
@@ -1343,6 +1341,22 @@ export default function Platform() {
     } finally {
       setIsAuthorizing(false);
     }
+  };
+  const isAuthorizeDisabled = () => {
+    if (isAuthorizing) return true;
+    if (connectingApp === 'line') {
+      return !lineConfig.channelAccessToken?.trim() || !lineConfig.channelSecret?.trim();
+    }
+    if (connectingApp === 'facebook') {
+      return !fbConfig.pageAccessToken?.trim() || !fbConfig.pageId?.trim();
+    }
+    if (connectingApp === 'instagram') {
+      return !igConfig.pageAccessToken?.trim() || !igConfig.pageId?.trim();
+    }
+    if (connectingApp === 'website') {
+      return !webConfig.themeColor?.trim() || !webConfig.greeting?.trim();
+    }
+    return false;
   };
   const handleDisconnect = async (appId) => {
     try {
@@ -3486,7 +3500,7 @@ export default function Platform() {
                       <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
                       <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
                       
-                      {['line', 'facebook', 'instagram', 'tiktok'].includes(connectingApp) && (
+                      {['facebook', 'instagram', 'tiktok'].includes(connectingApp) && (
                         <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
                           <button
                             type="button"
@@ -3564,7 +3578,15 @@ export default function Platform() {
 
                       <div className="flex gap-3">
                         <button onClick={() => setConnectingApp(null)} disabled={isAuthorizing} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Cancel</button>
-                        <button onClick={handleAuthorize} disabled={isAuthorizing} className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white transition-colors shadow-sm flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700">
+                        <button 
+                          onClick={handleAuthorize} 
+                          disabled={isAuthorizeDisabled()} 
+                          className={`flex-1 py-2.5 rounded-xl font-bold text-sm text-white transition-colors shadow-sm flex items-center justify-center gap-2 ${
+                            isAuthorizeDisabled() 
+                              ? 'bg-indigo-600/50 cursor-not-allowed opacity-60' 
+                              : 'bg-indigo-600 hover:bg-indigo-700'
+                          }`}
+                        >
                           {isAuthorizing ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Authorize'}
                         </button>
                       </div>
@@ -3671,7 +3693,17 @@ export default function Platform() {
                                      <Trash2 className="w-4 h-4 inline"/>
                                    </button>
                                  ) : (
-                                   <button className={`text-slate-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg ${isDarkMode ? 'hover:text-indigo-400 hover:bg-slate-700' : 'hover:bg-slate-100'}`} title="ตั้งค่า">
+                                   <button 
+                                     onClick={() => {
+                                       if (member.email === currentUserObj?.email) {
+                                         setActiveTab('settings');
+                                       } else {
+                                         showToast('คุณสามารถแก้ไขโปรไฟล์เฉพาะของตัวคุณเองเท่านั้นค่ะ', 'info');
+                                       }
+                                     }}
+                                     className={`text-slate-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg ${isDarkMode ? 'hover:text-indigo-400 hover:bg-slate-700' : 'hover:bg-slate-100'}`} 
+                                     title="ตั้งค่า"
+                                   >
                                      <Settings className="w-4 h-4 inline"/>
                                    </button>
                                  )}
