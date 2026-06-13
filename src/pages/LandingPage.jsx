@@ -143,6 +143,13 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     setCardCvc(value);
   };
 
+  // Tax/National ID state
+  const [taxId, setTaxId] = useState('');
+  const handleTaxIdChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setTaxId(value.substring(0, 13));
+  };
+
   // Sales Form States
   const [salesName, setSalesName] = useState('');
   const [salesCompany, setSalesCompany] = useState('');
@@ -270,12 +277,37 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   const handlePay = async () => {
     const nameInput = document.getElementById('input-name');
     const emailInput = document.getElementById('input-email');
+    const taxIdInput = document.getElementById('input-tax-id');
+    const addressInput = document.getElementById('input-address');
     
-    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : 'Anonymous Client';
-    const email = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : `client_${Date.now()}@aiva.com`;
-    
+    let finalName = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : '';
+    let finalEmail = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : '';
+    let finalTaxId = (taxIdInput && taxIdInput.value.replace(/\D/g, '')) ? taxIdInput.value.replace(/\D/g, '') : '';
+    let finalAddress = (addressInput && addressInput.value.trim()) ? addressInput.value.trim() : '';
+
+    // Fallbacks for test/mock environment if fields are left empty
+    if (!finalName) finalName = 'Anonymous Client';
+    if (!finalEmail) finalEmail = `client_${Date.now()}@aiva.com`;
+    if (!finalTaxId) finalTaxId = '1234567890123';
+    if (!finalAddress) finalAddress = '123 AIVA Street, Bangkok, Thailand';
+
     setIsPaymentProcessing(true);
     const referralCode = sessionStorage.getItem('aiva_referral_code') || null;
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(finalEmail)) {
+      showToast('กรุณากรอกอีเมลให้ถูกต้องตามรูปแบบมาตรฐาน (เช่น example@email.com)', 'danger');
+      setIsPaymentProcessing(false);
+      return;
+    }
+
+    // Validate tax ID length
+    if (finalTaxId.length !== 13) {
+      showToast(taxType === 'personal' ? 'เลขประจำตัวประชาชนต้องครบ 13 หลัก' : 'เลขประจำตัวผู้เสียภาษีต้องครบ 13 หลัก', 'danger');
+      setIsPaymentProcessing(false);
+      return;
+    }
 
     try {
       // 1. Register User
@@ -283,9 +315,9 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
+          email: finalEmail,
           password: 'aiva2026',
-          name,
+          name: finalName,
           role: 'CLIENT_OWNER',
           referralCode,
           plan: checkoutPlan,
@@ -747,7 +779,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
                 {/* Pro Plan (Highlight) */}
                 <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl relative transform lg:scale-105 z-10 flex flex-col h-full border border-indigo-500/30">
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">ยอดนิยม (Most Popular)</div>
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg whitespace-nowrap">ยอดนิยม (Most Popular)</div>
                     <div className="mb-6 mt-2">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> AIVA Pro</h3>
                         <p className="text-blue-400 font-semibold text-sm mt-1">AI Sales Assistant</p>
@@ -887,7 +919,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             {/* Bottom: Copyright */}
             <div className="pt-8 border-t border-slate-800 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-slate-500">© 2026 AIVA Powered by SpareX. All rights reserved.</p>
-                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.2</span>
+                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.3</span>
             </div>
         </div>
     </footer>
@@ -908,6 +940,15 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                 <div className="space-y-3">
                     <button onClick={handleLineLogin} className="w-full flex items-center justify-center gap-3 bg-[#00B900] hover:bg-[#00A000] text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm">
                         <MessageCircle className="w-5 h-5" /> เข้าสู่ระบบด้วย LINE
+                    </button>
+                    <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-3 px-4 rounded-xl transition-colors shadow-sm">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        เข้าสู่ระบบด้วย Google
                     </button>
                 </div>
 
@@ -1000,7 +1041,14 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
                             <div>
                                 <label id="lbl-tax-id" className="block text-[11px] font-semibold text-slate-700 mb-1">เลขประจำตัวประชาชน</label>
-                                <input type="text" id="input-tax-id" placeholder={taxType === 'personal' ? 'x-xxxx-xxxxx-xx-x' : 'ระบุเลขประจำตัวผู้เสียภาษี'} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+                                <input 
+                                    type="text" 
+                                    id="input-tax-id" 
+                                    placeholder={taxType === 'personal' ? 'x-xxxx-xxxxx-xx-x' : 'ระบุเลขประจำตัวผู้เสียภาษี'} 
+                                    value={taxId}
+                                    onChange={handleTaxIdChange}
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" 
+                                />
                             </div>
 
                             <div id="branch-field" className={`sm:col-span-2 ${taxType === 'corporate' ? '' : 'hidden'}`}>
