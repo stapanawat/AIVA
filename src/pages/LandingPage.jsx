@@ -110,6 +110,39 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
   const [generatedQrCodeUrl, setGeneratedQrCodeUrl] = useState(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
+  // Credit Card Form States
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+
+  const handleCardNameChange = (e) => {
+    const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+    setCardName(value.toUpperCase());
+  };
+
+  const handleCardNumberChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    value = value.substring(0, 16);
+    const formatted = value.match(/.{1,4}/g)?.join(' ') || '';
+    setCardNumber(formatted);
+  };
+
+  const handleCardExpiryChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 4) value = value.substring(0, 4);
+    if (value.length > 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    setCardExpiry(value);
+  };
+
+  const handleCardCvcChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    value = value.substring(0, 3);
+    setCardCvc(value);
+  };
+
   // Sales Form States
   const [salesName, setSalesName] = useState('');
   const [salesCompany, setSalesCompany] = useState('');
@@ -854,7 +887,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             {/* Bottom: Copyright */}
             <div className="pt-8 border-t border-slate-800 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-slate-500">© 2026 AIVA Powered by SpareX. All rights reserved.</p>
-                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.0</span>
+                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.1</span>
             </div>
         </div>
     </footer>
@@ -920,7 +953,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                     
                     <div className="flex justify-between items-end">
                         <span className="text-base font-bold text-slate-900">ยอดชำระสุทธิ</span>
-                        <span className="text-3xl font-black text-indigo-600" id="checkout-total">฿5,243.00</span>
+                        <span className="text-3xl font-black text-indigo-600" id="checkout-total">{formatMoney(total)}</span>
                     </div>
                 </div>
 
@@ -996,8 +1029,8 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                             <div 
                                 className="absolute top-1 bottom-1 left-1 bg-white shadow-sm rounded-lg transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
                                 style={{
-                                    width: 'calc((100% - 8px) / 3)',
-                                    transform: `translateX(${paymentMethod === 'card' ? '0' : paymentMethod === 'bank' ? '100%' : '200%'})`
+                                    width: 'calc((100% - 6px) / 2)',
+                                    transform: `translateX(${paymentMethod === 'card' ? '0' : '100%'})`
                                 }}
                             />
                             <button 
@@ -1006,13 +1039,6 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold z-10 transition-colors duration-200 ${paymentMethod === 'card' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-800'}`}
                             >
                                 <i data-lucide="credit-card" className="w-3.5 h-3.5"></i> บัตรเครดิต
-                            </button>
-                            <button 
-                                onClick={() => setPaymentMethod('bank')} 
-                                id="tab-bank" 
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold z-10 transition-colors duration-200 ${paymentMethod === 'bank' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-800'}`}
-                            >
-                                <i data-lucide="smartphone" className="w-3.5 h-3.5"></i> แอปธนาคาร
                             </button>
                             <button 
                                 onClick={() => setPaymentMethod('promptpay')} 
@@ -1024,63 +1050,17 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                         </div>
 
                         {/* Card Form */}
-                        <div id="form-card" className={`space-y-3 animate-in fade-in duration-300 ${paymentMethod === 'card' ? 'block' : 'hidden'}`}>
-                            <div className="space-y-1">
-                                <label className="block text-[11px] font-semibold text-slate-700">ชื่อบนบัตร (Card Holder Name)</label>
-                                <div className="relative">
-                                    <i data-lucide="user" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" placeholder="SOMCHAI JAIDEE" className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+                        <div id="form-card" className={`animate-in fade-in duration-300 ${paymentMethod === 'card' ? 'block' : 'hidden'}`}>
+                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                                    <CreditCard className="w-6 h-6" />
                                 </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-[11px] font-semibold text-slate-700">หมายเลขบัตรเครดิต</label>
-                                <div className="relative">
-                                    <i data-lucide="credit-card" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" placeholder="0000 0000 0000 0000" className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                    <label className="block text-[11px] font-semibold text-slate-700">วันหมดอายุ</label>
-                                    <input type="text" placeholder="MM/YY" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-[11px] font-semibold text-slate-700">CVC</label>
-                                    <input type="text" placeholder="123" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
-                                </div>
+                                <h4 className="font-bold text-slate-800 mb-1">ชำระเงินด้วยบัตรเครดิต / เดบิต</h4>
+                                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">ระบบจะนำคุณไปยังหน้าชำระเงินที่ปลอดภัยของ Stripe เพื่อกรอกข้อมูลบัตรเครดิตได้อย่างปลอดภัยค่ะ</p>
                             </div>
                         </div>
 
-                        {/* Mobile Banking Options (Compact Fit View) */}
-                        <div id="form-bank" className={`animate-in fade-in duration-300 ${paymentMethod === 'bank' ? 'block' : 'hidden'}`}>
-                            <p className="text-xs text-center text-slate-500 mb-3">คลิกแอปธนาคารเพื่อเปิดและชำระเงิน</p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#00A950] hover:bg-[#00A950]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#00A950] rounded-lg flex items-center justify-center text-white font-black text-xs">K+</div>
-                                    <span className="text-[9px] font-bold text-slate-700">K PLUS</span>
-                                </button>
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#4E2A84] hover:bg-[#4E2A84]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#4E2A84] rounded-lg flex items-center justify-center text-white font-black text-xs">SCB</div>
-                                    <span className="text-[9px] font-bold text-slate-700">SCB EASY</span>
-                                </button>
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#1E4598] hover:bg-[#1E4598]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#1E4598] rounded-lg flex items-center justify-center text-white font-black text-[10px]">BBL</div>
-                                    <span className="text-[9px] font-bold text-slate-700">Bualuang</span>
-                                </button>
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#00AEEF] hover:bg-[#00AEEF]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#00AEEF] rounded-lg flex items-center justify-center text-white font-black text-xs">KTB</div>
-                                    <span className="text-[9px] font-bold text-slate-700">Krungthai</span>
-                                </button>
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#F2A900] hover:bg-[#F2A900]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#F2A900] rounded-lg flex items-center justify-center text-white font-black text-xs">KMA</div>
-                                    <span className="text-[9px] font-bold text-slate-700">Krungsri</span>
-                                </button>
-                                <button onClick={handlePay} className="border border-slate-200 hover:border-[#EB1C24] hover:bg-[#EB1C24]/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-sm">
-                                    <div className="w-7 h-7 bg-[#EB1C24] rounded-lg flex items-center justify-center text-white font-black text-[10px]">MyMo</div>
-                                    <span className="text-[9px] font-bold text-slate-700">GSB</span>
-                                </button>
-                            </div>
-                        </div>
+
 
                         {/* PromptPay Info (Stripe Redirect) */}
                         <div id="form-promptpay" className={`animate-in fade-in duration-300 ${paymentMethod === 'promptpay' ? 'block' : 'hidden'}`}>

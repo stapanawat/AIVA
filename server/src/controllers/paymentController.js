@@ -20,6 +20,12 @@ const PRICE_MAP = {
   }
 };
 
+const MOCK_PRICES = {
+  BASIC: { monthly: 990, halfYear: 5643, yearly: 10098 },
+  PRO: { monthly: 4900, halfYear: 27930, yearly: 49980 },
+  ADVANCED: { monthly: 11900, halfYear: 67830, yearly: 121380 }
+};
+
 /**
  * Creates a Stripe Checkout Session for a subscription plan
  */
@@ -27,6 +33,7 @@ const createCheckoutSession = async (req, res, next) => {
   try {
     const clientId = req.user.clientId;
     const { plan, billingCycle, paymentMethod } = req.body; // plan: 'BASIC' | 'PRO' | 'ADVANCED', billingCycle: 'monthly' | 'halfYear' | 'yearly', paymentMethod: 'card' | 'promptpay'
+    const origin = req.get('origin') || process.env.FRONTEND_URL || 'http://localhost:3000';
 
     if (!clientId) {
       return res.status(400).json({ error: 'User does not belong to any client tenant.' });
@@ -83,7 +90,7 @@ const createCheckoutSession = async (req, res, next) => {
       });
 
       return res.json({ 
-        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?mock_payment=success`,
+        url: `${origin}/settings?mock_payment=success`,
         message: 'Mock payment success - plan upgraded directly in dev mode.',
         client: updatedClient
       });
@@ -92,10 +99,22 @@ const createCheckoutSession = async (req, res, next) => {
     const method = paymentMethod === 'promptpay' ? 'promptpay' : 'card';
     const checkoutMode = method === 'promptpay' ? 'payment' : 'subscription';
 
+    // If method is promptpay, construct one-time pricing to prevent Stripe errors with recurring price IDs
+    const lineItems = method === 'promptpay' ? [{
+      price_data: {
+        currency: 'thb',
+        product_data: {
+          name: `AIVA ${plan} Plan - ${billingCycle === 'monthly' ? '1 Month' : billingCycle === 'halfYear' ? '6 Months' : '1 Year'}`,
+        },
+        unit_amount: Math.round(MOCK_PRICES[plan][billingCycle] * 1.07 * 100),
+      },
+      quantity: 1
+    }] : [{ price: priceId, quantity: 1 }];
+
     // Create session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: [method],
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: lineItems,
       mode: checkoutMode,
       customer_email: client.owner.email,
       metadata: { 
@@ -103,8 +122,8 @@ const createCheckoutSession = async (req, res, next) => {
         plan, 
         billingCycle: billingCycle 
       },
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?payment=cancelled`,
+      success_url: `${origin}/settings?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/settings?payment=cancelled`,
     });
 
     res.json({ url: session.url });
