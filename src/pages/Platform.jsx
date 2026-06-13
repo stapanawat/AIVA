@@ -3973,13 +3973,35 @@ export default function Platform() {
                  <button onClick={() => setIsChatWidgetOpen(false)} className="hover:bg-white/20 p-1.5 rounded-lg transition-colors relative z-10"><X className="w-5 h-5"/></button>
               </div>
               <div className={`p-4 h-72 overflow-y-auto flex flex-col gap-3 custom-scrollbar ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
-                 <div className={`text-xs p-3.5 rounded-2xl rounded-tl-sm w-10/12 shadow-sm leading-relaxed ${isDarkMode ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-white text-slate-700 border border-slate-100'}`}>
-                   สวัสดีครับ มีอะไรให้ทีมงาน AIVA ช่วยเหลือแจ้งได้เลยครับ 🤖
-                 </div>
+                 {supportChatHistory.map((msg, idx) => (
+                   <div key={idx} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                     <div className={`text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed max-w-[85%] ${
+                       msg.sender === 'user'
+                         ? 'bg-indigo-600 text-white rounded-tr-sm shadow-sm'
+                         : (isDarkMode ? 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm')
+                     }`}>
+                       {msg.text}
+                     </div>
+                     <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 px-1">{msg.time}</span>
+                   </div>
+                 ))}
+                 <div ref={supportChatEndRef} />
               </div>
               <div className={`p-3 border-t flex gap-2 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-white'}`}>
-                 <input type="text" placeholder="พิมพ์ข้อความ..." className={`flex-1 px-4 py-2 text-xs rounded-xl border outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
-                 <button className="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm">ส่ง</button>
+                 <input
+                   type="text"
+                   placeholder="พิมพ์ข้อความ..."
+                   value={supportChatMessage}
+                   onChange={(e) => setSupportChatMessage(e.target.value)}
+                   onKeyDown={(e) => e.key === 'Enter' && handleSendSupportChat()}
+                   className={`flex-1 px-4 py-2 text-xs rounded-xl border outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                 />
+                 <button
+                   onClick={handleSendSupportChat}
+                   className="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm"
+                 >
+                   ส่ง
+                 </button>
               </div>
             </div>
           ) : (

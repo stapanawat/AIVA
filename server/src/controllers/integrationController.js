@@ -172,7 +172,8 @@ const startOAuth = async (req, res, next) => {
     }
 
     // Real OAuth redirects
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = rawBackendUrl.replace(/\/+$/, '');
     const callbackUrl = `${backendUrl}/api/client/integrations/oauth/${platform}/callback`;
 
     if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
@@ -270,7 +271,8 @@ const handleOAuthCallback = async (req, res, next) => {
       if (platformUpper === 'FACEBOOK') {
         const fbClientId = process.env.FACEBOOK_CLIENT_ID;
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
         const callbackUrl = `${backendUrl}/api/client/integrations/oauth/facebook/callback`;
 
         const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&client_secret=${clientSecret}&code=${code}`);
@@ -299,7 +301,8 @@ const handleOAuthCallback = async (req, res, next) => {
       } else if (platformUpper === 'INSTAGRAM') {
         const fbClientId = process.env.FACEBOOK_CLIENT_ID;
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
         const callbackUrl = `${backendUrl}/api/client/integrations/oauth/instagram/callback`;
 
         const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&client_secret=${clientSecret}&code=${code}`);
@@ -351,7 +354,8 @@ const handleOAuthCallback = async (req, res, next) => {
       } else if (platformUpper === 'LINE') {
         const lineClientId = process.env.LINE_LOGIN_CHANNEL_ID;
         const clientSecret = process.env.LINE_LOGIN_CHANNEL_SECRET;
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
         const callbackUrl = `${backendUrl}/api/client/integrations/oauth/line/callback`;
 
         const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {

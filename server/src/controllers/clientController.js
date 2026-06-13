@@ -762,6 +762,32 @@ const getLostRevenues = async (req, res, next) => {
   }
 };
 
+const handleClientSupportChat = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { message, chatHistory } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message content is required.' });
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found.' });
+    }
+
+    const geminiService = require('../services/geminiService');
+    const aiReply = await geminiService.generateSupportChatResponse(message, chatHistory || [], 'CLIENT');
+
+    res.json({ reply: aiReply });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getKnowledgeBase,
@@ -784,5 +810,6 @@ module.exports = {
   getFeedbacks,
   createFeedback,
   getLeadScores,
-  getLostRevenues
+  getLostRevenues,
+  handleClientSupportChat
 };

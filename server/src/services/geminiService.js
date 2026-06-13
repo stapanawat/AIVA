@@ -296,7 +296,7 @@ If asked about something unrelated, politely steer the conversation back to the 
     const contents = [];
     for (const msg of chatHistory) {
       contents.push({
-        role: msg.sender === 'partner' ? 'user' : 'model',
+        role: (msg.sender === 'partner' || msg.sender === 'user') ? 'user' : 'model',
         parts: [{ text: msg.text }]
       });
     }

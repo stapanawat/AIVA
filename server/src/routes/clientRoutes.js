@@ -71,4 +71,7 @@ router.post('/feedback', clientController.createFeedback);
 router.get('/lead-scores', clientController.getLeadScores);
 router.get('/lost-revenues', clientController.getLostRevenues);
 
+// Support Chat
+router.post('/support/chat', clientController.handleClientSupportChat);
+
 module.exports = router;

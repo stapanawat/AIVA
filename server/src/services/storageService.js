@@ -77,7 +77,8 @@ const uploadFile = async (fileBuffer, originalName, mimeType) => {
   const localPath = path.join(uploadsDir, uniqueFilename);
   await fs.promises.writeFile(localPath, fileBuffer);
 
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = rawBackendUrl.replace(/\/+$/, '');
   const url = `${backendUrl}/uploads/${uniqueFilename}`;
 
   console.log(`[Storage Service] Saved file ${originalName} locally: ${url}`);
