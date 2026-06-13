@@ -8,6 +8,12 @@ export default function App() {
   const [route, setRoute] = useState('landing');
   const [isSwitcherExpanded, setIsSwitcherExpanded] = useState(true);
 
+  const handleSwitchRoute = (newRoute) => {
+    localStorage.removeItem('aiva_access_token');
+    localStorage.removeItem('aiva_user');
+    setRoute(newRoute);
+  };
+
   // Re-run Lucide icons render when changing portals
   useEffect(() => {
     if (window.lucide) {
@@ -69,25 +75,25 @@ export default function App() {
           </span>
           <span className="text-slate-400">Portal Switcher:</span>
           <button 
-            onClick={() => setRoute('landing')} 
+            onClick={() => handleSwitchRoute('landing')} 
             className={`px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${route === 'landing' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}
           >
             🏠 Landing Page
           </button>
           <button 
-            onClick={() => setRoute('platform')} 
+            onClick={() => handleSwitchRoute('platform')} 
             className={`px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${route === 'platform' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}
           >
             💻 Client Platform
           </button>
           <button 
-            onClick={() => setRoute('partner')} 
+            onClick={() => handleSwitchRoute('partner')} 
             className={`px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${route === 'partner' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}
           >
             🤝 Partner Portal
           </button>
           <button 
-            onClick={() => setRoute('super-admin')} 
+            onClick={() => handleSwitchRoute('super-admin')} 
             className={`px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${route === 'super-admin' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}
           >
             👑 Super Admin
