@@ -146,7 +146,7 @@ const startOAuth = async (req, res, next) => {
     // Check if we have real client credentials in .env
     let isSimulated = false;
 
-    if (platformUpper === 'FACEBOOK') {
+    if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
       const appId = process.env.FACEBOOK_CLIENT_ID;
       const appSecret = process.env.FACEBOOK_CLIENT_SECRET;
       if (!appId || appId.includes('YOUR_') || !appSecret || appSecret.includes('YOUR_')) {
@@ -158,9 +158,12 @@ const startOAuth = async (req, res, next) => {
       if (!loginId || loginId.includes('YOUR_') || !loginSecret || loginSecret.includes('YOUR_')) {
         isSimulated = true;
       }
-    } else if (platformUpper === 'TIKTOK' || platformUpper === 'INSTAGRAM') {
-      // Default to simulation
-      isSimulated = true;
+    } else if (platformUpper === 'TIKTOK') {
+      const appKey = process.env.TIKTOK_SHOP_APP_KEY;
+      const appSecret = process.env.TIKTOK_SHOP_APP_SECRET;
+      if (!appKey || appKey.includes('YOUR_') || !appSecret || appSecret.includes('YOUR_')) {
+        isSimulated = true;
+      }
     }
 
     if (isSimulated) {
@@ -172,7 +175,7 @@ const startOAuth = async (req, res, next) => {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     const callbackUrl = `${backendUrl}/api/client/integrations/oauth/${platform}/callback`;
 
-    if (platformUpper === 'FACEBOOK') {
+    if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
       const appId = process.env.FACEBOOK_CLIENT_ID;
       const scope = 'pages_show_list,pages_messaging,instagram_basic,instagram_manage_messages,pages_read_engagement';
       const redirectUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${encodeURIComponent(scope)}`;
@@ -181,6 +184,10 @@ const startOAuth = async (req, res, next) => {
       const channelId = process.env.LINE_LOGIN_CHANNEL_ID;
       const scope = 'profile openid email';
       const redirectUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+      return res.redirect(redirectUrl);
+    } else if (platformUpper === 'TIKTOK') {
+      const appKey = process.env.TIKTOK_SHOP_APP_KEY;
+      const redirectUrl = `https://services.tiktokshop.com/open/authorize?app_key=${appKey}&state=${state}`;
       return res.redirect(redirectUrl);
     }
 
@@ -289,6 +296,58 @@ const handleOAuthCallback = async (req, res, next) => {
           userAccessToken,
           connectedVia: 'OAuth 2.0'
         };
+      } else if (platformUpper === 'INSTAGRAM') {
+        const fbClientId = process.env.FACEBOOK_CLIENT_ID;
+        const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/instagram/callback`;
+
+        const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&client_secret=${clientSecret}&code=${code}`);
+        const tokenData = await tokenResponse.json();
+
+        if (!tokenResponse.ok) {
+          return res.status(400).send(`<h3>Instagram OAuth Exchange Error: ${tokenData.error?.message || 'Failed to exchange code'}</h3>`);
+        }
+
+        const userAccessToken = tokenData.access_token;
+        const pagesResponse = await fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`);
+        const pagesData = await pagesResponse.json();
+
+        if (!pagesResponse.ok || !pagesData.data || pagesData.data.length === 0) {
+          return res.status(400).send('<h3>Error: No connected Facebook pages found to discover linked Instagram account.</h3>');
+        }
+
+        let connectedIgAccount = null;
+        for (const page of pagesData.data) {
+          try {
+            const igResponse = await fetch(`https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account,name&access_token=${page.access_token}`);
+            const igData = await igResponse.json();
+            if (igData.instagram_business_account) {
+              connectedIgAccount = {
+                instagramBusinessAccountId: igData.instagram_business_account.id,
+                pageId: page.id,
+                pageName: page.name,
+                pageAccessToken: page.access_token
+              };
+              break;
+            }
+          } catch (e) {
+            console.error(`Error checking Instagram account for Page ${page.id}:`, e);
+          }
+        }
+
+        if (!connectedIgAccount) {
+          return res.status(400).send('<h3>Error: No connected Instagram Business Account found on your Facebook Pages. Please link your Instagram account to a Facebook page first.</h3>');
+        }
+
+        integrationConfig = {
+          pageId: connectedIgAccount.instagramBusinessAccountId,
+          pageName: `${connectedIgAccount.pageName} (Instagram)`,
+          pageAccessToken: connectedIgAccount.pageAccessToken,
+          fbPageId: connectedIgAccount.pageId,
+          userAccessToken,
+          connectedVia: 'OAuth 2.0 (Meta)'
+        };
       } else if (platformUpper === 'LINE') {
         const lineClientId = process.env.LINE_LOGIN_CHANNEL_ID;
         const clientSecret = process.env.LINE_LOGIN_CHANNEL_SECRET;
@@ -315,6 +374,35 @@ const handleOAuthCallback = async (req, res, next) => {
         integrationConfig = {
           channelAccessToken: tokenData.access_token,
           connectedVia: 'OAuth 2.0'
+        };
+      } else if (platformUpper === 'TIKTOK') {
+        const appKey = process.env.TIKTOK_SHOP_APP_KEY;
+        const appSecret = process.env.TIKTOK_SHOP_APP_SECRET;
+
+        const tokenResponse = await fetch('https://auth.tiktokshop.com/api/v1/token/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_key: appKey,
+            app_secret: appSecret,
+            auth_code: code,
+            grant_type: 'authorized_code'
+          })
+        });
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.code !== 0) {
+          return res.status(400).send(`<h3>TikTok Shop OAuth Error: ${tokenData.message || 'Failed to exchange code'}</h3>`);
+        }
+
+        const data = tokenData.data;
+        integrationConfig = {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          sellerId: data.seller_id,
+          sellerName: data.seller_name || 'TikTok Shop Seller',
+          expiresIn: data.access_token_expire_in,
+          connectedVia: 'OAuth 2.0 (TikTok)'
         };
       }
     }

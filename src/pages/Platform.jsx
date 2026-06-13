@@ -162,6 +162,11 @@ const AppIcon = ({ appId, size = 'md' }) => {
 // ==========================================
 function PlatformAuth({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
    const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -177,7 +182,7 @@ function PlatformAuth({ onLogin }) {
       
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'เข้าสู่ระบบล้มเหลว');
+        showToast(data.error || 'เข้าสู่ระบบล้มเหลว', 'danger');
         setIsLoading(false);
         return;
       }
@@ -246,6 +251,14 @@ function PlatformAuth({ onLogin }) {
           </button>
         </form>
       </div>
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold bg-rose-50 border-rose-200 text-rose-800">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -314,6 +327,11 @@ export default function Platform() {
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const [rulesList, setRulesList] = useState([]);
   const [knowledgeList, setKnowledgeList] = useState(USE_MOCK ? MOCK_KNOWLEDGE : []);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
   const [showAddKnowledge, setShowAddKnowledge] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [newKnowledge, setNewKnowledge] = useState({ type: 'text', title: '', content: '', url: '' });
@@ -524,10 +542,11 @@ export default function Platform() {
         }
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to initiate checkout');
+        showToast(errData.error || 'ไม่สามารถเริ่มการชำระเงินได้', 'danger');
       }
     } catch (err) {
       console.error('Failed to upgrade plan:', err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อชำระเงิน', 'danger');
     }
   };
 
@@ -730,11 +749,11 @@ export default function Platform() {
   const handleAddKnowledge = async () => {
     // If it's a PDF/Word upload but no file is selected AND title/content are also empty, block
     if (newKnowledge.type === 'pdf' && !selectedFile && (!newKnowledge.title.trim() || !newKnowledge.content.trim())) {
-      alert('กรุณาเลือกไฟล์เอกสาร หรือกรอกข้อมูลให้ครบถ้วน');
+      showToast('กรุณาเลือกไฟล์เอกสาร หรือกรอกข้อมูลให้ครบถ้วน', 'danger');
       return;
     }
     if (newKnowledge.type !== 'pdf' && (!newKnowledge.title.trim() || !newKnowledge.content.trim())) {
-      alert('กรุณากรอกหัวข้อและเนื้อหาให้ครบถ้วน');
+      showToast('กรุณากรอกหัวข้อและเนื้อหาให้ครบถ้วน', 'danger');
       return;
     }
     
@@ -788,9 +807,10 @@ export default function Platform() {
       if (res.ok) {
         fetchKnowledge();
         success = true;
+        showToast('สอนข้อมูลสำเร็จเรียบร้อยแล้วค่ะ! 🧠', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to save knowledge entry');
+        showToast(errData.error || 'บันทึกข้อมูลคลังความรู้ล้มเหลว', 'danger');
       }
     } catch (err) {
       console.warn('Backend offline, adding knowledge locally:', err);
@@ -817,9 +837,10 @@ export default function Platform() {
 
   const handleExportCSV = () => {
     if (!leadsData || leadsData.length === 0) {
-      alert('ไม่มีข้อมูลลีดสำหรับส่งออก');
+      showToast('ไม่มีข้อมูลลีดสำหรับส่งออก', 'danger');
       return;
     }
+    showToast('ส่งออกข้อมูลไฟล์ CSV เรียบร้อยแล้วค่ะ!', 'success');
     const headers = ['วันที่เก็บข้อมูล', 'ชื่อลูกค้า', 'ช่องทางติดต่อ', 'ความสนใจ', 'สถานะ'];
     const rows = leadsData.map(lead => [
       lead.date || new Date(lead.createdAt).toLocaleDateString('th-TH'),
@@ -1036,9 +1057,10 @@ export default function Platform() {
       });
       if (res.ok) {
         fetchTeamMembers();
+        showToast('ส่งคำเชิญสมาชิกทีมเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to invite team member');
+        showToast(errData.error || 'ไม่สามารถส่งคำเชิญสมาชิกทีมได้', 'danger');
       }
     } catch (err) {
       console.warn('Backend offline, adding team member locally:', err);
@@ -1070,9 +1092,10 @@ export default function Platform() {
         fetchBranches();
         setShowAddBranch(false);
         setNewBranch({ name: '', manager: '', status: 'Active', customAi: false });
+        showToast('เพิ่มสาขาใหม่เรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to add branch');
+        showToast(errData.error || 'ไม่สามารถเพิ่มสาขาได้', 'danger');
       }
     } catch (err) {
       console.warn('Failed to add branch:', err);
@@ -1100,9 +1123,10 @@ export default function Platform() {
       });
       if (res.ok) {
         fetchLeads();
+        showToast('เพิ่มข้อมูลลูกค้าใหม่เรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to add lead');
+        showToast(errData.error || 'ไม่สามารถเพิ่มข้อมูลลูกค้าได้', 'danger');
       }
     } catch (err) {
       console.warn('Backend offline, adding lead locally:', err);
@@ -1144,9 +1168,10 @@ export default function Platform() {
         fetchRules();
         setShowCreateRule(false);
         setNewRule({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false });
+        showToast('สร้างกฎการติดตามเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to create rule');
+        showToast(errData.error || 'ไม่สามารถสร้างกฎการติดตามได้', 'danger');
       }
     } catch (err) {
       console.warn('Failed to create rule:', err);
@@ -1176,9 +1201,10 @@ export default function Platform() {
         fetchLeads();
         setShowAddDeal(false);
         setNewDeal({ name: '', intent: '', score: 'Warm', stage: 'New Leads', value: '' });
+        showToast('เพิ่มดีลลงใน CRM Pipeline เรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to add deal');
+        showToast(errData.error || 'ไม่สามารถเพิ่มดีลลูกค้าได้', 'danger');
       }
     } catch (err) {
       console.warn('Failed to add deal:', err);
@@ -1194,7 +1220,7 @@ export default function Platform() {
   };
   const handleConnect = (appId) => { 
     if (connectedApps.length >= maxChannels) {
-      alert(`คุณใช้โควต้าเชื่อมต่อครบแล้ว (${maxChannels} ช่องทาง) กรุณาอัปเกรดแพ็กเกจ`);
+      showToast(`คุณใช้โควต้าเชื่อมต่อครบแล้ว (${maxChannels} ช่องทาง) กรุณาอัปเกรดแพ็กเกจ`, 'danger');
       return;
     }
     setConnectingApp(appId); setIsAuthorizing(false); 
@@ -1294,9 +1320,10 @@ export default function Platform() {
       if (res.ok) {
         await fetchIntegrations();
         setConnectingApp(null);
+        showToast('เชื่อมต่อช่องทางเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to save integration config');
+        showToast(errData.error || 'ไม่สามารถบันทึกการเชื่อมต่อได้', 'danger');
       }
     } catch (err) {
       console.error('Failed to authorize integration:', err);
@@ -1322,9 +1349,10 @@ export default function Platform() {
         setManagingApp(null);
         if (inboxPlatformFilter === PLATFORM_MAP[appId]) setInboxPlatformFilter('All');
         if (replyPlatformFilter === PLATFORM_MAP[appId]) setReplyPlatformFilter('All');
+        showToast('ตัดการเชื่อมต่อเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to disconnect integration');
+        showToast(errData.error || 'ไม่สามารถตัดการเชื่อมต่อได้', 'danger');
       }
     } catch (err) {
       console.error('Failed to disconnect integration:', err);
@@ -1354,9 +1382,10 @@ export default function Platform() {
       if (res.ok) {
         const data = await res.json();
         setGeneratedContent(data.result || '');
+        showToast('สร้างคำโฆษณาด้วย AI สำเร็จแล้วค่ะ! ✨', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to generate copy');
+        showToast(errData.error || 'ไม่สามารถสร้างเนื้อหาได้', 'danger');
       }
     } catch (err) {
       console.warn('Failed to generate content:', err);
@@ -1387,11 +1416,10 @@ export default function Platform() {
         fetchFeedbacks();
         setFeedbackForm({ type: 'feature', title: '', description: '' });
         setIsSubmittingFeedback(false);
-        setShowFeedbackSuccess(true);
-        setTimeout(() => setShowFeedbackSuccess(false), 5000);
+        showToast('ส่งคำแนะนำ/ติชมเรียบร้อยแล้วค่ะ! 💖', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to submit feedback');
+        showToast(errData.error || 'ไม่สามารถส่งข้อเสนอแนะได้', 'danger');
         setIsSubmittingFeedback(false);
       }
     } catch (err) {
@@ -1427,7 +1455,7 @@ export default function Platform() {
       if (params.get('mock_payment') === 'success' || params.get('payment') === 'success') {
         window.history.replaceState({}, document.title, window.location.pathname);
         setActiveTab('billing');
-        alert('ชำระเงินสำเร็จและอัปเดตแพ็กเกจเรียบร้อยแล้วค่ะ! 🎉');
+        showToast('ชำระเงินสำเร็จและอัปเดตแพ็กเกจเรียบร้อยแล้วค่ะ! 🎉', 'success');
         fetchSettings();
       }
     }
@@ -3557,7 +3585,7 @@ export default function Platform() {
                           <input type="text" readOnly value={`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`} className={`flex-1 border rounded-xl text-xs px-3 py-2.5 font-mono outline-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} />
                           <button onClick={() => {
                             navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`);
-                            alert('คัดลอก Webhook URL แล้ว!');
+                            showToast('คัดลอก Webhook URL แล้วค่ะ!', 'success');
                           }} className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
                         </div>
                       </div>
@@ -4008,6 +4036,23 @@ export default function Platform() {
                 {isSubmittingKnowledge ? 'กำลังบันทึก...' : 'สอนข้อมูล AIVA'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold ${
+            toast.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+              : toast.type === 'danger'
+              ? 'bg-rose-50 border-rose-200 text-rose-800' 
+              : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+          }`}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+            {toast.type === 'danger' && <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0" />}
+            {toast.type === 'info' && <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />}
+            <span>{toast.message}</span>
           </div>
         </div>
       )}

@@ -40,6 +40,11 @@ const Instagram = (props) => (
 // ==========================================
 function AdminAuth({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -56,7 +61,7 @@ function AdminAuth({ onLogin }) {
       
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'เข้าสู่ระบบล้มเหลว');
+        showToast(data.error || 'เข้าสู่ระบบล้มเหลว', 'danger');
         setIsLoading(false);
         return;
       }
@@ -70,7 +75,7 @@ function AdminAuth({ onLogin }) {
         console.warn('Backend not running, falling back to mock authentication:', err);
         setTimeout(() => { setIsLoading(false); onLogin(); }, 1200);
       } else {
-        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง');
+        showToast('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'danger');
         setIsLoading(false);
       }
     }
@@ -117,6 +122,14 @@ function AdminAuth({ onLogin }) {
           </button>
         </form>
       </div>
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold bg-rose-50 border-rose-200 text-rose-800">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -142,6 +155,11 @@ export default function SuperAdmin() {
   const [assetForm, setAssetForm] = useState({ name: '', category: 'Presentations', size: '', url: '' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // States for search/filters
   const [partnerSearch, setPartnerSearch] = useState('');
@@ -246,13 +264,15 @@ export default function SuperAdmin() {
       });
       if (res.ok) {
         fetchPartners();
+        showToast('อัปเดตสถานะ KYC เรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to update KYC status');
+        showToast(errData.error || 'ไม่สามารถอัปเดตสถานะ KYC ได้', 'danger');
       }
     } catch (err) {
       console.warn('Backend offline, fallback KYC update locally:', err);
       setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, kyc: status } : p));
+      showToast('บันทึกสถานะ KYC ในโหมดออฟไลน์แล้ว', 'info');
     }
   };
 
@@ -269,12 +289,14 @@ export default function SuperAdmin() {
       });
       if (res.ok) {
         fetchPayouts();
+        showToast('อนุมัติคำขอถอนเงินเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to approve payout');
+        showToast(errData.error || 'ไม่สามารถอนุมัติคำขอถอนเงินได้', 'danger');
       }
     } catch (err) {
       console.error('Error approving payout:', err);
+      showToast('เกิดข้อผิดพลาดในการอนุมัติเงินถอน', 'danger');
     }
   };
 
@@ -419,9 +441,10 @@ export default function SuperAdmin() {
           profit: data.profit,
           actions: mappedActions
         });
+        showToast('AI วางแผนกลยุทธ์เป้าหมายสำเร็จแล้วค่ะ! 🎯', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to calculate strategy');
+        showToast(errData.error || 'ไม่สามารถวิเคราะห์กลยุทธ์ได้', 'danger');
       }
     } catch (err) {
       console.warn('Failed to calculate goal strategy:', err);
@@ -470,7 +493,7 @@ export default function SuperAdmin() {
   const handleCreateAsset = async (e) => {
     if (e) e.preventDefault();
     if (!assetForm.name.trim() || !assetForm.category) {
-      alert('กรุณากรอกชื่อไฟล์และเลือกหมวดหมู่');
+      showToast('กรุณากรอกชื่อไฟล์และเลือกหมวดหมู่', 'danger');
       return;
     }
     try {
@@ -489,12 +512,12 @@ export default function SuperAdmin() {
         })
       });
       if (res.ok) {
-        alert('อัปโหลดไฟล์สื่อสำเร็จ!');
+        showToast('อัปโหลดไฟล์สื่อสำเร็จแล้วค่ะ!', 'success');
         fetchAssets();
         setAssetForm({ name: '', category: 'Presentations', size: '', url: '' });
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to create asset');
+        showToast(errData.error || 'สร้างไฟล์สื่อล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error('Error creating asset:', err);
@@ -511,12 +534,14 @@ export default function SuperAdmin() {
       });
       if (res.ok) {
         fetchAssets();
+        showToast('ลบไฟล์สื่อการตลาดสำเร็จแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to delete asset');
+        showToast(errData.error || 'ลบไฟล์สื่อล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error('Error deleting asset:', err);
+      showToast('เกิดข้อผิดพลาดในการลบไฟล์สื่อ', 'danger');
     }
   };
 
@@ -533,18 +558,20 @@ export default function SuperAdmin() {
       });
       if (res.ok) {
         fetchTickets();
+        showToast('อัปเดตสถานะตั๋วคำขอช่วยเหลือสำเร็จแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to update ticket status');
+        showToast(errData.error || 'อัปเดตสถานะตั๋วช่วยเหลือล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error('Error updating ticket status:', err);
+      showToast('เกิดข้อผิดพลาดในการอัปเดตสถานะตั๋ว', 'danger');
     }
   };
 
   const handleCreateAnnouncement = async () => {
     if (!broadcastForm.title.trim() || !broadcastForm.content.trim()) {
-      alert('กรุณากรอกหัวข้อและรายละเอียดให้ครบถ้วน');
+      showToast('กรุณากรอกหัวข้อและรายละเอียดให้ครบถ้วน', 'danger');
       return;
     }
     try {
@@ -564,12 +591,12 @@ export default function SuperAdmin() {
         })
       });
       if (res.ok) {
-        alert('สร้างประกาศสำเร็จ!');
+        showToast('ส่งประกาศบรอดแคสต์สำเร็จแล้วค่ะ!', 'success');
         fetchAnnouncements();
         setBroadcastForm({ title: '', type: 'Campaign', target: 'ALL', content: '' });
       } else {
         const errData = await res.json();
-        alert(errData.error || 'Failed to create announcement');
+        showToast(errData.error || 'ส่งประกาศบรอดแคสต์ล้มเหลว', 'danger');
       }
     } catch (err) {
       console.warn('Backend offline, adding announcement locally:', err);
@@ -628,11 +655,12 @@ export default function SuperAdmin() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    showToast('ดาวน์โหลดเอกสาร 50 ทวิสำเร็จแล้วค่ะ!', 'success');
   };
 
   const handleDownloadBankCSV = () => {
     if (!currentPayouts.list || currentPayouts.list.length === 0) {
-      alert('ไม่มีข้อมูลการจ่ายเงินสำหรับรอบบิลนี้');
+      showToast('ไม่มีข้อมูลการจ่ายเงินสำหรับรอบบิลนี้', 'danger');
       return;
     }
     
@@ -675,6 +703,7 @@ export default function SuperAdmin() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    showToast('ดาวน์โหลดรายงาน CSV แบงก์เรียบร้อยแล้วค่ะ!', 'success');
   };
 
   // --- CALCULATIONS FOR PARTNER TAB ---
@@ -2009,6 +2038,22 @@ export default function SuperAdmin() {
               invoiceData={selectedInvoice} 
               onClose={() => setSelectedInvoice(null)} 
             />
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold ${
+            toast.type === 'success' 
+              ? 'bg-slate-800 border-emerald-500/30 text-emerald-400' 
+              : toast.type === 'danger'
+              ? 'bg-slate-800 border-rose-500/30 text-rose-400' 
+              : 'bg-slate-800 border-slate-700 text-slate-300'
+          } backdrop-blur-md`}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+            {toast.type === 'danger' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+            <span>{toast.message}</span>
           </div>
         </div>
       )}

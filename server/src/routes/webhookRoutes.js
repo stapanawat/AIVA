@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/db');
 const { generateResponse } = require('../services/geminiService');
+const { queueChatReply } = require('../queues/chatQueue');
 
 /**
  * Direct simulator endpoint to test the AI Agent response
@@ -94,18 +95,6 @@ const handleLineWebhook = async (req, res, next) => {
       clientId = firstClient.id;
     }
 
-    // Lookup client's LINE integration
-    const integration = await prisma.integration.findUnique({
-      where: {
-        clientId_platform: {
-          clientId,
-          platform: 'LINE'
-        }
-      }
-    });
-
-    const channelAccessToken = integration?.config?.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
-
     for (const event of events) {
       if (event.type === 'message' && event.message.type === 'text') {
         const userMessage = event.message.text;
@@ -137,53 +126,15 @@ const handleLineWebhook = async (req, res, next) => {
           }
         });
 
-        // Fetch recent messages
-        const history = await prisma.message.findMany({
-          where: { chatId: chat.id },
-          orderBy: { createdAt: 'desc' },
-          take: 6
+        // Queue the response processing asynchronously
+        await queueChatReply({
+          clientId,
+          chatId: chat.id,
+          userMessage,
+          platform: 'LINE',
+          replyToken: event.replyToken,
+          customerContact: lineUserId
         });
-
-        // Extract replyToken for sending back message
-        const replyToken = event.replyToken;
-
-        // Request Gemini to generate a response
-        const aiReply = await generateResponse(clientId, userMessage, history.reverse());
-
-        // Save bot reply
-        await prisma.message.create({
-          data: {
-            chatId: chat.id,
-            sender: 'BOT',
-            content: aiReply
-          }
-        });
-
-        console.log(`[LINE Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
-        
-        // Invoke LINE Message Reply API
-        if (replyToken && channelAccessToken) {
-          try {
-            const lineResponse = await fetch('https://api.line.me/v2/bot/message/reply', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${channelAccessToken}`
-              },
-              body: JSON.stringify({
-                replyToken: replyToken,
-                messages: [{ type: 'text', text: aiReply }]
-              })
-            });
-
-            if (!lineResponse.ok) {
-              const errText = await lineResponse.text();
-              console.error('[LINE Reply API Error]', errText);
-            }
-          } catch (lineErr) {
-            console.error('[LINE Reply Fetch Error]', lineErr);
-          }
-        }
       }
     }
 
@@ -209,17 +160,6 @@ const handleFacebookWebhook = async (req, res, next) => {
       clientId = firstClient.id;
     }
 
-    const integration = await prisma.integration.findUnique({
-      where: {
-        clientId_platform: {
-          clientId,
-          platform: 'FACEBOOK'
-        }
-      }
-    });
-
-    const pageAccessToken = integration?.config?.pageAccessToken;
-    
     for (const item of entry) {
       const messaging = item.messaging;
       if (!messaging) continue;
@@ -254,46 +194,14 @@ const handleFacebookWebhook = async (req, res, next) => {
             }
           });
 
-          // Fetch recent messages
-          const history = await prisma.message.findMany({
-            where: { chatId: chat.id },
-            orderBy: { createdAt: 'desc' },
-            take: 6
+          // Queue the response processing asynchronously
+          await queueChatReply({
+            clientId,
+            chatId: chat.id,
+            userMessage,
+            platform: 'FACEBOOK',
+            customerContact: senderId
           });
-
-          // Generate AI reply
-          const aiReply = await generateResponse(clientId, userMessage, history.reverse());
-
-          // Save bot reply
-          await prisma.message.create({
-            data: {
-              chatId: chat.id,
-              sender: 'BOT',
-              content: aiReply
-            }
-          });
-
-          console.log(`[Facebook Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
-
-          // Invoke Facebook Send API if token is configured
-          if (pageAccessToken) {
-            try {
-              const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  recipient: { id: senderId },
-                  message: { text: aiReply }
-                })
-              });
-              if (!fbResponse.ok) {
-                const errText = await fbResponse.text();
-                console.error('[Facebook Send API Error]', errText);
-              }
-            } catch (fbErr) {
-              console.error('[Facebook Send Fetch Error]', fbErr);
-            }
-          }
         }
       }
     }
@@ -320,17 +228,6 @@ const handleInstagramWebhook = async (req, res, next) => {
       clientId = firstClient.id;
     }
 
-    const integration = await prisma.integration.findUnique({
-      where: {
-        clientId_platform: {
-          clientId,
-          platform: 'INSTAGRAM'
-        }
-      }
-    });
-
-    const pageAccessToken = integration?.config?.pageAccessToken;
-    
     for (const item of entry) {
       const messaging = item.messaging;
       if (!messaging) continue;
@@ -365,46 +262,14 @@ const handleInstagramWebhook = async (req, res, next) => {
             }
           });
 
-          // Fetch recent messages
-          const history = await prisma.message.findMany({
-            where: { chatId: chat.id },
-            orderBy: { createdAt: 'desc' },
-            take: 6
+          // Queue the response processing asynchronously
+          await queueChatReply({
+            clientId,
+            chatId: chat.id,
+            userMessage,
+            platform: 'INSTAGRAM',
+            customerContact: senderId
           });
-
-          // Generate AI reply
-          const aiReply = await generateResponse(clientId, userMessage, history.reverse());
-
-          // Save bot reply
-          await prisma.message.create({
-            data: {
-              chatId: chat.id,
-              sender: 'BOT',
-              content: aiReply
-            }
-          });
-
-          console.log(`[Instagram Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
-
-          // Invoke Instagram Graph API if token is configured
-          if (pageAccessToken) {
-            try {
-              const igResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  recipient: { id: senderId },
-                  message: { text: aiReply }
-                })
-              });
-              if (!igResponse.ok) {
-                const errText = await igResponse.text();
-                console.error('[Instagram Send API Error]', errText);
-              }
-            } catch (igErr) {
-              console.error('[Instagram Send Fetch Error]', igErr);
-            }
-          }
         }
       }
     }
@@ -430,17 +295,6 @@ const handleTikTokWebhook = async (req, res, next) => {
       if (!firstClient) return res.sendStatus(200);
       clientId = firstClient.id;
     }
-
-    const integration = await prisma.integration.findUnique({
-      where: {
-        clientId_platform: {
-          clientId,
-          platform: 'TIKTOK'
-        }
-      }
-    });
-
-    const accessToken = integration?.config?.accessToken;
 
     // Retrieve or create chat session
     let chat = await prisma.chat.findFirst({
@@ -468,49 +322,14 @@ const handleTikTokWebhook = async (req, res, next) => {
       }
     });
 
-    // Fetch recent messages
-    const history = await prisma.message.findMany({
-      where: { chatId: chat.id },
-      orderBy: { createdAt: 'desc' },
-      take: 6
+    // Queue the response processing asynchronously
+    await queueChatReply({
+      clientId,
+      chatId: chat.id,
+      userMessage: content,
+      platform: 'TIKTOK',
+      customerContact: open_id
     });
-
-    // Generate AI reply
-    const aiReply = await generateResponse(clientId, content, history.reverse());
-
-    // Save bot reply
-    await prisma.message.create({
-      data: {
-        chatId: chat.id,
-        sender: 'BOT',
-        content: aiReply
-      }
-    });
-
-    console.log(`[TikTok Bot Auto-Reply SUCCESS] client ${clientId}: ${aiReply}`);
-
-    // Invoke TikTok Send Message API if accessToken is configured
-    if (accessToken) {
-      try {
-        const ttResponse = await fetch(`https://open-api.tiktok.com/message/send/`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Access-Token': accessToken
-          },
-          body: JSON.stringify({
-            recipient_open_id: open_id,
-            message_content: { text: aiReply }
-          })
-        });
-        if (!ttResponse.ok) {
-          const errText = await ttResponse.text();
-          console.error('[TikTok Send API Error]', errText);
-        }
-      } catch (ttErr) {
-        console.error('[TikTok Send Fetch Error]', ttErr);
-      }
-    }
 
     res.sendStatus(200);
   } catch (error) {

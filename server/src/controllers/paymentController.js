@@ -1,5 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'dummy_key');
 const prisma = require('../config/db');
+const omiseService = require('../services/omiseService');
 
 // Map plans to Stripe Price IDs (use env or default to fallback keys)
 const PRICE_MAP = {
@@ -196,7 +197,155 @@ const handleStripeWebhook = async (req, res, next) => {
   }
 };
 
+/**
+ * Creates an Omise Charge (PromptPay or Card) for a subscription plan
+ */
+const createOmiseCheckoutSession = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { plan, billingCycle, paymentMethod } = req.body; // plan: 'BASIC' | 'PRO' | 'ADVANCED', paymentMethod: 'promptpay' | 'card'
+
+    if (!clientId) {
+      return res.status(400).json({ error: 'User does not belong to any client tenant.' });
+    }
+
+    const validPlans = ['BASIC', 'PRO', 'ADVANCED'];
+    if (!plan || !validPlans.includes(plan)) {
+      return res.status(400).json({ error: 'Valid plan (BASIC, PRO or ADVANCED) is required.' });
+    }
+
+    const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+    const method = paymentMethod === 'card' ? 'card' : 'promptpay';
+
+    // Pricing calculation
+    const OMISE_PRICES = {
+      BASIC: { monthly: 990, yearly: 10098 },
+      PRO: { monthly: 4900, yearly: 49980 },
+      ADVANCED: { monthly: 11900, yearly: 121380 }
+    };
+
+    const baseAmount = OMISE_PRICES[plan][cycle];
+    const totalAmount = baseAmount * 1.07; // Add 7% VAT
+
+    // Fetch client
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: { owner: true }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client workspace not found.' });
+    }
+
+    // If running in Mock Mode / Dev Mode
+    if (omiseService.isDevMode) {
+      console.warn('[Omise Payment] Running in Dev Mode / Mock Mode. Simulating checkout.');
+      
+      const targetEnd = new Date();
+      targetEnd.setDate(targetEnd.getDate() + (cycle === 'yearly' ? 365 : 30));
+
+      const updatedClient = await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          plan,
+          billingCycle: cycle,
+          status: 'ACTIVE',
+          currentPeriodEnd: targetEnd,
+        }
+      });
+
+      return res.json({
+        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?mock_payment=success`,
+        status: 'successful',
+        chargeId: `chg_mock_${Math.random().toString(36).substring(2)}`,
+        qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://aiva.sparexth.com/mock-pay/client/' + clientId,
+        client: updatedClient
+      });
+    }
+
+    // Production flow
+    let charge;
+    if (method === 'promptpay') {
+      const source = await omiseService.createPromptPaySource(totalAmount);
+      charge = await omiseService.createCharge({
+        amount: totalAmount,
+        source: source.id,
+        metadata: {
+          clientId: client.id,
+          plan,
+          billingCycle: cycle,
+          gateway: 'OMISE'
+        }
+      });
+    } else {
+      // For Card payments, the frontend passes a token (req.body.token)
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: 'Card token is required for credit card payment.' });
+      }
+      charge = await omiseService.createCharge({
+        amount: totalAmount,
+        card: token,
+        metadata: {
+          clientId: client.id,
+          plan,
+          billingCycle: cycle,
+          gateway: 'OMISE'
+        }
+      });
+    }
+
+    const qrCodeUrl = charge.source?.scannable_code?.image?.download_uri || null;
+
+    res.json({
+      chargeId: charge.id,
+      status: charge.status,
+      qrCodeUrl,
+      url: charge.authorize_uri || null
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handles Omise Webhook events
+ */
+const handleOmiseWebhook = async (req, res, next) => {
+  try {
+    const { key, data } = req.body; // Omise webhooks have format { key: 'charge.complete', data: { ... } }
+    console.log(`[Omise Webhook Event Received]: ${key}`);
+
+    if (key === 'charge.complete' && data && data.status === 'successful') {
+      const { clientId, plan, billingCycle } = data.metadata || {};
+
+      if (clientId && plan && billingCycle) {
+        const targetEnd = new Date();
+        targetEnd.setDate(targetEnd.getDate() + (billingCycle === 'yearly' ? 365 : 30));
+
+        await prisma.client.update({
+          where: { id: clientId },
+          data: {
+            plan,
+            billingCycle,
+            status: 'ACTIVE',
+            currentPeriodEnd: targetEnd
+          }
+        });
+        console.log(`[Omise Billing SUCCESS]: Upgraded client ${clientId} to ${plan} (${billingCycle})`);
+      }
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('[Omise Webhook Handler Error]:', error);
+    res.status(500).json({ error: 'Internal server error processing webhook.' });
+  }
+};
+
 module.exports = {
   createCheckoutSession,
-  handleStripeWebhook
+  handleStripeWebhook,
+  createOmiseCheckoutSession,
+  handleOmiseWebhook
 };

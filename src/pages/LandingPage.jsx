@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { USE_MOCK } from '../config';
 import { 
   Loader2, Send, ChevronRight, X, Headset, ArrowRight, Zap, 
-  CheckCircle2, ShieldCheck, User, CreditCard, Smartphone, QrCode, Clock, MessageCircle, Download, XCircle
+  CheckCircle2, AlertCircle, AlertOctagon, ShieldCheck, User, CreditCard, Smartphone, QrCode, Clock, MessageCircle, Download, XCircle
 } from 'lucide-react';
 
 const questionsData = [
@@ -89,6 +89,11 @@ const questionsData = [
 ];
 
 export default function LandingPage({ onLogin, onOpenCheckout, onContactSales }) {
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [activeModal, setActiveModal] = useState(null); // 'auth', 'checkout', 'contactSales', 'assessment'
@@ -124,7 +129,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     const answeredCount = Object.keys(quizAnswers).length;
 
     if (answeredCount < totalQuestions) {
-      alert(`กรุณาตอบคำถามให้ครบทุกข้อ (ขาดอีก ${totalQuestions - answeredCount} ข้อ)`);
+      showToast(`กรุณาตอบคำถามให้ครบทุกข้อ (ขาดอีก ${totalQuestions - answeredCount} ข้อ)`, 'danger');
       return;
     }
 
@@ -204,7 +209,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
   const handleSocialLogin = () => {
     if (!USE_MOCK) {
-      alert('กรุณาเข้าสู่ระบบด้วย Google, LINE หรือ Facebook');
+      showToast('กรุณาเข้าสู่ระบบด้วย Google, LINE หรือ Facebook', 'danger');
       return;
     }
     setIsAuthLoading(true);
@@ -275,7 +280,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
           setProcessingState('success');
         }, 2000);
       } else {
-        alert(`สมัครสมาชิกล้มเหลว: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (${err.message})`);
+        showToast(`สมัครสมาชิกล้มเหลว: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (${err.message})`, 'danger');
         setProcessingState(null);
       }
     }
@@ -1287,8 +1292,22 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
         </div>
     </div>
 
-    {/* Script for interaction */}
-    
+    {toast && (
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold ${
+          toast.type === 'success' 
+            ? 'bg-emerald-50/90 border-emerald-200/50 text-emerald-800 backdrop-blur-md' 
+            : toast.type === 'danger'
+            ? 'bg-rose-50/90 border-rose-200/50 text-rose-800 backdrop-blur-md' 
+            : 'bg-indigo-50/90 border-indigo-200/50 text-indigo-800 backdrop-blur-md'
+        }`}>
+          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+          {toast.type === 'danger' && <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0" />}
+          {toast.type === 'info' && <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />}
+          <span>{toast.message}</span>
+        </div>
+      </div>
+    )}
 
     </div>
   );

@@ -2,6 +2,7 @@ const prisma = require('../config/db');
 const geminiService = require('../services/geminiService');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const storageService = require('../services/storageService');
 
 // 1. Get Dashboard Stats
 const getDashboardStats = async (req, res, next) => {
@@ -57,8 +58,13 @@ const createKnowledgeEntry = async (req, res, next) => {
     const clientId = req.user.clientId;
     let { type, title, sourceUrl, content } = req.body;
     let size = 0;
+    let fileUploadResult = null;
 
-    // Handle uploaded file
+    if (!type) {
+      type = req.file ? 'FILE' : 'TEXT';
+    }
+
+    // 1. Handle uploaded file
     if (req.file) {
       const file = req.file;
       size = file.size;
@@ -69,40 +75,93 @@ const createKnowledgeEntry = async (req, res, next) => {
       }
       
       const extension = file.originalname.split('.').pop().toLowerCase();
-      
-      if (extension === 'pdf') {
-        try {
-          const parsed = await pdfParse(file.buffer);
-          content = parsed.text;
-        } catch (parseErr) {
-          console.error('PDF parsing error:', parseErr);
-          return res.status(400).json({ error: 'Failed to parse PDF file. The file may be corrupt or encrypted.' });
-        }
-      } else if (extension === 'docx' || extension === 'doc') {
-        try {
-          const result = await mammoth.extractRawText({ buffer: file.buffer });
-          content = result.value;
-        } catch (parseErr) {
-          console.error('Word file parsing error:', parseErr);
-          return res.status(400).json({ error: 'Failed to parse Word document.' });
-        }
-      } else if (extension === 'txt') {
-        content = file.buffer.toString('utf-8');
-      } else {
+      if (!['pdf', 'docx', 'doc', 'txt'].includes(extension)) {
         return res.status(400).json({ error: 'Unsupported file type. Only PDF, Word, and TXT files are allowed.' });
       }
+
+      // Upload file asynchronously/synchronously to storage first
+      try {
+        fileUploadResult = await storageService.uploadFile(file.buffer, file.originalname, file.mimetype);
+        sourceUrl = fileUploadResult.url;
+      } catch (uploadErr) {
+        console.error('File upload to storage failed:', uploadErr);
+        return res.status(500).json({ error: 'Failed to upload file to storage.' });
+      }
+
+      // Create a PENDING entry in database
+      const entry = await prisma.knowledge.create({
+        data: {
+          clientId,
+          type: 'FILE',
+          title,
+          sourceUrl,
+          content: 'กำลังวิเคราะห์และแยกข้อมูลเนื้อหาในไฟล์แบบเบื้องหลัง...', // placeholder until parsed
+          fileSize: size,
+          tokens: 0,
+          status: 'PENDING'
+        }
+      });
+
+      // Send the immediate response back
+      res.status(201).json(entry);
+
+      // Trigger Background Parsing without blocking the HTTP response
+      setImmediate(async () => {
+        try {
+          console.log(`[Background Parser] Starting extraction for knowledge ${entry.id}...`);
+          let parsedContent = '';
+          const buffer = file.buffer;
+
+          if (extension === 'pdf') {
+            const parsed = await pdfParse(buffer);
+            parsedContent = parsed.text;
+          } else if (extension === 'docx' || extension === 'doc') {
+            const result = await mammoth.extractRawText({ buffer });
+            parsedContent = result.value;
+          } else if (extension === 'txt') {
+            parsedContent = buffer.toString('utf-8');
+          }
+
+          if (!parsedContent || parsedContent.trim() === '') {
+            throw new Error('เนื้อหาเอกสารที่สกัดได้ว่างเปล่าหรือไม่ถูกต้อง');
+          }
+
+          const tokens = Math.ceil(parsedContent.length / 4);
+
+          // Update entry in database
+          await prisma.knowledge.update({
+            where: { id: entry.id },
+            data: {
+              content: parsedContent,
+              tokens,
+              status: 'TRAINED',
+              updatedAt: new Date()
+            }
+          });
+          console.log(`[Background Parser] Successfully parsed and trained knowledge ${entry.id}. Tokens: ${tokens}`);
+        } catch (parseErr) {
+          console.error(`[Background Parser] Failed to parse knowledge ${entry.id}:`, parseErr.message);
+          await prisma.knowledge.update({
+            where: { id: entry.id },
+            data: {
+              status: 'FAILED',
+              content: `การสกัดเนื้อหาล้มเหลว: ${parseErr.message}`,
+              updatedAt: new Date()
+            }
+          });
+        }
+      });
+
+      return;
     }
 
-    if (!type) {
-      type = req.file ? 'FILE' : 'TEXT';
-    }
-
+    // 2. Non-file (TEXT or URL) flow
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required.' });
     }
     
     if (!content || !content.trim()) {
-      return res.status(400).json({ error: 'Content is required (or file is empty).' });
+      return res.status(400).json({ error: 'Content is required.' });
     }
 
     const entry = await prisma.knowledge.create({
@@ -112,8 +171,8 @@ const createKnowledgeEntry = async (req, res, next) => {
         title,
         sourceUrl: type.toUpperCase() === 'URL' ? sourceUrl : null,
         content,
-        fileSize: size || (req.body.fileSize ? parseInt(req.body.fileSize) : 0),
-        tokens: Math.ceil(content.length / 4), // Simple token estimate
+        fileSize: 0,
+        tokens: Math.ceil(content.length / 4),
         status: 'TRAINED'
       }
     });

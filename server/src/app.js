@@ -35,6 +35,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Cookie parser for secure httpOnly Refresh Tokens
 app.use(cookieParser());
 
+// Serve local uploaded files as static resources
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+
 // API Routing
 app.use('/api', routes);
 

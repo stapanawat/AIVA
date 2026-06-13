@@ -4,10 +4,12 @@ const authenticate = require('../middlewares/auth');
 
 const router = express.Router();
 
-// Public webhook route (Stripe calls this endpoint)
+// Public webhook routes (Stripe and Omise call these endpoints)
 router.post('/webhook', paymentController.handleStripeWebhook);
+router.post('/omise/webhook', paymentController.handleOmiseWebhook);
 
-// Protected route to initiate a checkout session
+// Protected routes to initiate checkout sessions
 router.post('/checkout', authenticate, paymentController.createCheckoutSession);
+router.post('/omise/checkout', authenticate, paymentController.createOmiseCheckoutSession);
 
 module.exports = router;

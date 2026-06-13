@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Users, Settings, Search, Bot, TrendingUp, Activity, CreditCard,
-  X, Wallet, Tag, Copy, Hash, Sparkles, CheckCircle2, Clock, AlertCircle, Bell,
+  X, Wallet, Tag, Copy, Hash, Sparkles, CheckCircle2, Clock, AlertCircle, AlertOctagon, Bell,
   LogOut, ChevronLeft, ChevronDown, ShieldCheck, Mail, Lock, Phone, UserSquare, Building2,
   ArrowRight, Camera, FileImage, Trash2, MessageSquare, Send, Link as LinkIcon, 
   Image as ImageIcon, Share2, Download, RefreshCw, Sun, Moon
@@ -33,6 +33,12 @@ function AuthScreen({ onLogin }) {
   const [view, setView] = useState('login'); 
   const [isLoading, setIsLoading] = useState(false);
   const [idImage, setIdImage] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Registration states
   const [firstName, setFirstName] = useState('สมชาย');
@@ -56,7 +62,7 @@ function AuthScreen({ onLogin }) {
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      alert('รหัสผ่านไม่ตรงกัน');
+      showToast('รหัสผ่านไม่ตรงกัน', 'danger');
       return;
     }
     setIsLoading(true);
@@ -84,7 +90,7 @@ function AuthScreen({ onLogin }) {
       
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'การสมัครสมาชิกพาร์ทเนอร์ล้มเหลว');
+        showToast(data.error || 'การสมัครสมาชิกพาร์ทเนอร์ล้มเหลว', 'danger');
         setIsLoading(false);
         return;
       }
@@ -116,7 +122,7 @@ function AuthScreen({ onLogin }) {
       
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'เข้าสู่ระบบพาร์ทเนอร์ล้มเหลว');
+        showToast(data.error || 'เข้าสู่ระบบพาร์ทเนอร์ล้มเหลว', 'danger');
         setIsLoading(false);
         return;
       }
@@ -427,6 +433,22 @@ function AuthScreen({ onLogin }) {
           </div>
         )}
       </div>
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold ${
+            toast.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+              : toast.type === 'danger'
+              ? 'bg-rose-50 border-rose-200 text-rose-800' 
+              : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+          }`}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+            {toast.type === 'danger' && <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0" />}
+            {toast.type === 'info' && <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -450,6 +472,12 @@ export default function Partner() {
   
   // โหมดแสดงผล (เริ่มที่ Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(true);
+
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Settings States
   const [profileSettings, setProfileSettings] = useState({
@@ -649,29 +677,29 @@ export default function Partner() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('บันทึกข้อมูลการตั้งค่าสำเร็จแล้ว!');
+        showToast('บันทึกข้อมูลการตั้งค่าสำเร็จแล้ว!', 'success');
         // Update user in localstorage
         const user = JSON.parse(localStorage.getItem('aiva_user') || '{}');
         user.name = profileSettings.name;
         localStorage.setItem('aiva_user', JSON.stringify(user));
       } else {
-        alert(data.error || 'บันทึกข้อมูลล้มเหลว');
+        showToast(data.error || 'บันทึกข้อมูลล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
 
   const handleCreatePromotion = async (e) => {
     e.preventDefault();
     if (!newPromo.code || !newPromo.discount || !newPromo.limit) {
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger');
       return;
     }
     const discountVal = parseFloat(newPromo.discount);
     if (discountVal > stats.currentRate) {
-      alert(`ส่วนลดต้องไม่เกินเรทคอมมิชชันของคุณ (${stats.currentRate}%)`);
+      showToast(`ส่วนลดต้องไม่เกินเรทคอมมิชชันของคุณ (${stats.currentRate}%)`, 'danger');
       return;
     }
     try {
@@ -689,22 +717,22 @@ export default function Partner() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('สร้างโค้ดส่วนลดสำเร็จแล้ว!');
+        showToast('สร้างโค้ดส่วนลดสำเร็จแล้ว!', 'success');
         setNewPromo({ code: '', discount: 5, limit: 10 });
         fetchPromotions();
       } else {
-        alert(data.error || 'สร้างโค้ดส่วนลดล้มเหลว');
+        showToast(data.error || 'สร้างโค้ดส่วนลดล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
 
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
     if (!feedbackForm.title || !feedbackForm.desc) {
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger');
       return;
     }
     try {
@@ -722,14 +750,14 @@ export default function Partner() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('ส่งข้อเสนอแนะสำเร็จแล้ว! ทีมงานจะรีบตรวจสอบข้อร้องเรียนโดยเร็วที่สุด');
+        showToast('ส่งข้อเสนอแนะสำเร็จแล้ว! ทีมงานจะรีบตรวจสอบข้อร้องเรียนโดยเร็วที่สุด', 'success');
         setFeedbackForm({ title: '', desc: '' });
       } else {
-        alert(data.error || 'ส่งข้อมูลล้มเหลว');
+        showToast(data.error || 'ส่งข้อมูลล้มเหลว', 'danger');
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
 
@@ -756,7 +784,7 @@ export default function Partner() {
   const handleCreateReferral = async (e) => {
     e.preventDefault();
     if (!newTracking.name || !newTracking.source) {
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger');
       return;
     }
     try {
@@ -773,16 +801,16 @@ export default function Partner() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'สร้างลิงก์ล้มเหลว');
+        showToast(data.error || 'สร้างลิงก์ล้มเหลว', 'danger');
       } else {
-        alert('สร้างลิงก์สำเร็จแล้ว!');
+        showToast('สร้างลิงก์สำเร็จแล้ว!', 'success');
         setNewTracking({ name: '', source: '' });
         fetchReferrals();
         fetchStats();
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
 
@@ -790,12 +818,12 @@ export default function Partner() {
     e.preventDefault();
     const amount = parseFloat(payoutInput);
     if (isNaN(amount) || amount <= 0) {
-      alert('กรุณาระบุจำนวนเงินที่ถูกต้อง');
+      showToast('กรุณาระบุจำนวนเงินที่ถูกต้อง', 'danger');
       return;
     }
     const withdrawableAmount = Math.max(0, totalIncome - stats.paidAmount - stats.pendingAmount);
     if (amount > withdrawableAmount) {
-      alert('ยอดเงินไม่เพียงพอสำหรับการถอน');
+      showToast('ยอดเงินไม่เพียงพอสำหรับการถอน', 'danger');
       return;
     }
 
@@ -811,16 +839,16 @@ export default function Partner() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'การส่งคำขอถอนเงินล้มเหลว');
+        showToast(data.error || 'การส่งคำขอถอนเงินล้มเหลว', 'danger');
       } else {
-        alert('ส่งคำขอถอนเงินสำเร็จแล้ว!');
+        showToast('ส่งคำขอถอนเงินสำเร็จแล้ว!', 'success');
         setPayoutInput('');
         fetchStats();
         fetchPayouts();
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     } finally {
       setIsSubmittingPayout(false);
     }
@@ -1711,6 +1739,22 @@ export default function Partner() {
         </div>
 
       </div>
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border text-sm font-bold ${
+            toast.type === 'success' 
+              ? 'bg-emerald-50/90 border-emerald-200/50 text-emerald-800 backdrop-blur-md' 
+              : toast.type === 'danger'
+              ? 'bg-rose-50/90 border-rose-200/50 text-rose-800 backdrop-blur-md' 
+              : 'bg-indigo-50/90 border-indigo-200/50 text-indigo-800 backdrop-blur-md'
+          }`}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+            {toast.type === 'danger' && <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0" />}
+            {toast.type === 'info' && <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

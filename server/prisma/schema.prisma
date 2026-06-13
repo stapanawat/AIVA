@@ -89,6 +89,8 @@ model Knowledge {
   updatedAt DateTime @updatedAt
   
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
 }
 
 model Chat {
@@ -105,6 +107,10 @@ model Chat {
   client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   messages        Message[]
   leads           Lead[]
+
+  @@index([clientId])
+  @@index([customerContact, platform])
+  @@index([status])
 }
 
 model Message {
@@ -115,6 +121,8 @@ model Message {
   createdAt DateTime @default(now())
   
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
 }
 
 model Lead {
@@ -131,6 +139,9 @@ model Lead {
   
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   chat      Chat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([chatId])
 }
 
 model Branch {
