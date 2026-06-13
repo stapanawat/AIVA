@@ -214,11 +214,11 @@ function AuthScreen({ onLogin }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-slate-700">ชื่อจริง</label>
-                  <input type="text" placeholder="สมชาย" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" maxLength={150} placeholder="สมชาย" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-slate-700">นามสกุล</label>
-                  <input type="text" placeholder="ใจดี" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" maxLength={150} placeholder="ใจดี" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -1548,7 +1548,7 @@ export default function Partner() {
             <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{partnerId}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อ - นามสกุล</label><input type="text" value={profileSettings.name} onChange={e=>setProfileSettings({...profileSettings, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อ - นามสกุล</label><input type="text" maxLength={150} value={profileSettings.name} onChange={e=>setProfileSettings({...profileSettings, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
             <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เบอร์โทรศัพท์</label><input type="text" value={profileSettings.phone} onChange={e=>setProfileSettings({...profileSettings, phone: e.target.value.replace(/\D/g, '').substring(0, 10)})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
           </div>
         </div>

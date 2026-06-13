@@ -463,16 +463,33 @@ const inviteTeamMember = async (req, res, next) => {
 const updateSettings = async (req, res, next) => {
   try {
     const clientId = req.user.clientId;
-    const { brandName, aiName, aiPersona, customPrompt, notifyHotLead, notifyDailyReport, bossName } = req.body;
+    const { brandName, aiName, aiPersona, customPrompt, notifyHotLead, notifyDailyReport, bossName, bossEmail } = req.body;
 
     if (!brandName) {
       return res.status(400).json({ error: 'Brand name is required.' });
     }
 
     if (bossName) {
+      if (bossName.length > 150) {
+        return res.status(400).json({ error: 'ชื่อผู้ใช้ต้องไม่เกิน 150 ตัวอักษร' });
+      }
       await prisma.user.update({
         where: { id: req.user.id },
         data: { name: bossName }
+      });
+    }
+
+    if (bossEmail && bossEmail !== req.user.email) {
+      // Check if email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: bossEmail }
+      });
+      if (existingUser) {
+        return res.status(400).json({ error: 'อีเมลนี้ถูกใช้งานแล้วโดยผู้ใช้อื่น' });
+      }
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { email: bossEmail }
       });
     }
 

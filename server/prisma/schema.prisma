@@ -36,7 +36,7 @@ model Client {
   id                 String       @id @default(uuid())
   name               String       // brandName
   ownerId            String
-  plan               String       @default("BASIC") // "BASIC", "PRO", "ADVANCED"
+  plan               String       @default("PRO") // "BASIC", "PRO", "ADVANCED"
   billingCycle       String       @default("monthly") // "monthly", "halfYear", "yearly"
   currentPeriodEnd   DateTime     @default(now())
   status             String       @default("ACTIVE") // "ACTIVE", "PAST_DUE", "CANCELLED"

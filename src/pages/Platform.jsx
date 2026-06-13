@@ -378,6 +378,7 @@ export default function Platform() {
 
   const [editProfile, setEditProfile] = useState({
     bossName: 'สมชาย ใจดี',
+    bossEmail: 'owner@globaltech.com',
     brandName: 'GlobalTech Official',
     businessType: 'ecommerce'
   });
@@ -890,6 +891,7 @@ export default function Platform() {
           });
           setEditProfile({
             bossName: client.owner?.name || 'สมชาย ใจดี',
+            bossEmail: client.owner?.email || 'owner@globaltech.com',
             brandName: client.name || 'GlobalTech Official',
             businessType: 'ecommerce'
           });
@@ -914,6 +916,7 @@ export default function Platform() {
         body: JSON.stringify({
           brandName: editProfile.brandName,
           bossName: editProfile.bossName,
+          bossEmail: editProfile.bossEmail,
           aiName: workspaceSettings.aiName,
           aiPersona: workspaceSettings.aiPersona,
           customPrompt: workspaceSettings.customPrompt,
@@ -1070,7 +1073,14 @@ export default function Platform() {
     setShowAddMember(false);
     setNewMember({ name: '', email: '', role: 'ADMIN', branch: 'HQ' });
   };
-  const handleRemoveMember = (id) => setTeamMembers(teamMembers.filter(m => m.id !== id));
+  const handleRemoveMember = (id) => {
+    const memberToDelete = teamMembers.find(m => m.id === id);
+    if (memberToDelete?.email === currentUserObj?.email) {
+      showToast('คุณไม่สามารถลบตัวเองออกจากทีมได้ค่ะ', 'danger');
+      return;
+    }
+    setTeamMembers(teamMembers.filter(m => m.id !== id));
+  };
   
   const handleAddBranch = async () => {
     if(!newBranch.name) return;
@@ -3656,7 +3666,7 @@ export default function Platform() {
                                  </span>
                                </td>
                                <td className="px-5 py-4 text-right">
-                                 {member.role !== 'OWNER' ? (
+                                 {member.role !== 'OWNER' && member.email !== currentUserObj?.email ? (
                                    <button onClick={() => handleRemoveMember(member.id)} className={`text-rose-400 hover:text-rose-600 transition-colors p-1.5 rounded-lg ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`} title="ลบสมาชิก">
                                      <Trash2 className="w-4 h-4 inline"/>
                                    </button>
@@ -3684,7 +3694,7 @@ export default function Platform() {
                     <div className="p-6 space-y-4">
                       <div className="space-y-1.5">
                         <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>ชื่อพนักงาน</label>
-                        <input type="text" value={newMember.name} onChange={(e)=>setNewMember({...newMember, name: e.target.value})} placeholder="เช่น น้องพลอย แอดมิน" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`} />
+                        <input type="text" maxLength={150} value={newMember.name} onChange={(e)=>setNewMember({...newMember, name: e.target.value})} placeholder="เช่น น้องพลอย แอดมิน" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`} />
                       </div>
                       <div className="space-y-1.5">
                         <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>อีเมล</label>
@@ -3831,11 +3841,11 @@ export default function Platform() {
                     <div className="space-y-4">
                        <div>
                           <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>ชื่อผู้ใช้งาน (Boss Name)</label>
-                          <input type="text" value={editProfile.bossName} onChange={(e) => setEditProfile({...editProfile, bossName: e.target.value})} className={`w-full border rounded-xl px-4 py-2.5 text-sm mt-1.5 outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200'}`} />
+                          <input type="text" maxLength={150} value={editProfile.bossName} onChange={(e) => setEditProfile({...editProfile, bossName: e.target.value})} className={`w-full border rounded-xl px-4 py-2.5 text-sm mt-1.5 outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200'}`} />
                        </div>
                        <div>
                           <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>อีเมล (Email)</label>
-                          <input type="email" defaultValue="owner@globaltech.com" className={`w-full border rounded-xl px-4 py-2.5 text-sm mt-1.5 outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200'}`} />
+                          <input type="email" value={editProfile.bossEmail || ''} onChange={(e) => setEditProfile({...editProfile, bossEmail: e.target.value})} className={`w-full border rounded-xl px-4 py-2.5 text-sm mt-1.5 outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200'}`} />
                        </div>
                     </div>
                  </div>

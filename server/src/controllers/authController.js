@@ -6,6 +6,10 @@ const register = async (req, res, next) => {
   try {
     const { email, password, name, role, phone, referralCode, bankName, bankAccount, bankAccountName } = req.body;
 
+    if (name && name.length > 150) {
+      return res.status(400).json({ error: 'ชื่อผู้ใช้ต้องไม่เกิน 150 ตัวอักษร' });
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -54,7 +58,7 @@ const register = async (req, res, next) => {
         data: {
           name: `${name}'s Brand`,
           ownerId: user.id,
-          plan: req.body.plan ? req.body.plan.toUpperCase() : 'BASIC',
+          plan: req.body.plan ? req.body.plan.toUpperCase() : 'PRO',
           billingCycle: req.body.billingCycle || 'monthly',
         }
       });
@@ -258,7 +262,7 @@ const googleCallback = async (req, res, next) => {
         data: {
           email,
           passwordHash: '', // Social login has no password hash
-          name: name || email.split('@')[0],
+          name: (name || email.split('@')[0]).substring(0, 150),
           role: 'CLIENT_OWNER',
           status: 'ACTIVE'
         },
@@ -273,7 +277,7 @@ const googleCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'BASIC',
+          plan: 'PRO',
           billingCycle: 'monthly',
         }
       });
@@ -438,7 +442,7 @@ const lineCallback = async (req, res, next) => {
         data: {
           email,
           passwordHash: '',
-          name,
+          name: name ? name.substring(0, 150) : email.split('@')[0],
           role: 'CLIENT_OWNER',
           status: 'ACTIVE'
         },
@@ -453,7 +457,7 @@ const lineCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'BASIC',
+          plan: 'PRO',
           billingCycle: 'monthly',
         }
       });
@@ -591,7 +595,7 @@ const facebookCallback = async (req, res, next) => {
         data: {
           email,
           passwordHash: '',
-          name,
+          name: name ? name.substring(0, 150) : email.split('@')[0],
           role: 'CLIENT_OWNER',
           status: 'ACTIVE'
         },
@@ -606,7 +610,7 @@ const facebookCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'BASIC',
+          plan: 'PRO',
           billingCycle: 'monthly',
         }
       });
