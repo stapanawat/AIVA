@@ -274,12 +274,12 @@ export default function Platform() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(true);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   
-  const [currentPlan, setCurrentPlan] = useState('Pro'); 
+  const [currentPlan, setCurrentPlan] = useState('None'); 
   const [billingCycle, setBillingCycle] = useState('monthly'); 
 
   // Limits based on plan
-  const maxChannels = currentPlan === 'Basic' ? 1 : currentPlan === 'Pro' ? 2 : 6;
-  const maxUsers = currentPlan === 'Basic' ? 1 : currentPlan === 'Pro' ? 5 : 20;
+  const maxChannels = currentPlan === 'Basic' ? 1 : currentPlan === 'Pro' ? 2 : currentPlan === 'Advanced' ? 6 : 0;
+  const maxUsers = currentPlan === 'Basic' ? 1 : currentPlan === 'Pro' ? 5 : currentPlan === 'Advanced' ? 20 : 0;
 
   // Integrations State
   const [connectedApps, setConnectedApps] = useState([]);
@@ -415,6 +415,7 @@ export default function Platform() {
   // --- FEATURE ACCESS LOGIC (LOCK SYSTEM) ---
   const isProOrAbove = currentPlan === 'Pro' || currentPlan === 'Advanced';
   const isAdvancedOnly = currentPlan === 'Advanced';
+  const hasActivePlan = currentPlan === 'Basic' || currentPlan === 'Pro' || currentPlan === 'Advanced';
 
   // Handlers
   const toggleLeadAi = (id) => setLeadScores(leadScores.map(lead => lead.id === id ? { ...lead, aiEnabled: !lead.aiEnabled } : lead));
@@ -865,11 +866,12 @@ export default function Platform() {
   // --- API METHODS ---
   const fetchSettings = async () => {
     const formatPlanName = (plan) => {
-      if (!plan) return 'Basic';
+      if (!plan) return 'None';
       const p = plan.toUpperCase();
       if (p === 'PRO') return 'Pro';
       if (p === 'ADVANCED') return 'Advanced';
-      return 'Basic';
+      if (p === 'BASIC') return 'Basic';
+      return 'None';
     };
     try {
       const token = localStorage.getItem('aiva_access_token');
@@ -893,7 +895,11 @@ export default function Platform() {
             brandName: client.name || 'GlobalTech Official',
             businessType: 'ecommerce'
           });
-          setCurrentPlan(formatPlanName(client.plan));
+          const formattedPlan = formatPlanName(client.plan);
+          setCurrentPlan(formattedPlan);
+          if (formattedPlan === 'None') {
+            setActiveTab('billing');
+          }
         }
       }
     } catch (err) {
@@ -1562,8 +1568,8 @@ export default function Platform() {
 
           <div className="px-3 py-6 flex-1 overflow-y-auto custom-scrollbar space-y-1">
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-3 mt-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('workspace')}</div>
-            <NavItem icon={LayoutDashboard} label={t('dashboard')} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isDark={isDarkMode} />
-            <NavItem icon={BookOpen} label={t('knowledge')} isActive={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} isDark={isDarkMode} />
+            <NavItem icon={LayoutDashboard} label={t('dashboard')} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isLocked={!hasActivePlan} isDark={isDarkMode} />
+            <NavItem icon={BookOpen} label={t('knowledge')} isActive={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} isLocked={!hasActivePlan} isDark={isDarkMode} />
             <NavItem icon={MessageSquare} label={t('inbox')} isActive={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={(() => {
               const count = inboxList.reduce((sum, chat) => {
                 const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
@@ -1571,9 +1577,9 @@ export default function Platform() {
                 return sum + (chat.unreadCount || 0);
               }, 0);
               return count || null;
-            })()} isDark={isDarkMode} />
+            })()} isLocked={!hasActivePlan} isDark={isDarkMode} />
             <NavItem icon={MessageCircle} label={t('replycomment')} isActive={activeTab === 'replycomment'} onClick={() => setActiveTab('replycomment')} isLocked={!isProOrAbove} isDark={isDarkMode} />
-            <NavItem icon={Users} label={t('leads')} isActive={activeTab === 'leads'} onClick={() => setActiveTab('leads')} isDark={isDarkMode} />
+            <NavItem icon={Users} label={t('leads')} isActive={activeTab === 'leads'} onClick={() => setActiveTab('leads')} isLocked={!hasActivePlan} isDark={isDarkMode} />
             <NavItem icon={BarChart3} label={t('pipeline')} isActive={activeTab === 'pipeline'} onClick={() => setActiveTab('pipeline')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 mt-8 px-3 flex items-center gap-1.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-500'}`}>
@@ -1588,10 +1594,10 @@ export default function Platform() {
             
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 mt-8 px-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('management')}</div>
             <NavItem icon={Store} label={t('branch')} isActive={activeTab === 'branch'} onClick={() => setActiveTab('branch')} isLocked={!isAdvancedOnly} isDark={isDarkMode} />
-            <NavItem icon={Plug} label={t('integrations')} isActive={activeTab === 'integrations'} onClick={() => setActiveTab('integrations')} isDark={isDarkMode} />
-            <NavItem id="btn-nav-team" icon={Users} label={t('team')} isActive={activeTab === 'team'} onClick={() => setActiveTab('team')} isDark={isDarkMode} />
+            <NavItem icon={Plug} label={t('integrations')} isActive={activeTab === 'integrations'} onClick={() => setActiveTab('integrations')} isLocked={!hasActivePlan} isDark={isDarkMode} />
+            <NavItem id="btn-nav-team" icon={Users} label={t('team')} isActive={activeTab === 'team'} onClick={() => setActiveTab('team')} isLocked={!hasActivePlan} isDark={isDarkMode} />
             <NavItem icon={CreditCard} label={t('billing')} isActive={activeTab === 'billing'} onClick={() => setActiveTab('billing')} isDark={isDarkMode} />
-            <NavItem id="btn-nav-settings" icon={Settings} label={t('settings')} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} isDark={isDarkMode} />
+            <NavItem id="btn-nav-settings" icon={Settings} label={t('settings')} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} isLocked={!hasActivePlan} isDark={isDarkMode} />
           </div>
 
           <div className="p-4 mt-auto">
@@ -1671,6 +1677,8 @@ export default function Platform() {
           {/* TAB: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
+              {hasActivePlan ? (
+                <>
               <div className={`border rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm ${isDarkMode ? 'bg-indigo-900/30 border-indigo-500/30' : 'bg-indigo-50 border-indigo-100'}`}>
                 <div className="flex items-center gap-4">
                   <div className="bg-white p-2 rounded-xl flex items-center justify-center overflow-hidden border shadow-sm">
@@ -1741,12 +1749,18 @@ export default function Platform() {
                   </div>
                 </div>
               </div>
+                </>
+              ) : (
+                <UpgradeOverlay requiredPlan="Basic" title="Dashboard" icon={LayoutDashboard} description="ภาพรวมสถิติและข้อมูลการให้บริการของ AI และทีมงาน" />
+              )}
             </div>
           )}
 
           {/* TAB: KNOWLEDGE BASE */}
           {activeTab === 'knowledge' && (
             <div className="max-w-5xl mx-auto animate-in fade-in duration-300 flex flex-col h-full">
+              {hasActivePlan ? (
+                <>
               <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
                 <div>
                   <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><BookOpen className="w-6 h-6 text-indigo-600" /> {t('knowledge')}</h2>
@@ -1834,11 +1848,22 @@ export default function Platform() {
                   </table>
                 </div>
               </div>
+                </>
+              ) : (
+                <UpgradeOverlay requiredPlan="Basic" title={t('knowledge')} icon={BookOpen} description="สอน AI ให้รู้จักธุรกิจของคุณ โดยการอัปโหลดไฟล์ PDF, พิมพ์ข้อความ หรือใส่ลิงก์เว็บไซต์" />
+              )}
             </div>
           )}
 
           {/* TAB: INBOX */}
           {activeTab === 'inbox' && (() => {
+            if (!hasActivePlan) {
+              return (
+                <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
+                  <UpgradeOverlay requiredPlan="Basic" title={t('inbox')} icon={MessageSquare} description="แชทลูกค้าและกล่องข้อความจาก Line OA, Facebook, Website" />
+                </div>
+              );
+            }
             const visibleChats = inboxList.filter(chat => {
               const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
               const isConnected = connectedApps.includes(platformId);
@@ -2264,6 +2289,8 @@ export default function Platform() {
           {/* TAB: LEADS */}
           {activeTab === 'leads' && (
             <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
+              {hasActivePlan ? (
+                <>
               <div className="mb-6 shrink-0 flex justify-between items-end">
                 <div>
                   <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><Users className="w-6 h-6 text-indigo-600" /> ข้อมูลลูกค้า (Leads)</h2>
@@ -2356,6 +2383,10 @@ export default function Platform() {
                     </div>
                   </div>
                 </div>
+              )}
+                </>
+              ) : (
+                <UpgradeOverlay requiredPlan="Basic" title={t('leads')} icon={Users} description="ฐานข้อมูลลูกค้าที่ AI ช่วยรวบรวมเบอร์โทรศัพท์และสิ่งที่สนใจจากบทสนทนา" />
               )}
             </div>
           )}
@@ -3423,6 +3454,8 @@ export default function Platform() {
           {/* TAB: INTEGRATIONS */}
           {activeTab === 'integrations' && (
             <div className="max-w-5xl mx-auto animate-in fade-in duration-300">
+              {hasActivePlan ? (
+                <>
               <div className="mb-8 text-center">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
                   <Plug className="w-8 h-8" />
@@ -3630,12 +3663,18 @@ export default function Platform() {
                   </div>
                 </div>
               )}
+                </>
+              ) : (
+                <UpgradeOverlay requiredPlan="Basic" title={t('integrations')} icon={Plug} description="เชื่อมต่อ AIVA เข้ากับ Line OA, Facebook Page, Instagram และช่องทางอื่นๆ" />
+              )}
             </div>
           )}
 
           {/* TAB: TEAM */}
           {activeTab === 'team' && (
             <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+              {hasActivePlan ? (
+                <>
                <div className="flex justify-between items-end">
                   <div>
                     <h1 className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t('team')}</h1>
@@ -3755,6 +3794,10 @@ export default function Platform() {
                   </div>
                 </div>
               )}
+                </>
+              ) : (
+                <UpgradeOverlay requiredPlan="Basic" title={t('team')} icon={Users} description="จัดการสิทธิ์ทีมงานและแอดมินในการเข้าถึงระบบการจัดการ AIVA" />
+              )}
             </div>
           )}
 
@@ -3856,6 +3899,8 @@ export default function Platform() {
           {/* TAB: SETTINGS */}
           {activeTab === 'settings' && (
             <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300 pb-10">
+              {hasActivePlan ? (
+                <>
                <div className="mb-6 flex justify-between items-end">
                   <div>
                     <h1 className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t('settings')}</h1>
@@ -3985,6 +4030,17 @@ export default function Platform() {
                    <LogOut className="w-4 h-4"/> {t('logout')}
                  </button>
                </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <UpgradeOverlay requiredPlan="Basic" title={t('settings')} icon={Settings} description="ตั้งค่าข้อมูลร้านค้า ชื่อ AI และโทนเสียงในการตอบแชทของระบบ" />
+                  <div className="pt-4 flex justify-center">
+                    <button id="btn-logout-platform" onClick={handleLogout} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50/10 dark:hover:bg-rose-500/10 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2">
+                      <LogOut className="w-4 h-4"/> {t('logout')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

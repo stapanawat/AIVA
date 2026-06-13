@@ -58,7 +58,7 @@ const register = async (req, res, next) => {
         data: {
           name: `${name}'s Brand`,
           ownerId: user.id,
-          plan: req.body.plan ? req.body.plan.toUpperCase() : 'PRO',
+          plan: req.body.plan ? req.body.plan.toUpperCase() : 'NONE',
           billingCycle: req.body.billingCycle || 'monthly',
         }
       });
@@ -277,7 +277,7 @@ const googleCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'PRO',
+          plan: 'NONE',
           billingCycle: 'monthly',
         }
       });
@@ -457,7 +457,7 @@ const lineCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'PRO',
+          plan: 'NONE',
           billingCycle: 'monthly',
         }
       });
@@ -610,7 +610,7 @@ const facebookCallback = async (req, res, next) => {
         data: {
           name: `${user.name}'s Brand`,
           ownerId: user.id,
-          plan: 'PRO',
+          plan: 'NONE',
           billingCycle: 'monthly',
         }
       });

@@ -364,8 +364,8 @@ const inviteTeamMember = async (req, res, next) => {
       where: { id: clientId }
     });
 
-    const plan = client ? client.plan : 'BASIC';
-    const maxUsers = plan === 'BASIC' ? 1 : plan === 'PRO' ? 5 : 20;
+    const plan = client ? client.plan : 'NONE';
+    const maxUsers = plan === 'NONE' ? 0 : plan === 'BASIC' ? 1 : plan === 'PRO' ? 5 : 20;
 
     // 2. Count current team members
     const currentMemberCount = await prisma.teamMember.count({
@@ -394,8 +394,11 @@ const inviteTeamMember = async (req, res, next) => {
 
     // 4. Enforce plan limit if adding a new member
     if (!isAlreadyMember && currentMemberCount >= maxUsers) {
+      const errorMsg = plan === 'NONE'
+        ? 'ขออภัยค่ะ คุณต้องสมัครแพ็กเกจก่อนเพื่อเพิ่มสมาชิกทีมค่ะ'
+        : `ขออภัยค่ะ คุณใช้โควต้าพนักงานในทีมเต็มแล้วสำหรับแพ็กเกจ ${plan} (สูงสุด ${maxUsers} คน) กรุณาอัปเกรดแพ็กเกจเพื่อเพิ่มสมาชิกเพิ่มค่ะ`;
       return res.status(403).json({
-        error: `ขออภัยค่ะ คุณใช้โควต้าพนักงานในทีมเต็มแล้วสำหรับแพ็กเกจ ${plan} (สูงสุด ${maxUsers} คน) กรุณาอัปเกรดแพ็กเกจเพื่อเพิ่มสมาชิกเพิ่มค่ะ`
+        error: errorMsg
       });
     }
 
