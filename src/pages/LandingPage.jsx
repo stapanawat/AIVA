@@ -386,6 +386,11 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
   const handleContactSalesSubmit = (e) => {
     e.preventDefault();
+    const cleanPhone = salesPhone.replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      showToast('กรุณากรอกเบอร์โทรศัพท์ติดต่อกลับให้ครบ 10 หลัก', 'danger');
+      return;
+    }
     setIsSalesSubmitting(true);
     setProcessingType('sales');
     setTimeout(() => {
@@ -919,7 +924,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             {/* Bottom: Copyright */}
             <div className="pt-8 border-t border-slate-800 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-slate-500">© 2026 AIVA Powered by SpareX. All rights reserved.</p>
-                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.3</span>
+                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.4</span>
             </div>
         </div>
     </footer>
@@ -1176,7 +1181,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-xs font-semibold text-slate-700">เบอร์โทรศัพท์ติดต่อกลับ</label>
-                        <input type="tel" placeholder="08x-xxx-xxxx" value={salesPhone} onChange={(e) => setSalesPhone(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" required />
+                        <input type="tel" placeholder="08x-xxx-xxxx" value={salesPhone} onChange={(e) => setSalesPhone(e.target.value.replace(/\D/g, '').substring(0, 10))} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" required />
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-xs font-semibold text-slate-700">ความต้องการเพิ่มเติม (ถ้ามี)</label>

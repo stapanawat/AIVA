@@ -226,7 +226,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">อีเมล</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="email" placeholder="partner@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="email" placeholder="partner@example.com" value={email} onChange={(e) => setEmail(e.target.value.replace(/[^a-zA-Z0-9@._+-]/g, ''))} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -250,7 +250,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">เบอร์โทรศัพท์</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="tel" placeholder="08x-xxx-xxxx" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="tel" placeholder="08x-xxx-xxxx" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').substring(0, 10))} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -258,7 +258,7 @@ function AuthScreen({ onLogin }) {
                 <label className="block text-[13px] font-semibold text-slate-700">เลขประจำตัวประชาชน</label>
                 <div className="relative">
                   <UserSquare className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder="1-xxxx-xxxxx-xx-x" value={citizenId} onChange={(e) => setCitizenId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
+                  <input type="text" placeholder="1-xxxx-xxxxx-xx-x" value={citizenId} onChange={(e) => setCitizenId(e.target.value.replace(/\D/g, '').substring(0, 13))} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
@@ -347,7 +347,7 @@ function AuthScreen({ onLogin }) {
 
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-slate-700">เลขที่บัญชี</label>
-                <input type="text" placeholder="ระบุเลขบัญชี 10 หลัก" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-mono transition-all" />
+                <input type="text" placeholder="ระบุเลขบัญชี 10 หลัก" value={bankAccount} onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, '').substring(0, 10))} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-mono transition-all" />
               </div>
 
               <div className="space-y-1.5">
@@ -796,7 +796,7 @@ export default function Partner() {
         },
         body: JSON.stringify({
           name: newTracking.name,
-          code: newTracking.source.toUpperCase()
+          code: newTracking.source.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase()
         })
       });
       const data = await res.json();
@@ -1263,7 +1263,7 @@ export default function Partner() {
       <form onSubmit={handleCreatePromotion} className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 shrink-0">
         <div className="flex items-center gap-2 mb-4"><Tag className="w-5 h-5 text-indigo-500 dark:text-indigo-400" /><h2 className="font-bold text-slate-900 dark:text-white">สร้างโค้ดใหม่</h2></div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">CODE</label><input type="text" value={newPromo.code} onChange={e=>setNewPromo({...newPromo, code: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น NEWYEAR" /></div>
+          <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">CODE</label><input type="text" value={newPromo.code} onChange={e=>setNewPromo({...newPromo, code: e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น NEWYEAR" /></div>
           <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">% ลด (Max {currentCommissionRate}%)</label><input type="number" value={newPromo.discount} onChange={e=>setNewPromo({...newPromo, discount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" /></div>
           <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">จำนวนสิทธิ์</label><input type="number" value={newPromo.limit} onChange={e=>setNewPromo({...newPromo, limit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" /></div>
         </div>
@@ -1357,7 +1357,7 @@ export default function Partner() {
           <div className="flex items-center gap-2 mb-4"><LinkIcon className="w-5 h-5 text-indigo-500 dark:text-indigo-400" /><h2 className="font-bold text-slate-900 dark:text-white">สร้างลิงก์สำหรับแคมเปญใหม่</h2></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อแคมเปญ / จุดประสงค์</label><input type="text" value={newTracking.name} onChange={e=>setNewTracking({...newTracking, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="เช่น ยิงแอด FB, แปะหน้าเว็บ" /></div>
-            <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">แหล่งที่มา (Source / Sub-ID)</label><input type="text" value={newTracking.source} onChange={e=>setNewTracking({...newTracking, source: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น FB_ADS, TIKTOK" /></div>
+            <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400">แหล่งที่มา (Source / Sub-ID)</label><input type="text" value={newTracking.source} onChange={e=>setNewTracking({...newTracking, source: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase()})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm uppercase outline-none focus:border-indigo-500" placeholder="เช่น FB_ADS, TIKTOK" /></div>
             <div className="flex items-end">
               <button onClick={handleCreateReferral} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm h-[38px] transition-colors flex items-center justify-center gap-2">
                 สร้างลิงก์
@@ -1549,14 +1549,14 @@ export default function Partner() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อ - นามสกุล</label><input type="text" value={profileSettings.name} onChange={e=>setProfileSettings({...profileSettings, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เบอร์โทรศัพท์</label><input type="text" value={profileSettings.phone} onChange={e=>setProfileSettings({...profileSettings, phone: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เบอร์โทรศัพท์</label><input type="text" value={profileSettings.phone} onChange={e=>setProfileSettings({...profileSettings, phone: e.target.value.replace(/\D/g, '').substring(0, 10)})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
           </div>
         </div>
         <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-emerald-500 dark:text-emerald-400"/> บัญชีรับเงิน (Payout)</h2>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ธนาคาร</label><input type="text" value={profileSettings.bankName} onChange={e=>setProfileSettings({...profileSettings, bankName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
-            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เลขบัญชี</label><input type="text" value={profileSettings.bankAccount} onChange={e=>setProfileSettings({...profileSettings, bankAccount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
+            <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">เลขบัญชี</label><input type="text" value={profileSettings.bankAccount} onChange={e=>setProfileSettings({...profileSettings, bankAccount: e.target.value.replace(/\D/g, '').substring(0, 10)})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
             <div className="col-span-2"><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ชื่อบัญชี</label><input type="text" value={profileSettings.bankAccountName} onChange={e=>setProfileSettings({...profileSettings, bankAccountName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2 text-sm mt-1" /></div>
           </div>
         </div>
