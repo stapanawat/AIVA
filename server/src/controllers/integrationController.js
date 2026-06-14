@@ -146,7 +146,9 @@ const startOAuth = async (req, res, next) => {
     // Check if we have real client credentials in .env
     let isSimulated = false;
 
-    if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
+    if (process.env.USE_SIMULATED_OAUTH === 'true' || req.query.simulate === 'true') {
+      isSimulated = true;
+    } else if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
       const appId = process.env.FACEBOOK_CLIENT_ID;
       const appSecret = process.env.FACEBOOK_CLIENT_SECRET;
       if (!appId || appId.includes('YOUR_') || !appSecret || appSecret.includes('YOUR_')) {

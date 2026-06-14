@@ -386,6 +386,62 @@ export default function Platform() {
 
   // Chat Widget Support State
   const [isChatWidgetOpen, setIsChatWidgetOpen] = useState(false);
+  const [supportChatHistory, setSupportChatHistory] = useState([
+    { sender: 'admin', text: 'สวัสดีค่ะ! ทีมงาน AIVA Support ยินดีให้บริการ มีอะไรให้ช่วยเหลือแจ้งได้เลยนะคะ 😊', time: '10:00' }
+  ]);
+  const [supportChatMessage, setSupportChatMessage] = useState('');
+  const supportChatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (supportChatEndRef.current) {
+      supportChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [supportChatHistory, isChatWidgetOpen]);
+
+  const handleSendSupportChat = async () => {
+    if (!supportChatMessage.trim()) return;
+
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const userMsg = supportChatMessage;
+
+    // Add user message to history
+    setSupportChatHistory(prev => [...prev, { sender: 'user', text: userMsg, time: timeStr }]);
+    setSupportChatMessage('');
+
+    // Add temporary loading indicator
+    setSupportChatHistory(prev => [...prev, { sender: 'admin', text: 'กำลังประมวลผลคำตอบ... 💬', time: timeStr }]);
+
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/client/support/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: userMsg, chatHistory: supportChatHistory })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSupportChatHistory(prev => {
+          const filtered = prev.filter(msg => msg.text !== 'กำลังประมวลผลคำตอบ... 💬');
+          return [...filtered, { sender: 'admin', text: data.reply, time: timeStr }];
+        });
+      } else {
+        setSupportChatHistory(prev => {
+          const filtered = prev.filter(msg => msg.text !== 'กำลังประมวลผลคำตอบ... 💬');
+          return [...filtered, { sender: 'admin', text: data.error || 'ขออภัยด้วยค่ะ ไม่สามารถประมวลผลคำตอบได้ในขณะนี้', time: timeStr }];
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setSupportChatHistory(prev => {
+        const filtered = prev.filter(msg => msg.text !== 'กำลังประมวลผลคำตอบ... 💬');
+        return [...filtered, { sender: 'admin', text: 'ขออภัยด้วยนะคะ ระบบเชื่อมต่อขัดข้องชั่วคราว', time: timeStr }];
+      });
+    }
+  };
 
   // Feedback Hub State
   const [feedbackForm, setFeedbackForm] = useState({ type: 'feature', title: '', description: '' });
@@ -1288,15 +1344,16 @@ export default function Platform() {
       console.warn('Failed to fetch integrations:', err);
     }
   };
-  const handleOAuthPopup = (platform) => {
+  const handleOAuthPopup = (platform, simulate = false) => {
     const token = localStorage.getItem('aiva_access_token');
     const width = 500;
     const height = 650;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
     
+    const url = `/api/client/integrations/oauth/${platform}?token=${token}${simulate ? '&simulate=true' : ''}`;
     window.open(
-      `/api/client/integrations/oauth/${platform}?token=${token}`,
+      url,
       `Connect ${platform}`,
       `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
     );
@@ -3573,10 +3630,10 @@ export default function Platform() {
                   { id: 'line', name: 'LINE Official', desc: 'ตอบแชทลูกค้าอัตโนมัติ 24 ชม.', btn: 'bg-[#00B900]' },
                   { id: 'facebook', name: ' Messenger', desc: 'ตอบ Inbox แฟนเพจทันที', btn: 'bg-[#0084FF]' },
                   { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]' },
-                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900' },
+                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900', disabled: true },
                   { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]', disabled: true },
                   { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]', disabled: true },
-                  { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600' },
+                  { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600', disabled: true },
                 ].map((app) => (
                   <div key={app.id} className={`rounded-2xl p-5 border flex flex-col transition-all saas-card ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-indigo-200'}`}>
                     <div className="flex justify-between items-start mb-4">
@@ -3636,9 +3693,20 @@ export default function Platform() {
                           <button
                             type="button"
                             onClick={() => handleOAuthPopup(connectingApp)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs cursor-pointer"
                           >
                             <Plug className="w-4 h-4" /> เชื่อมต่ออัตโนมัติด้วย OAuth (แนะนำ)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOAuthPopup(connectingApp, true)}
+                            className={`w-full mt-2 border font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer ${
+                              isDarkMode 
+                                ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/50' 
+                                : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                            }`}
+                          >
+                            <Settings className="w-4 h-4" /> เชื่อมต่อด้วย Sandbox (Simulated OAuth)
                           </button>
                           <div className="flex items-center gap-3 my-4">
                             <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
@@ -3761,16 +3829,16 @@ export default function Platform() {
                         {managingApp === 'line' && (
                           <ol className="list-decimal pl-4 space-y-2">
                             <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่ <strong>LINE Developers Console</strong> และเลือก Channel (Messaging API) ของบอทคุณ</li>
+                            <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Developers Console</a> และเลือก Channel (Messaging API) ของบอทคุณ</li>
                             <li>ในแท็บ <strong>Messaging API</strong> หัวข้อ Webhook settings ให้วาง URL ในช่อง Webhook URL แล้วกด <strong>Verify</strong></li>
                             <li>เปิดสวิตช์ <strong>Use webhook</strong></li>
-                            <li>ในหน้า <strong>LINE Official Account Manager</strong> ไปที่ <em>ตั้งค่าการตอบกลับ (Response settings)</em> และปิด <em>ข้อความตอบกลับอัตโนมัติ</em></li>
+                            <li>ในหน้า <a href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Official Account Manager</a> ไปที่ <em>ตั้งค่าการตอบกลับ (Response settings)</em> และปิด <em>ข้อความตอบกลับอัตโนมัติ</em></li>
                           </ol>
                         )}
                         {managingApp === 'facebook' && (
                           <ol className="list-decimal pl-4 space-y-2">
                             <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่หน้าตั้งค่า <strong>Facebook Pages / Meta for Developers</strong></li>
+                            <li>ไปที่หน้าตั้งค่าแอปของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
                             <li>ในหัวข้อ Webhook ให้วาง URL ข้างต้น เพื่อเปิดรับสัญญาณข้อความแชท</li>
                             <li>เปิดใช้งานสิทธิ์ในการรับส่งข้อความสำหรับ Page Messenger</li>
                           </ol>
@@ -3778,10 +3846,11 @@ export default function Platform() {
                         {managingApp === 'instagram' && (
                           <ol className="list-decimal pl-4 space-y-2">
                             <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่หน้าตั้งค่าบัญชีเชื่อมโยงของ <strong>Meta for Developers</strong></li>
+                            <li>ไปที่หน้าตั้งค่าบัญชีเชื่อมโยงของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
                             <li>เพิ่ม Webhook URL สำหรับรับสัญญาณข้อความแชทจาก Instagram Direct</li>
                           </ol>
                         )}
+
                         {managingApp === 'website' && (
                           <div className="space-y-2">
                             <p>นำโค้ดสำหรับฝัง (Widget Script) ด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณ:</p>
