@@ -84,7 +84,30 @@ const FLAGS = { 'TH': '🇹🇭', 'EN': '🇬🇧', 'ZH': '🇨🇳' };
 // ==========================================
 // MOCK DATA
 // ==========================================
-const MOCK_STATS = { tokensUsed: 425000, tokenLimit: 500000, totalChats: 28450, resolvedByAI: 95, activeAgents: 2 };
+const MOCK_STATS = { 
+  tokensUsed: 425000, 
+  tokenLimit: 500000, 
+  totalChats: 28450, 
+  resolvedByAI: 95, 
+  activeAgents: 2,
+  chatStats: {
+    week: [
+      { label: 'จ.', count: 125 },
+      { label: 'อ.', count: 45 },
+      { label: 'พ.', count: 85 },
+      { label: 'พฤ.', count: 108 },
+      { label: 'ศ.', count: 135 },
+      { label: 'ส.', count: 86 },
+      { label: 'อา.', count: 135 }
+    ],
+    month: [
+      { label: 'สัปดาห์ที่ 1', count: 240 },
+      { label: 'สัปดาห์ที่ 2', count: 310 },
+      { label: 'สัปดาห์ที่ 3', count: 280 },
+      { label: 'สัปดาห์ที่ 4', count: 350 }
+    ]
+  }
+};
 const MOCK_KNOWLEDGE = [
   { id: 1, type: 'pdf', name: 'PriceList_Summer2026.pdf', size: '2.4 MB', status: 'Trained', date: '05/06/2026', tokens: '1,250' },
   { id: 2, type: 'pdf', name: 'Promotion_Rules.pdf', size: '1.1 MB', status: 'Trained', date: '02/06/2026', tokens: '840' },
@@ -269,6 +292,7 @@ function PlatformAuth({ onLogin }) {
 export default function Platform() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('aiva_access_token'));
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [chartRange, setChartRange] = useState('week');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [langIndex, setLangIndex] = useState(0);
   const [isSidebarPinned, setIsSidebarPinned] = useState(true);
@@ -1631,6 +1655,27 @@ export default function Platform() {
   // Auth Guard
   if (!isAuthenticated) return <PlatformAuth onLogin={() => setIsAuthenticated(true)} />;
 
+  // Dynamic Chart Calculations
+  const currentStats = (stats?.chatStats && stats.chatStats[chartRange]) || [];
+  const maxCount = Math.max(...currentStats.map(d => d.count), 1);
+  let yAxisMax = 100;
+  if (maxCount <= 10) {
+    yAxisMax = 10;
+  } else if (maxCount <= 20) {
+    yAxisMax = 20;
+  } else if (maxCount <= 50) {
+    yAxisMax = 50;
+  } else if (maxCount <= 100) {
+    yAxisMax = 100;
+  } else if (maxCount <= 200) {
+    yAxisMax = 200;
+  } else if (maxCount <= 400) {
+    yAxisMax = 400;
+  } else {
+    yAxisMax = Math.ceil(maxCount / 100) * 100;
+  }
+  const steps = [yAxisMax, Math.round(yAxisMax * 0.75), Math.round(yAxisMax * 0.5), Math.round(yAxisMax * 0.25), 0];
+
   const handleLogout = () => {
     localStorage.removeItem('aiva_access_token');
     localStorage.removeItem('aiva_user');
@@ -1851,24 +1896,42 @@ export default function Platform() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className={`lg:col-span-2 rounded-2xl p-6 glass-card ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>ปริมาณการสนทนาย้อนหลัง 7 วัน</h2>
-                    <select className={`text-xs rounded-lg px-3 py-1.5 outline-none border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}><option>สัปดาห์นี้</option><option>เดือนนี้</option></select>
+                    <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                      {chartRange === 'week' ? 'ปริมาณการสนทนาย้อนหลัง 7 วัน' : 'ปริมาณการสนทนาย้อนหลัง 30 วัน'}
+                    </h2>
+                    <select 
+                      value={chartRange}
+                      onChange={(e) => setChartRange(e.target.value)}
+                      className={`text-xs rounded-lg px-3 py-1.5 outline-none border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                    >
+                      <option value="week">สัปดาห์นี้</option>
+                      <option value="month">เดือนนี้</option>
+                    </select>
                   </div>
                   <div className="h-[250px] w-full flex items-end justify-between px-2 gap-2 relative">
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6">
-                      {[200, 150, 100, 50, 0].map((v, i) => <div key={i} className={`w-full border-t border-dashed h-0 flex items-center ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}><span className={`absolute -left-1 pr-2 text-[10px] font-mono -translate-y-1/2 ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400'}`}>{v}</span></div>)}
+                      {steps.map((v, i) => (
+                        <div key={i} className={`w-full border-t border-dashed h-0 flex items-center ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                          <span className={`absolute -left-1 pr-2 text-[10px] font-mono -translate-y-1/2 ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-white text-slate-400'}`}>
+                            {v}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    {Array.from({length: 7}).map((_, i) => {
-                      const h = Math.floor(Math.random() * 60) + 20;
-                      const days = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+                    {currentStats.map((item, i) => {
+                      const h = (item.count / yAxisMax) * 80;
                       return (
                         <div key={i} className="w-full flex flex-col justify-end items-center relative group h-full pb-6 z-10">
                           <div className={`w-[60%] rounded-t-md transition-colors relative ${isDarkMode ? 'bg-indigo-500/50 hover:bg-indigo-400' : 'bg-indigo-100 hover:bg-indigo-200'}`} style={{ height: `${h}%` }}>
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">{(h * 2).toFixed(0)}</div>
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              {item.count.toLocaleString()} แชท
+                            </div>
                           </div>
-                          <span className={`absolute bottom-0 text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{days[i]}</span>
+                          <span className={`absolute bottom-0 text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {item.label}
+                          </span>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </div>
