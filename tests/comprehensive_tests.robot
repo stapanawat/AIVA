@@ -29,31 +29,31 @@ Navigate To Portal
 Scenario 1: Landing Page Billing Switcher & Checkout Integration
     [Tags]    e2e    landing
     # Check default price is Basic (฿990/เดือน)
-    Page Should Contain    990
+    Wait Until Page Contains    990    timeout=10s
     
     # Click Yearly pricing
     Click Element    id=btn-yearly
-    Page Should Contain    10,098
+    Wait Until Page Contains    10,098    timeout=5s
     
     # Click Monthly pricing back
     Click Element    id=btn-monthly
-    Page Should Contain    990
+    Wait Until Page Contains    990    timeout=5s
     
     # Click Select Package Pro button (the second select package button)
     Click Element    id=btn-select-pro
     
     # Verify checkout summary loads Pro values
-    Page Should Contain    AIVA Pro Plan
-    Page Should Contain    5,243.00
+    Wait Until Page Contains    AIVA Pro Plan    timeout=5s
+    Wait Until Page Contains    5,243.00    timeout=5s
     
     # Click Tax type corporate
     Click Element    id=btn-tax-corporate
-    Element Should Be Visible    id=branch-field
+    Wait Until Element Is Visible    id=branch-field    timeout=5s
     
     # Click PromptPay tab
     Click Element    id=tab-promptpay
-    Element Should Be Visible    id=form-promptpay
-    Page Should Contain    5,243.00
+    Wait Until Element Is Visible    id=form-promptpay    timeout=5s
+    Wait Until Page Contains    5,243.00    timeout=5s
     
     # Click Card tab
     Click Element    id=tab-card
@@ -79,14 +79,14 @@ Scenario 2: Client Platform Dashboard & Management Features
     Navigate To Portal    Client Platform
     
     # We should see Platform Login (mock email admin@globaltech.com)
-    Page Should Contain    เข้าสู่ระบบการจัดการ
+    Wait Until Page Contains    เข้าสู่ระบบการจัดการ    timeout=5s
     Input Text    xpath=(//input[@type='email'])[1]    admin@globaltech.com
     Input Text    xpath=(//input[@type='password'])[1]    password
     Click Element    xpath=//button[contains(., 'เข้าสู่ระบบ AIVA Platform')]
     
     # Check Dashboard loads
-    Wait Until Page Contains    AIVA Agent ของคุณพร้อมทำงานแล้ว!    timeout=5s
-    Page Should Contain    ภาพรวม
+    Wait Until Page Contains    AIVA Agent ของคุณพร้อมทำงานแล้ว!    timeout=10s
+    Wait Until Page Contains    ภาพรวม    timeout=5s
     
     # Switch to "สอน AIVA" (Knowledge Base)
     Click Element    xpath=//*[contains(text(), 'สอน AIVA')]

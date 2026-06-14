@@ -58,7 +58,7 @@ const register = async (req, res, next) => {
         data: {
           name: `${name}'s Brand`,
           ownerId: user.id,
-          plan: req.body.plan ? req.body.plan.toUpperCase() : 'NONE',
+          plan: 'NONE',
           billingCycle: req.body.billingCycle || 'monthly',
         }
       });

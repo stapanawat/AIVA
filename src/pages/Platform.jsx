@@ -568,7 +568,8 @@ export default function Platform() {
             size: item.fileSize ? `${(item.fileSize / 1024).toFixed(1)} KB` : '-',
             date: new Date(item.createdAt).toLocaleDateString('th-TH'),
             tokens: item.tokens,
-            status: item.status === 'TRAINED' ? 'Trained' : 'Training'
+            status: item.status === 'TRAINED' ? 'Trained' : (item.status === 'FAILED' ? 'Failed' : 'Training'),
+            errorMsg: item.status === 'FAILED' ? item.content : null
           };
           const idx = list.findIndex(e => e.id === formatted.id || e.name === formatted.name);
           if (idx > -1) {
@@ -893,7 +894,7 @@ export default function Platform() {
             bossName: client.owner?.name || 'สมชาย ใจดี',
             bossEmail: client.owner?.email || 'owner@globaltech.com',
             brandName: client.name || 'GlobalTech Official',
-            businessType: 'ecommerce'
+            businessType: client.businessType || 'ecommerce'
           });
           const formattedPlan = formatPlanName(client.plan);
           setCurrentPlan(formattedPlan);
@@ -921,6 +922,7 @@ export default function Platform() {
           brandName: editProfile.brandName,
           bossName: editProfile.bossName,
           bossEmail: editProfile.bossEmail,
+          businessType: editProfile.businessType,
           aiName: workspaceSettings.aiName,
           aiPersona: workspaceSettings.aiPersona,
           customPrompt: workspaceSettings.customPrompt,
@@ -1332,8 +1334,10 @@ export default function Platform() {
       });
 
       if (res.ok) {
+        const connectedPlatform = connectingApp;
         await fetchIntegrations();
         setConnectingApp(null);
+        setManagingApp(connectedPlatform);
         showToast('เชื่อมต่อช่องทางเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
@@ -1342,8 +1346,10 @@ export default function Platform() {
     } catch (err) {
       console.error('Failed to authorize integration:', err);
       // Fallback local mock
+      const connectedPlatform = connectingApp;
       setConnectedApps([...connectedApps, connectingApp]);
       setConnectingApp(null);
+      setManagingApp(connectedPlatform);
     } finally {
       setIsAuthorizing(false);
     }
@@ -1497,6 +1503,7 @@ export default function Platform() {
         const { platform } = event.data;
         fetchIntegrations();
         setConnectingApp(null);
+        setManagingApp(platform.toLowerCase());
       }
     };
 
@@ -1509,6 +1516,60 @@ export default function Platform() {
   useEffect(() => {
     setPipelineData(leadsData);
   }, [leadsData]);
+
+  // Auto scroll chat when chatMessages changes
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedChat, chatMode, chatMessages[selectedChat]]);
+
+  // Polling for new inbox and chat messages
+  useEffect(() => {
+    if (!isAuthenticated || USE_MOCK) return;
+
+    // Fetch inbox list periodically
+    const inboxInterval = setInterval(() => {
+      if (activeTab === 'inbox') {
+        fetchInbox();
+      }
+    }, 6000);
+
+    return () => clearInterval(inboxInterval);
+  }, [isAuthenticated, activeTab]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !selectedChat || USE_MOCK) return;
+    
+    // Don't poll for mock chats
+    if (selectedChat.startsWith('C-') && selectedChat.length <= 5) return;
+
+    // Fetch messages for selected chat immediately
+    fetchChatMessages(selectedChat);
+
+    // Poll messages periodically
+    const messagesInterval = setInterval(() => {
+      if (activeTab === 'inbox') {
+        fetchChatMessages(selectedChat);
+      }
+    }, 3000);
+
+    return () => clearInterval(messagesInterval);
+  }, [isAuthenticated, selectedChat, activeTab]);
+
+  // Poll knowledge list if there are any items currently training
+  useEffect(() => {
+    if (!isAuthenticated || USE_MOCK) return;
+
+    const hasTrainingItems = knowledgeList.some(item => item.status === 'Training');
+    if (!hasTrainingItems) return;
+
+    const interval = setInterval(() => {
+      fetchKnowledge();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, knowledgeList]);
 
   // Auth Guard
   if (!isAuthenticated) return <PlatformAuth onLogin={() => setIsAuthenticated(true)} />;
@@ -1698,16 +1759,16 @@ export default function Platform() {
                     <h3 className={`font-bold text-sm ${
                       connectedApps.length > 0
                         ? (isDarkMode ? 'text-emerald-300' : 'text-emerald-900')
-                        : (isDarkMode ? 'text-rose-300' : 'text-rose-900')
+                        : (isDarkMode ? 'text-indigo-300' : 'text-indigo-900')
                     }`}>
-                      {connectedApps.length > 0 ? 'AIVA เชื่อมต่อช่องทางสำเร็จแล้ว!' : 'ระบบยังไม่ได้เชื่อมต่อช่องทางแชท!'}
+                      {connectedApps.length > 0 ? 'AIVA เชื่อมต่อช่องทางสำเร็จแล้ว!' : t('aiReady')}
                     </h3>
                     <p className={`text-xs mt-0.5 ${
                       isDarkMode ? 'text-slate-400' : 'text-slate-600'
                     }`}>
                       {connectedApps.length > 0 
                         ? `พร้อมให้บริการลูกค้าอัตโนมัติ 24 ชม. ผ่านช่องทาง: ${connectedApps.map(id => PLATFORM_MAP[id] || id).join(', ')}`
-                        : 'กรุณาเชื่อมต่อ LINE OA หรือ Facebook Page ในเมนูเชื่อมต่อระบบ เพื่อให้ AI เริ่มตอบแชทลูกค้าแทนคุณ'}
+                        : t('aiReadyDesc')}
                     </p>
                   </div>
                 </div>
@@ -1716,10 +1777,10 @@ export default function Platform() {
                   className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold border transition-colors ${
                     connectedApps.length > 0
                       ? (isDarkMode ? 'bg-slate-800 text-emerald-400 border-emerald-500/50 hover:bg-emerald-600 hover:text-white' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white')
-                      : (isDarkMode ? 'bg-slate-800 text-rose-400 border-rose-500/50 hover:bg-rose-600 hover:text-white' : 'bg-white text-rose-600 border-rose-200 hover:bg-rose-600 hover:text-white')
+                      : (isDarkMode ? 'bg-slate-800 text-indigo-400 border-indigo-500/50 hover:bg-indigo-600 hover:text-white' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-600 hover:text-white')
                   }`}
                 >
-                  {connectedApps.length > 0 ? 'จัดการช่องทาง' : 'ไปที่การเชื่อมต่อ'} <ChevronRight className="w-3.5 h-3.5 inline" />
+                  {connectedApps.length > 0 ? 'จัดการช่องทาง' : t('goToIntegrations')} <ChevronRight className="w-3.5 h-3.5 inline" />
                 </button>
               </div>
 
@@ -1861,13 +1922,22 @@ export default function Platform() {
                             <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{item.tokens}</span>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {item.status === 'Trained' ? (
+                            {item.status === 'Trained' && (
                               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'text-emerald-600 bg-emerald-50 border-emerald-200'}`}>
                                 <CheckCircle2 className="w-3 h-3"/> เรียนรู้แล้ว
                               </span>
-                            ) : (
+                            )}
+                            {item.status === 'Failed' && (
+                              <span 
+                                title={item.errorMsg || "การสกัดเนื้อหาล้มเหลว"} 
+                                className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border cursor-help ${isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'text-rose-600 bg-rose-50 border-rose-200'}`}
+                              >
+                                <AlertCircle className="w-3 h-3"/> ล้มเหลว
+                              </span>
+                            )}
+                            {item.status === 'Training' && (
                               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${isDarkMode ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-200'}`}>
-                                <RefreshCw className="w-3 h-3 animate-spin"/> Training
+                                <RefreshCw className="w-3 h-3 animate-spin"/> กำลังสอนอยู่
                               </span>
                             )}
                           </td>
@@ -3659,7 +3729,7 @@ export default function Platform() {
               {/* Manage Connection Modal */}
               {managingApp && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                  <div className={`rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                  <div className={`rounded-3xl w-full max-w-md sm:max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                     <div className={`p-5 border-b flex justify-between items-center ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
                       <div className="flex items-center gap-3">
                         <AppIcon appId={managingApp} size="sm" />
@@ -3681,6 +3751,59 @@ export default function Platform() {
                             showToast('คัดลอก Webhook URL แล้วค่ะ!', 'success');
                           }} className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
                         </div>
+                      </div>
+
+                      {/* Setup Instructions */}
+                      <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-2.5 ${isDarkMode ? 'bg-slate-900/40 border-slate-700/60 text-slate-300' : 'bg-slate-50 border-slate-200/60 text-slate-600'}`}>
+                        <div className="font-bold flex items-center gap-1.5 mb-1 text-indigo-500 dark:text-indigo-400">
+                          <BookOpen className="w-4 h-4" /> วิธีตั้งค่าการใช้งาน (Setup Guide)
+                        </div>
+                        {managingApp === 'line' && (
+                          <ol className="list-decimal pl-4 space-y-2">
+                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+                            <li>ไปที่ <strong>LINE Developers Console</strong> และเลือก Channel (Messaging API) ของบอทคุณ</li>
+                            <li>ในแท็บ <strong>Messaging API</strong> หัวข้อ Webhook settings ให้วาง URL ในช่อง Webhook URL แล้วกด <strong>Verify</strong></li>
+                            <li>เปิดสวิตช์ <strong>Use webhook</strong></li>
+                            <li>ในหน้า <strong>LINE Official Account Manager</strong> ไปที่ <em>ตั้งค่าการตอบกลับ (Response settings)</em> และปิด <em>ข้อความตอบกลับอัตโนมัติ</em></li>
+                          </ol>
+                        )}
+                        {managingApp === 'facebook' && (
+                          <ol className="list-decimal pl-4 space-y-2">
+                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+                            <li>ไปที่หน้าตั้งค่า <strong>Facebook Pages / Meta for Developers</strong></li>
+                            <li>ในหัวข้อ Webhook ให้วาง URL ข้างต้น เพื่อเปิดรับสัญญาณข้อความแชท</li>
+                            <li>เปิดใช้งานสิทธิ์ในการรับส่งข้อความสำหรับ Page Messenger</li>
+                          </ol>
+                        )}
+                        {managingApp === 'instagram' && (
+                          <ol className="list-decimal pl-4 space-y-2">
+                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+                            <li>ไปที่หน้าตั้งค่าบัญชีเชื่อมโยงของ <strong>Meta for Developers</strong></li>
+                            <li>เพิ่ม Webhook URL สำหรับรับสัญญาณข้อความแชทจาก Instagram Direct</li>
+                          </ol>
+                        )}
+                        {managingApp === 'website' && (
+                          <div className="space-y-2">
+                            <p>นำโค้ดสำหรับฝัง (Widget Script) ด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณ:</p>
+                            <div className="relative">
+                              <textarea
+                                readOnly
+                                rows="3"
+                                value={`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`}
+                                className={`w-full font-mono text-[10px] p-2 pr-20 rounded-lg border outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-500'}`}
+                              />
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`);
+                                  showToast('คัดลอกโค้ด Widget แล้วค่ะ!', 'success');
+                                }}
+                                className="absolute right-2 bottom-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold shadow-sm"
+                              >
+                                คัดลอกโค้ด
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className={`pt-4 border-t flex justify-between items-center ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>

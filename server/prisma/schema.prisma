@@ -47,6 +47,7 @@ model Client {
   customPrompt         String?      @default("")
   notifyHotLead        Boolean?     @default(true)
   notifyDailyReport    Boolean?     @default(false)
+  businessType         String?      @default("ecommerce")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   
