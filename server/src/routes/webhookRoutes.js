@@ -338,13 +338,37 @@ const handleTikTokWebhook = async (req, res, next) => {
   }
 };
 
+// Webhook verification endpoint for Facebook/Instagram
+const verifyFacebookWebhook = (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  const VERIFY_TOKEN = process.env.FACEBOOK_VERIFY_TOKEN || 'aiva_verify_token';
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('[Facebook/Instagram Webhook Verified Successfully]');
+      return res.status(200).send(challenge);
+    } else {
+      console.warn('[Facebook/Instagram Webhook Verification Failed]: Token mismatch');
+      return res.sendStatus(403);
+    }
+  }
+  return res.sendStatus(400);
+};
+
 // Mount Webhook endpoints supporting both standard and parameterized clientIds
 router.post('/line', handleLineWebhook);
 router.post('/line/:clientId', handleLineWebhook);
 
+router.get('/facebook', verifyFacebookWebhook);
+router.get('/facebook/:clientId', verifyFacebookWebhook);
 router.post('/facebook', handleFacebookWebhook);
 router.post('/facebook/:clientId', handleFacebookWebhook);
 
+router.get('/instagram', verifyFacebookWebhook);
+router.get('/instagram/:clientId', verifyFacebookWebhook);
 router.post('/instagram', handleInstagramWebhook);
 router.post('/instagram/:clientId', handleInstagramWebhook);
 
@@ -352,3 +376,4 @@ router.post('/tiktok', handleTikTokWebhook);
 router.post('/tiktok/:clientId', handleTikTokWebhook);
 
 module.exports = router;
+
