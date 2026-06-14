@@ -924,7 +924,7 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
             {/* Bottom: Copyright */}
             <div className="pt-8 border-t border-slate-800 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-slate-500">© 2026 AIVA Powered by SpareX. All rights reserved.</p>
-                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.8</span>
+                <span className="text-[10px] text-slate-600 font-mono tracking-wider">v1.2.9</span>
             </div>
         </div>
     </footer>

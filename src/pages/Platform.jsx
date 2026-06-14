@@ -1588,7 +1588,7 @@ export default function Platform() {
             <NavItem icon={Clock} label={t('followup')} isActive={activeTab === 'followup'} onClick={() => setActiveTab('followup')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             <NavItem icon={Flame} label={t('leadscore')} isActive={activeTab === 'leadscore'} onClick={() => setActiveTab('leadscore')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             <NavItem icon={AlertOctagon} label={t('lostrevenue')} isActive={activeTab === 'lostrevenue'} onClick={() => setActiveTab('lostrevenue')} isLocked={!isAdvancedOnly} isDark={isDarkMode} />
-            <NavItem icon={LineChart} label={t('ceoreport')} isActive={activeTab === 'ceoreport'} onClick={() => setActiveTab('ceoreport')} isLocked={!isAdvancedOnly} isDark={isDarkMode} />
+            <NavItem icon={LineChart} label={t('ceoreport')} isActive={activeTab === 'ceoreport'} onClick={() => setActiveTab('ceoreport')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             <NavItem icon={Sparkles} label={t('contentgen')} isActive={activeTab === 'contentgen'} onClick={() => setActiveTab('contentgen')} isLocked={!isProOrAbove} isDark={isDarkMode} />
             <NavItem icon={Share2} label={t('socialgrowth')} isActive={activeTab === 'socialgrowth'} onClick={() => setActiveTab('socialgrowth')} isLocked={!isAdvancedOnly} isDark={isDarkMode} />
             
@@ -1679,18 +1679,47 @@ export default function Platform() {
             <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
               {hasActivePlan ? (
                 <>
-              <div className={`border rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm ${isDarkMode ? 'bg-indigo-900/30 border-indigo-500/30' : 'bg-indigo-50 border-indigo-100'}`}>
+              <div className={`border rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm ${
+                connectedApps.length > 0 
+                  ? (isDarkMode ? 'bg-emerald-900/30 border-emerald-500/30' : 'bg-emerald-50 border-emerald-100')
+                  : (isDarkMode ? 'bg-rose-900/30 border-rose-500/30' : 'bg-rose-50 border-rose-100')
+              }`}>
                 <div className="flex items-center gap-4">
-                  <div className="bg-white p-2 rounded-xl flex items-center justify-center overflow-hidden border shadow-sm">
-                    <img src="https://i.postimg.cc/9fvVLjRT/AIVA-Trasparent.png" alt="AIVA Logo" className="w-12 h-12 object-contain" />
+                  <div className={`p-2 rounded-xl flex items-center justify-center overflow-hidden border shadow-sm ${
+                    isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                  }`}>
+                    {connectedApps.length > 0 ? (
+                      <Plug className={`w-8 h-8 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                    ) : (
+                      <AlertCircle className={`w-8 h-8 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`} />
+                    )}
                   </div>
                   <div>
-                    <h3 className={`font-bold text-sm ${isDarkMode ? 'text-indigo-300' : 'text-indigo-900'}`}>{t('aiReady')}</h3>
-                    <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-indigo-400/80' : 'text-indigo-600/80'}`}>{t('aiReadyDesc')}</p>
+                    <h3 className={`font-bold text-sm ${
+                      connectedApps.length > 0
+                        ? (isDarkMode ? 'text-emerald-300' : 'text-emerald-900')
+                        : (isDarkMode ? 'text-rose-300' : 'text-rose-900')
+                    }`}>
+                      {connectedApps.length > 0 ? 'AIVA เชื่อมต่อช่องทางสำเร็จแล้ว!' : 'ระบบยังไม่ได้เชื่อมต่อช่องทางแชท!'}
+                    </h3>
+                    <p className={`text-xs mt-0.5 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
+                      {connectedApps.length > 0 
+                        ? `พร้อมให้บริการลูกค้าอัตโนมัติ 24 ชม. ผ่านช่องทาง: ${connectedApps.map(id => PLATFORM_MAP[id] || id).join(', ')}`
+                        : 'กรุณาเชื่อมต่อ LINE OA หรือ Facebook Page ในเมนูเชื่อมต่อระบบ เพื่อให้ AI เริ่มตอบแชทลูกค้าแทนคุณ'}
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => setActiveTab('integrations')} className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold border transition-colors ${isDarkMode ? 'bg-slate-800 text-indigo-400 border-indigo-500/50 hover:bg-indigo-600 hover:text-white' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-600 hover:text-white'}`}>
-                  {t('goToIntegrations')} <ChevronRight className="w-3.5 h-3.5 inline" />
+                <button 
+                  onClick={() => setActiveTab('integrations')} 
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold border transition-colors ${
+                    connectedApps.length > 0
+                      ? (isDarkMode ? 'bg-slate-800 text-emerald-400 border-emerald-500/50 hover:bg-emerald-600 hover:text-white' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white')
+                      : (isDarkMode ? 'bg-slate-800 text-rose-400 border-rose-500/50 hover:bg-rose-600 hover:text-white' : 'bg-white text-rose-600 border-rose-200 hover:bg-rose-600 hover:text-white')
+                  }`}
+                >
+                  {connectedApps.length > 0 ? 'จัดการช่องทาง' : 'ไปที่การเชื่อมต่อ'} <ChevronRight className="w-3.5 h-3.5 inline" />
                 </button>
               </div>
 
@@ -2889,10 +2918,9 @@ export default function Platform() {
             </div>
           )}
 
-          {/* TAB: AIVA CEO REPORT */}
           {activeTab === 'ceoreport' && (
             <div className="max-w-6xl mx-auto h-full flex flex-col animate-in fade-in duration-300">
-              {isAdvancedOnly ? (
+              {isProOrAbove ? (
                 <>
                   <div className="mb-6 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
@@ -2944,7 +2972,7 @@ export default function Platform() {
                   </div>
                 </>
               ) : (
-                <UpgradeOverlay requiredPlan="Advanced" title="AIVA CEO Daily Report" icon={LineChart} description="รับรายงานสรุปภาพรวมธุรกิจและสถิติยอดขายส่งตรงถึง LINE ของผู้บริหารทุกเช้า" />
+                <UpgradeOverlay requiredPlan="Pro" title="AIVA CEO Daily Report" icon={LineChart} description="รับรายงานสรุปภาพรวมธุรกิจและสถิติยอดขายส่งตรงถึง LINE ของผู้บริหารทุกเช้า" />
               )}
             </div>
           )}
