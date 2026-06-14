@@ -148,6 +148,7 @@ const handleLineWebhook = async (req, res, next) => {
 // Facebook Webhook Handler Function
 const handleFacebookWebhook = async (req, res, next) => {
   try {
+    console.log('[Facebook Webhook POST Received]:', JSON.stringify(req.body, null, 2));
     const { entry } = req.body;
     if (!entry || entry.length === 0) {
       return res.sendStatus(200);
@@ -155,9 +156,22 @@ const handleFacebookWebhook = async (req, res, next) => {
 
     let clientId = req.params.clientId;
     if (!clientId) {
-      const firstClient = await prisma.client.findFirst();
-      if (!firstClient) return res.sendStatus(200);
-      clientId = firstClient.id;
+      const pageId = entry[0]?.id;
+      if (pageId) {
+        const integrations = await prisma.integration.findMany({
+          where: { platform: 'FACEBOOK', status: 'ACTIVE' }
+        });
+        const match = integrations.find(i => i.config && i.config.pageId === pageId);
+        if (match) {
+          clientId = match.clientId;
+        }
+      }
+
+      if (!clientId) {
+        const firstClient = await prisma.client.findFirst();
+        if (!firstClient) return res.sendStatus(200);
+        clientId = firstClient.id;
+      }
     }
 
     for (const item of entry) {
@@ -216,6 +230,7 @@ const handleFacebookWebhook = async (req, res, next) => {
 // Instagram Webhook Handler Function
 const handleInstagramWebhook = async (req, res, next) => {
   try {
+    console.log('[Instagram Webhook POST Received]:', JSON.stringify(req.body, null, 2));
     const { entry } = req.body;
     if (!entry || entry.length === 0) {
       return res.sendStatus(200);
@@ -223,9 +238,22 @@ const handleInstagramWebhook = async (req, res, next) => {
 
     let clientId = req.params.clientId;
     if (!clientId) {
-      const firstClient = await prisma.client.findFirst();
-      if (!firstClient) return res.sendStatus(200);
-      clientId = firstClient.id;
+      const pageId = entry[0]?.id;
+      if (pageId) {
+        const integrations = await prisma.integration.findMany({
+          where: { platform: 'INSTAGRAM', status: 'ACTIVE' }
+        });
+        const match = integrations.find(i => i.config && i.config.pageId === pageId);
+        if (match) {
+          clientId = match.clientId;
+        }
+      }
+
+      if (!clientId) {
+        const firstClient = await prisma.client.findFirst();
+        if (!firstClient) return res.sendStatus(200);
+        clientId = firstClient.id;
+      }
     }
 
     for (const item of entry) {

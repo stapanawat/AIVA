@@ -5,7 +5,25 @@ import Partner from './pages/Partner';
 import SuperAdmin from './pages/SuperAdmin';
 
 export default function App() {
-  const [route, setRoute] = useState('landing');
+  const [route, setRoute] = useState(() => {
+    const token = localStorage.getItem('aiva_access_token');
+    const userStr = localStorage.getItem('aiva_user');
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.role) {
+          const role = user.role.toUpperCase();
+          if (role === 'SUPER_ADMIN') return 'super-admin';
+          if (role === 'PARTNER_MAIN' || role === 'PARTNER_SUB') return 'partner';
+          return 'platform';
+        }
+      } catch (e) {
+        console.error('Failed to parse user from localStorage:', e);
+      }
+      return 'platform';
+    }
+    return 'landing';
+  });
   const [isSwitcherExpanded, setIsSwitcherExpanded] = useState(true);
 
   const handleSwitchRoute = (newRoute) => {
@@ -40,13 +58,49 @@ export default function App() {
       localStorage.setItem('aiva_user', userStr);
       // Clean query params from URL without reloading page
       window.history.replaceState({}, document.title, window.location.pathname);
+      
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.role) {
+          const role = user.role.toUpperCase();
+          if (role === 'SUPER_ADMIN') {
+            setRoute('super-admin');
+            return;
+          }
+          if (role === 'PARTNER_MAIN' || role === 'PARTNER_SUB') {
+            setRoute('partner');
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse user role from query parameters:', e);
+      }
       setRoute('platform');
     }
 
     // Check if redirecting from payment portal
     if (params.get('mock_payment') === 'success' || params.get('payment') === 'success') {
       const storedToken = localStorage.getItem('aiva_access_token');
+      const storedUserStr = localStorage.getItem('aiva_user');
       if (storedToken) {
+        if (storedUserStr) {
+          try {
+            const user = JSON.parse(storedUserStr);
+            if (user && user.role) {
+              const role = user.role.toUpperCase();
+              if (role === 'SUPER_ADMIN') {
+                setRoute('super-admin');
+                return;
+              }
+              if (role === 'PARTNER_MAIN' || role === 'PARTNER_SUB') {
+                setRoute('partner');
+                return;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to parse stored user during payment redirect:', e);
+          }
+        }
         setRoute('platform');
       }
     }
