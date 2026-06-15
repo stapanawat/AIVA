@@ -1104,30 +1104,12 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
 
                         {/* Card Form */}
                         <div id="form-card" className={`animate-in fade-in duration-300 ${paymentMethod === 'card' ? 'block' : 'hidden'}`}>
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
-                                    <CreditCard className="w-6 h-6" />
-                                </div>
-                                <h4 className="font-bold text-slate-800 mb-1">ชำระเงินด้วยบัตรเครดิต / เดบิต</h4>
-                                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">ระบบจะนำคุณไปยังหน้าชำระเงินที่ปลอดภัยของ Stripe เพื่อกรอกข้อมูลบัตรเครดิตได้อย่างปลอดภัยค่ะ</p>
-                            </div>
+                            <div className="w-px h-px opacity-0"></div>
                         </div>
-
-
 
                         {/* PromptPay Info (Stripe Redirect) */}
                         <div id="form-promptpay" className={`animate-in fade-in duration-300 ${paymentMethod === 'promptpay' ? 'block' : 'hidden'}`}>
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                                <div className="flex items-center gap-1 mb-4">
-                                    <span className="bg-[#113566] text-white px-2 py-0.5 rounded text-xs font-bold italic shadow-sm">Prompt</span>
-                                    <span className="text-[#113566] font-black italic text-base">Pay</span>
-                                </div>
-                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
-                                    <QrCode className="w-6 h-6" />
-                                </div>
-                                <h4 className="font-bold text-slate-800 mb-1">ชำระเงินผ่าน PromptPay QR Code</h4>
-                                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">ระบบจะนำคุณไปที่หน้าชำระเงินที่ปลอดภัยของ Stripe เพื่อสร้าง QR Code สำหรับสแกนจ่ายเงินค่ะ</p>
-                            </div>
+                            <div className="w-px h-px opacity-0"></div>
                         </div>
 
                     </div>

@@ -372,10 +372,10 @@ function AuthScreen({ onLogin }) {
         {view === 'signup_step3' && (
           <div className="p-8 text-center animate-in slide-in-from-right-8 duration-300">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-indigo-600" />
+              <Phone className="w-8 h-8 text-indigo-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">ยืนยันอีเมลของคุณ</h2>
-            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">{email}</strong></p>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">ยืนยันเบอร์โทรศัพท์ของคุณ</h2>
+            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">{phone}</strong></p>
 
             <div className="flex justify-center gap-2 mb-8">
               {[1,2,3,4,5,6].map((idx) => (
@@ -400,7 +400,7 @@ function AuthScreen({ onLogin }) {
             </button>
 
             <div className="mt-6 flex flex-col items-center gap-2">
-              <p className="text-xs text-slate-500">ไม่ได้รับอีเมลใช่ไหม?</p>
+              <p className="text-xs text-slate-500">ไม่ได้รับรหัส OTP ใช่ไหม?</p>
               <button className="text-sm font-bold text-indigo-600 hover:underline">ส่งรหัสใหม่อีกครั้ง</button>
               <button onClick={() => setView('signup_step2')} className="text-xs font-semibold text-slate-400 hover:text-slate-600 mt-2">กลับไปแก้ไขข้อมูล</button>
             </div>
