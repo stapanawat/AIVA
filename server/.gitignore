@@ -6,3 +6,5 @@ node_modules
 /generated/prisma
 
 scratch/
+smtp_config.json
+/src/config/smtp_config.json

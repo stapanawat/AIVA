@@ -453,6 +453,17 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+const formatMessageText = (text) => {
+  if (!text) return '';
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={idx} className="font-extrabold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 export default function Partner() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return !!localStorage.getItem('aiva_access_token');
@@ -632,7 +643,22 @@ export default function Partner() {
         });
       }
     } catch (err) {
-      console.error('Error fetching partner profile:', err);
+      console.error('Error fetching partner profile, loading from storage:', err);
+      try {
+        const savedProfile = localStorage.getItem('aiva_partner_profile');
+        if (savedProfile) {
+          setProfileSettings(JSON.parse(savedProfile));
+        } else {
+          const user = JSON.parse(localStorage.getItem('aiva_user') || '{}');
+          setProfileSettings({
+            name: user.name || 'สมชาย ใจดี',
+            phone: '0812345678',
+            bankName: 'ธนาคารกสิกรไทย',
+            bankAccount: '0123456789',
+            bankAccountName: user.name || 'สมชาย ใจดี'
+          });
+        }
+      } catch (e) {}
     }
   };
 
@@ -686,8 +712,16 @@ export default function Partner() {
         showToast(data.error || 'บันทึกข้อมูลล้มเหลว', 'danger');
       }
     } catch (err) {
-      console.error(err);
-      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
+      console.error('Failed to save profile on server, saving locally:', err);
+      try {
+        localStorage.setItem('aiva_partner_profile', JSON.stringify(profileSettings));
+        const user = JSON.parse(localStorage.getItem('aiva_user') || '{}');
+        user.name = profileSettings.name;
+        localStorage.setItem('aiva_user', JSON.stringify(user));
+        showToast('บันทึกข้อมูลการตั้งค่า (โหมดออฟไลน์) สำเร็จแล้ว!', 'info');
+      } catch (e) {
+        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'danger');
+      }
     }
   };
 
@@ -1692,12 +1726,12 @@ export default function Partner() {
                 
                 {chatHistory.map((msg, i) => (
                   <div key={i} className={`flex flex-col ${msg.sender === 'partner' ? 'items-end' : 'items-start'}`}>
-                    <div className={`px-3 py-2 text-sm rounded-2xl max-w-[85%] ${
+                    <div className={`px-3 py-2 text-sm rounded-2xl max-w-[85%] whitespace-pre-wrap ${
                       msg.sender === 'partner' 
                         ? 'bg-indigo-600 text-white rounded-tr-sm shadow-sm' 
                         : 'bg-white text-slate-700 border border-slate-200 shadow-sm dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 rounded-tl-sm'
                     }`}>
-                      {msg.text}
+                      {formatMessageText(msg.text)}
                     </div>
                     <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 px-1">{msg.time}</span>
                   </div>

@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const geminiService = require('../services/geminiService');
+const emailService = require('../services/emailService');
 
 // 1. Partner Management
 const getPartners = async (req, res, next) => {
@@ -418,6 +419,73 @@ const deleteAsset = async (req, res, next) => {
   }
 };
 
+// 4. SMTP Settings
+const getSmtpSettings = async (req, res, next) => {
+  try {
+    const configData = emailService.getSmtpConfig();
+    res.json({
+      host: configData.host,
+      port: configData.port,
+      secure: configData.secure,
+      user: configData.user,
+      from: configData.from,
+      hasPassword: !!configData.pass
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const saveSmtpSettings = async (req, res, next) => {
+  try {
+    const { host, port, secure, user, pass, from } = req.body;
+    const current = emailService.getSmtpConfig();
+    const resolvedPass = (pass === undefined || pass === '__UNCHANGED__') ? current.pass : pass;
+
+    const updated = emailService.saveSmtpConfig({
+      host,
+      port,
+      secure,
+      user,
+      pass: resolvedPass,
+      from
+    });
+
+    res.json({
+      message: 'SMTP configuration saved successfully.',
+      config: {
+        host: updated.host,
+        port: updated.port,
+        secure: updated.secure,
+        user: updated.user,
+        from: updated.from,
+        hasPassword: !!updated.pass
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const testSmtpConnection = async (req, res, next) => {
+  try {
+    const { toEmail } = req.body;
+    if (!toEmail) {
+      return res.status(400).json({ error: 'Recipient email address is required.' });
+    }
+
+    const result = await emailService.sendTestEmail(toEmail);
+    res.json({
+      message: `Test email sent successfully to ${toEmail}.`,
+      messageId: result.messageId,
+      previewUrl: result.previewUrl,
+      mock: result.mock
+    });
+  } catch (error) {
+    res.status(500).json({ error: `SMTP test connection failed: ${error.message}` });
+  }
+};
+
 module.exports = {
   getPartners,
   updatePartnerKyc,
@@ -432,5 +500,9 @@ module.exports = {
   updateTicketStatus,
   getAssets,
   createAsset,
-  deleteAsset
+  deleteAsset,
+  getSmtpSettings,
+  saveSmtpSettings,
+  testSmtpConnection
 };
+

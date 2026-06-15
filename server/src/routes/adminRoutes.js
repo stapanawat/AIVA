@@ -26,4 +26,10 @@ router.get('/assets', adminController.getAssets);
 router.post('/assets', adminController.createAsset);
 router.delete('/assets/:id', adminController.deleteAsset);
 
+// SMTP Configuration Endpoints
+router.get('/smtp', adminController.getSmtpSettings);
+router.post('/smtp', adminController.saveSmtpSettings);
+router.post('/smtp/test', adminController.testSmtpConnection);
+
 module.exports = router;
+

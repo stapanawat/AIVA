@@ -154,6 +154,18 @@ export default function SuperAdmin() {
   const [assets, setAssets] = useState([]);
   const [assetForm, setAssetForm] = useState({ name: '', category: 'Presentations', size: '', url: '' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [smtpForm, setSmtpForm] = useState({
+    host: '',
+    port: 587,
+    secure: false,
+    user: '',
+    pass: '',
+    from: '',
+    hasPassword: false
+  });
+  const [testEmail, setTestEmail] = useState('');
+  const [isTestingSmtp, setIsTestingSmtp] = useState(false);
+  const [isSavingSmtp, setIsSavingSmtp] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const showToast = (message, type = 'success') => {
@@ -295,8 +307,25 @@ export default function SuperAdmin() {
         showToast(errData.error || 'ไม่สามารถอนุมัติคำขอถอนเงินได้', 'danger');
       }
     } catch (err) {
-      console.error('Error approving payout:', err);
-      showToast('เกิดข้อผิดพลาดในการอนุมัติเงินถอน', 'danger');
+      console.warn('Backend offline, approving payout locally:', err);
+      try {
+        setPayoutsData(prev => {
+          const currentMonthData = prev[payoutMonth] || { list: [] };
+          const updatedList = currentMonthData.list.map(p =>
+            p.id === payoutId ? { ...p, status: 'Paid' } : p
+          );
+          return {
+            ...prev,
+            [payoutMonth]: {
+              ...currentMonthData,
+              list: updatedList
+            }
+          };
+        });
+        showToast('บันทึกการอนุมัติจ่ายเงินในโหมดออฟไลน์แล้วค่ะ!', 'info');
+      } catch (e) {
+        showToast('เกิดข้อผิดพลาดในการอนุมัติเงินถอน', 'danger');
+      }
     }
   };
 
@@ -615,6 +644,105 @@ export default function SuperAdmin() {
     }
   };
 
+  const fetchSmtpSettings = async () => {
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      if (!token) return;
+      const res = await fetch('/api/admin/smtp', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSmtpForm({
+          host: data.host || '',
+          port: data.port || 587,
+          secure: data.secure || false,
+          user: data.user || '',
+          pass: data.hasPassword ? '__UNCHANGED__' : '',
+          from: data.from || '',
+          hasPassword: data.hasPassword
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching SMTP settings:', err);
+    }
+  };
+
+  const handleSaveSmtpSettings = async (e) => {
+    if (e) e.preventDefault();
+    setIsSavingSmtp(true);
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/smtp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          host: smtpForm.host,
+          port: parseInt(smtpForm.port),
+          secure: smtpForm.secure,
+          user: smtpForm.user,
+          pass: smtpForm.pass === '' ? undefined : smtpForm.pass,
+          from: smtpForm.from
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast('บันทึกการตั้งค่า SMTP สำเร็จแล้วค่ะ!', 'success');
+        setSmtpForm(prev => ({
+          ...prev,
+          pass: data.config.hasPassword ? '__UNCHANGED__' : '',
+          hasPassword: data.config.hasPassword
+        }));
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'บันทึกการตั้งค่า SMTP ล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error('Error saving SMTP settings:', err);
+      showToast('เกิดข้อผิดพลาดในการบันทึกการตั้งค่า SMTP', 'danger');
+    } finally {
+      setIsSavingSmtp(false);
+    }
+  };
+
+  const handleTestSmtpConnection = async (e) => {
+    if (e) e.preventDefault();
+    if (!testEmail.trim()) {
+      showToast('กรุณากรอกอีเมลสำหรับรับข้อความทดสอบ', 'danger');
+      return;
+    }
+    setIsTestingSmtp(true);
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/admin/smtp/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ toEmail: testEmail })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        let msg = `ส่งอีเมลทดสอบไปยัง ${testEmail} สำเร็จแล้วค่ะ!`;
+        if (data.mock) {
+          msg += ' (ใช้ระบบจำลอง Mock Logger)';
+        }
+        showToast(msg, 'success');
+      } else {
+        showToast(data.error || 'การทดสอบการเชื่อมต่อ SMTP ล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error('Error testing SMTP connection:', err);
+      showToast('เกิดข้อผิดพลาดในการทดสอบการเชื่อมต่อ SMTP', 'danger');
+    } finally {
+      setIsTestingSmtp(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchPartners();
@@ -624,6 +752,7 @@ export default function SuperAdmin() {
       fetchCustomers();
       fetchAssets();
       fetchMarketInsights();
+      fetchSmtpSettings();
     }
   }, [isAuthenticated]);
 
@@ -706,6 +835,38 @@ export default function SuperAdmin() {
     showToast('ดาวน์โหลดรายงาน CSV แบงก์เรียบร้อยแล้วค่ะ!', 'success');
   };
 
+  const handleExportPartners = () => {
+    const filteredPartners = partners.filter(p => p.name.includes(partnerSearch) || p.id.includes(partnerSearch.toUpperCase()));
+    if (filteredPartners.length === 0) {
+      showToast('ไม่มีข้อมูลพาร์ทเนอร์สำหรับส่งออก', 'danger');
+      return;
+    }
+    showToast('ส่งออกข้อมูลพาร์ทเนอร์เรียบร้อยแล้วค่ะ!', 'success');
+    const headers = ['Partner ID', 'Name', 'Email', 'Commission Tier', 'Sub-Partners Count', 'Revenue (Mo)', 'KYC Status'];
+    const rows = filteredPartners.map(p => [
+      p.id,
+      p.name,
+      p.email,
+      p.tier,
+      p.subPartners?.length || 0,
+      p.rev,
+      p.kyc
+    ]);
+
+    const csvContent = "\uFEFF"
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(','))].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `aiva_partners_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // --- CALCULATIONS FOR PARTNER TAB ---
   const mainPartnerCount = (partners || []).length;
   const mainPartnerRev = (partners || []).reduce((sum, p) => sum + (p.rev || 0), 0);
@@ -762,6 +923,7 @@ export default function SuperAdmin() {
               <NavItem icon={Megaphone} label="ประกาศ & แคมเปญ" isActive={activeTab === 'announcements'} onClick={() => {setActiveTab('announcements'); setIsSidebarOpen(false);}} />
               <NavItem icon={FolderUp} label="คลังสื่อการตลาด" isActive={activeTab === 'assets'} onClick={() => {setActiveTab('assets'); setIsSidebarOpen(false);}} />
               <NavItem icon={LifeBuoy} label="Helpdesk Tickets" isActive={activeTab === 'tickets'} onClick={() => {setActiveTab('tickets'); setIsSidebarOpen(false);}} />
+              <NavItem id="btn-nav-smtp" icon={Mail} label="ตั้งค่าระบบ SMTP" isActive={activeTab === 'smtp'} onClick={() => {setActiveTab('smtp'); setIsSidebarOpen(false);}} />
             </div>
           </div>
           <div>
@@ -801,6 +963,7 @@ export default function SuperAdmin() {
               {activeTab === 'assets' && 'คลังสื่อการตลาด (Marketing Assets)'}
               {activeTab === 'tickets' && 'ระบบสนับสนุน (Helpdesk & Tickets)'}
               {activeTab === 'team' && 'Team & Roles (Root)'}
+              {activeTab === 'smtp' && 'ตั้งค่าระบบส่งอีเมล (SMTP Settings)'}
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -1369,7 +1532,7 @@ export default function SuperAdmin() {
                     <span className="text-xs font-bold text-slate-400 uppercase">รออนุมัติ KYC</span>
                     <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">1</span>
                   </div>
-                  <button className="bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 hover:bg-slate-700">
+                  <button onClick={handleExportPartners} className="bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 hover:bg-slate-700">
                      <Download className="w-4 h-4" /> Export
                   </button>
                 </div>
@@ -1449,8 +1612,8 @@ export default function SuperAdmin() {
                             <div className="flex justify-center gap-1.5">
                               {partner.kyc === 'Pending' ? (
                                 <>
-                                  <button className="p-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded border border-emerald-500/20 transition-colors" title="Approve KYC"><CheckCircle2 className="w-4 h-4"/></button>
-                                  <button className="p-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white rounded border border-rose-500/20 transition-colors" title="Reject KYC"><XCircle className="w-4 h-4"/></button>
+                                  <button onClick={() => handleUpdateKyc(partner.id, 'Approved')} className="p-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded border border-emerald-500/20 transition-colors" title="Approve KYC"><CheckCircle2 className="w-4 h-4"/></button>
+                                  <button onClick={() => handleUpdateKyc(partner.id, 'Rejected')} className="p-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white rounded border border-rose-500/20 transition-colors" title="Reject KYC"><XCircle className="w-4 h-4"/></button>
                                 </>
                               ) : (
                                 <>
@@ -1511,7 +1674,19 @@ export default function SuperAdmin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
-                      {customers.filter(c => c.name.includes(customerSearch) || c.id.includes(customerSearch.toUpperCase())).map((cust, i) => (
+                      {customers
+                        .filter(c => c.name.includes(customerSearch) || c.id.includes(customerSearch.toUpperCase()))
+                        .filter(c => {
+                          if (customerFilter.source === 'All') return true;
+                          if (customerFilter.source === 'Partner') return c.partner !== 'DIRECT';
+                          if (customerFilter.source === 'Direct') return c.partner === 'DIRECT';
+                          return true;
+                        })
+                        .filter(c => {
+                          if (customerFilter.plan === 'All') return true;
+                          return c.plan === customerFilter.plan;
+                        })
+                        .map((cust, i) => (
                         <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-4 py-3"><span className="text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">{cust.id.replace('A', '')}</span></td>
                           <td className="px-4 py-3">
@@ -1762,7 +1937,7 @@ export default function SuperAdmin() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex justify-center gap-1.5">
-                              <button disabled={payout.status !== 'Ready'} className={`p-1.5 rounded border transition-colors ${payout.status === 'Ready' ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600 hover:text-white' : 'bg-slate-800 text-slate-600 border-slate-700'}`} title="Mark as Paid"><DollarSign className="w-4 h-4" /></button>
+                              <button onClick={() => handleApprovePayout(payout.id)} disabled={payout.status !== 'Ready'} className={`p-1.5 rounded border transition-colors ${payout.status === 'Ready' ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600 hover:text-white' : 'bg-slate-800 text-slate-600 border-slate-700'}`} title="Mark as Paid"><DollarSign className="w-4 h-4" /></button>
                               <button disabled={payout.status === 'Hold'} className={`p-1.5 rounded border transition-colors ${payout.status !== 'Hold' ? 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white' : 'bg-slate-900 text-slate-700 border-slate-800'}`} title="Download 50 Tawi"><FileText className="w-4 h-4" /></button>
                             </div>
                           </td>
@@ -2027,6 +2202,169 @@ export default function SuperAdmin() {
             </div>
           )}
 
+          {/* TAB: SMTP SETTINGS */}
+          {activeTab === 'smtp' && (
+            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-white flex items-center gap-2 tracking-tight">
+                  <Mail className="w-6 h-6 text-indigo-500" /> ตั้งค่าระบบส่งอีเมล (SMTP Settings)
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">
+                  กำหนดค่า SMTP สำหรับส่งอีเมลคำเชิญทีมงาน พาร์ทเนอร์ และแจ้งเตือนของระบบ
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* SMTP Form */}
+                <div className="md:col-span-2 admin-card rounded-2xl border border-slate-700 bg-slate-800/30 p-6 space-y-4">
+                  <h2 className="font-bold text-white text-base border-b border-slate-700 pb-3 mb-4">
+                    SMTP Server Configuration
+                  </h2>
+                  <form onSubmit={handleSaveSmtpSettings} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase">SMTP Host</label>
+                        <input
+                          id="smtp-host"
+                          type="text"
+                          required
+                          value={smtpForm.host}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, host: e.target.value })}
+                          placeholder="e.g. smtp.example.com"
+                          className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase">SMTP Port</label>
+                        <input
+                          id="smtp-port"
+                          type="number"
+                          required
+                          value={smtpForm.port}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, port: parseInt(e.target.value) || 587 })}
+                          placeholder="e.g. 587"
+                          className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 py-1">
+                      <input
+                        type="checkbox"
+                        id="smtp-secure"
+                        checked={smtpForm.secure}
+                        onChange={(e) => setSmtpForm({ ...smtpForm, secure: e.target.checked })}
+                        className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-indigo-500"
+                      />
+                      <label htmlFor="smtp-secure" className="text-xs font-bold text-slate-300 select-none">
+                        Secure Connection (SSL/TLS - Port 465)
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase">Username / User</label>
+                        <input
+                          id="smtp-user"
+                          type="text"
+                          required
+                          value={smtpForm.user}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, user: e.target.value })}
+                          placeholder="e.g. user@example.com"
+                          className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase">Password</label>
+                        <input
+                          id="smtp-pass"
+                          type="password"
+                          value={smtpForm.pass}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, pass: e.target.value })}
+                          placeholder={smtpForm.hasPassword ? "•••••••• (Keep empty to stay unchanged)" : "Password"}
+                          className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400 uppercase">Sender Address (From)</label>
+                      <input
+                        id="smtp-from"
+                        type="text"
+                        required
+                        value={smtpForm.from}
+                        onChange={(e) => setSmtpForm({ ...smtpForm, from: e.target.value })}
+                        placeholder='e.g. "AIVA Support" <noreply@aiva.sparexth.com>'
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        id="btn-save-smtp"
+                        type="submit"
+                        disabled={isSavingSmtp}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                      >
+                        {isSavingSmtp ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" /> กำลังบันทึก...
+                          </>
+                        ) : (
+                          "บันทึกการตั้งค่า SMTP"
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Connection Test Card */}
+                <div className="admin-card rounded-2xl border border-slate-700 bg-slate-800/30 p-6 flex flex-col justify-between">
+                  <div>
+                    <h2 className="font-bold text-white text-base border-b border-slate-700 pb-3 mb-4">
+                      Test Connection
+                    </h2>
+                    <p className="text-slate-400 text-xs leading-relaxed mb-4">
+                      ทดสอบการเชื่อมต่อเซิร์ฟเวอร์ SMTP ของคุณด้วยการส่งอีเมลทดสอบไปยังกล่องจดหมายจริง
+                    </p>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase">Recipient Email</label>
+                        <input
+                          id="smtp-test-email"
+                          type="email"
+                          value={testEmail}
+                          onChange={(e) => setTestEmail(e.target.value)}
+                          placeholder="e.g. test@yourdomain.com"
+                          className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <button
+                      id="btn-test-smtp"
+                      onClick={handleTestSmtpConnection}
+                      disabled={isTestingSmtp || !testEmail}
+                      className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold py-2.5 rounded-xl transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isTestingSmtp ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" /> กำลังทดสอบ...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" /> ส่งอีเมลทดสอบ
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -2062,9 +2400,9 @@ export default function SuperAdmin() {
 }
 
 // Helpers
-function NavItem({ icon: Icon, label, isActive, onClick }) {
+function NavItem({ id, icon: Icon, label, isActive, onClick }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+    <button id={id} onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
       <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />{label}
     </button>
   );

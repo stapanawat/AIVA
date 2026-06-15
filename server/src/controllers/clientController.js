@@ -3,6 +3,7 @@ const geminiService = require('../services/geminiService');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const storageService = require('../services/storageService');
+const emailService = require('../services/emailService');
 
 // 1. Get Dashboard Stats
 const getDashboardStats = async (req, res, next) => {
@@ -575,7 +576,9 @@ const inviteTeamMember = async (req, res, next) => {
       });
     }
 
+    let isNewUser = false;
     if (!user) {
+      isNewUser = true;
       // Create mock user if they don't exist
       // In production, we'd send an email invite. Here we auto-create with a mock password.
       const mockPasswordHash = '$2a$10$wMhBqVly17m1h.W4c4x/..Mv.8g6qFz/qV31.v.P88942.' // bcrypt 'password'
@@ -621,6 +624,13 @@ const inviteTeamMember = async (req, res, next) => {
         user: true
       }
     });
+
+    // Send invitation email in background
+    const tempPassword = isNewUser ? 'password' : '(ใช้รหัสผ่านปัจจุบันของคุณ)';
+    emailService.sendInviteEmail(newMember.user.email, newMember.user.name, newMember.role, tempPassword)
+      .catch(err => {
+        console.error('[Email Service Error] Failed to send background invite email:', err);
+      });
 
     res.status(201).json({
       id: newMember.id,
@@ -966,10 +976,62 @@ const handleClientSupportChat = async (req, res, next) => {
   }
 };
 
+const toggleChatAi = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const chat = await prisma.chat.findUnique({
+      where: { id }
+    });
+
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    const updated = await prisma.chat.update({
+      where: { id },
+      data: {
+        status: chat.status === 'BOT_HANDLING' ? 'ADMIN_HANDLING' : 'BOT_HANDLING',
+        updatedAt: new Date()
+      }
+    });
+
+    res.json({
+      message: 'Chat AI status updated successfully',
+      aiEnabled: updated.status === 'BOT_HANDLING'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteKnowledgeEntry = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { id } = req.params;
+
+    const entry = await prisma.knowledge.findUnique({
+      where: { id }
+    });
+
+    if (!entry || entry.clientId !== clientId) {
+      return res.status(404).json({ error: 'Knowledge entry not found or access denied.' });
+    }
+
+    await prisma.knowledge.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'Knowledge entry deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getKnowledgeBase,
   createKnowledgeEntry,
+  deleteKnowledgeEntry,
   getChats,
   getChatMessages,
   sendChatMessage,
@@ -989,5 +1051,6 @@ module.exports = {
   createFeedback,
   getLeadScores,
   getLostRevenues,
-  handleClientSupportChat
+  handleClientSupportChat,
+  toggleChatAi
 };

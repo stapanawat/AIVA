@@ -27,11 +27,13 @@ router.get('/dashboard/stats', clientController.getDashboardStats);
 // Knowledge Base
 router.get('/knowledge', clientController.getKnowledgeBase);
 router.post('/knowledge', upload.single('file'), clientController.createKnowledgeEntry);
+router.delete('/knowledge/:id', clientController.deleteKnowledgeEntry);
 
 // Live Chats (with BOLA/IDOR protection middleware)
 router.get('/chats', clientController.getChats);
 router.get('/chats/:id/messages', checkTenantAccess('chat'), clientController.getChatMessages);
 router.post('/chats/:id/send', checkTenantAccess('chat'), clientController.sendChatMessage);
+router.put('/chats/:id/toggle-ai', checkTenantAccess('chat'), clientController.toggleChatAi);
 
 // Leads / CRM
 router.get('/leads', clientController.getLeads);

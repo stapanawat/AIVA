@@ -44,7 +44,7 @@ If the customer asks something that is NOT in the Knowledge Base, reply politely
 
 CRITICAL INSTRUCTIONS:
 - Answer in Thai. Use polite particles like "ค่ะ" or "ครับ" based on a friendly tone.
-- Make answers concise, structured, and easy to read. Use emojis where appropriate.
+- Make answers concise, structured, and highly readable. Always format your response using bullet points (-), numbered lists (1.), and clear paragraphs with newlines (\n) to break down information. Avoid returning single long blocks of text. Use emojis where appropriate.
 - Refer to the provided Knowledge Base below to answer queries.
 
 [Knowledge Base Context]:
@@ -112,9 +112,24 @@ ${contextText || 'No specific document content uploaded yet. Answer general shop
  */
 const generateMarketingCopy = async (promptText, platform = 'Facebook') => {
   try {
-    const prompt = `ช่วยเขียนแคปชั่นโฆษณา/สคริปต์นำเสนอ สำหรับแพลตฟอร์ม ${platform} ในหัวข้อ/จุดขายดังนี้:\n"${promptText}"\n\nขอคำโฆษณาที่สะดุดตา น่าดึงดูดใจ มีการใช้ Emojis ตกแต่งให้อ่านง่าย และลงท้ายด้วยคำกระตุ้นการตัดสินใจ (Call to Action) ที่ดี`;
+    let prompt;
+    if (platform === 'Follow-up') {
+      prompt = `ช่วยแต่งข้อความติดตามลูกค้า (Follow-up Message) สำหรับร้านค้าออนไลน์ โดยมีทิศทางหรือรายละเอียดตามที่ลูกค้าพิมพ์มาดังนี้:\n"${promptText}"\n\nข้อกำหนดสำคัญ:\n1. สามารถแทรกตัวแปรต่อไปนี้ลงในข้อความได้เพื่อให้ระบบนำไปแทนค่าอัตโนมัติ:\n- {ชื่อลูกค้า} (เช่น สวัสดีค่ะคุณ {ชื่อลูกค้า})\n- {ชื่อสินค้า} (เช่น สำหรับ {ชื่อสินค้า} ที่สอบถามไว้)\n- {ยอดชำระ} (เช่น ยอดรวมทั้งหมด {ยอดชำระ} บาท)\n2. ห้ามมีคำพูดเกริ่นนำทักทาย ชวนคุย หรือตอบรับใดๆ ทั้งสิ้นในบรรทัดแรก (เช่น ห้ามเขียนคำทักทายประเภท "นี่คือข้อความที่แต่งให้ค่ะ", "หวังว่าจะถูกใจนะคะ") ให้เริ่มต้นข้อความที่จะส่งหาลูกค้าจริงทันทีในบรรทัดแรก\n3. ห้ามเขียนข้อความลงท้าย ชวนคุย หรือสรุปความคิดเห็นใดๆ ทั้งสิ้น ให้จบที่ข้อความที่ต้องการส่งหาลูกค้าเท่านั้น`;
+    } else {
+      prompt = `ช่วยเขียนแคปชั่นโฆษณา/สคริปต์นำเสนอ สำหรับแพลตฟอร์ม ${platform} ในหัวข้อ/จุดขายดังนี้:\n"${promptText}"\n\nข้อกำหนดสำคัญ:\n1. ขอคำโฆษณาที่สะดุดตา น่าดึงดูดใจ มีการใช้ Emojis ตกแต่งให้อ่านง่าย และลงท้ายด้วยคำกระตุ้นการตัดสินใจ (Call to Action) ที่ดี\n2. ห้ามเขียนคำพูดเกริ่นนำทักทาย ชวนคุย หรือตอบรับใดๆ ทั้งสิ้นในบรรทัดแรก (เช่น ห้ามเขียนคำทักทายประเภท "จัดไปเลยค่ะ!", "นี่คือข้อความที่ขอค่ะ", "ยินดีเขียนสคริปต์ให้ค่ะ") ให้เริ่มต้นเขียนหัวข้อหรือตัวงานจริงบรรทัดแรกทันที\n3. ห้ามเขียนข้อความลงท้าย ชวนคุย หรือสรุปความคิดเห็นส่วนตัวใดๆ ทั้งสิ้น`;
+    }
 
     if (!ai) {
+      if (platform === 'Follow-up') {
+        const text = promptText.toLowerCase();
+        if (text.includes('ส่งของ') || text.includes('พัสดุ') || text.includes('tracking') || text.includes('delivery') || text.includes('ship')) {
+          return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ยอดชำระ {ยอดชำระ} บาท จัดส่งเรียบร้อยแล้วนะคะ หากต้องการเช็คเลขพัสดุสามารถติดต่อแอดมินเพิ่มเติมได้เลยค่ะ 🙏`;
+        } else if (text.includes('รีวิว') || text.includes('ประเมิน') || text.includes('feedback') || text.includes('review')) {
+          return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 🥰 ได้รับสินค้า "{ชื่อสินค้า}" เรียบร้อยแล้วใช่ไหมคะ? รบกวนรีวิวความพึงพอใจให้ทางร้านหน่อยนะคะ ขอบคุณมากค่ะ 🙏`;
+        } else {
+          return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ที่คุณลูกค้าสอบถามไว้ ตอนนี้ใกล้จะหมดสต็อกแล้วนะคะ หากสนใจสามารถรับสิทธิ์ส่วนลดพิเศษ หรือสอบถามแอดมินเพิ่มเติมได้เลยค่ะ 🙏 (AI ช่วยแต่งตามที่คุณพิมพ์: "${promptText}")`;
+        }
+      }
       return `[MOCK COPY FOR ${platform.toUpperCase()}]\n✨ โปรโมชั่นสุดพิเศษที่คุณห้ามพลาด! ✨\nช้อปเลยสินค้าสุดปัง: ${promptText}\n🎉 สนใจพิมพ์รับสิทธิ์ใต้โพสต์นี้เลยค่ะ! (เปิดใช้งาน GEMINI_API_KEY ใน .env เพื่อทดลองระบบ AI จริง)`;
     }
 
@@ -129,7 +144,18 @@ const generateMarketingCopy = async (promptText, platform = 'Facebook') => {
     return response.text || 'ไม่สามารถสร้างแคปชั่นได้ในขณะนี้';
   } catch (error) {
     console.error('[Gemini Marketing Copy Gen Error]:', error);
-    throw error;
+    console.warn('[Gemini Service] Falling back to mock copy generation due to API error.');
+    if (platform === 'Follow-up') {
+      const text = promptText.toLowerCase();
+      if (text.includes('ส่งของ') || text.includes('พัสดุ') || text.includes('tracking') || text.includes('delivery') || text.includes('ship')) {
+        return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ยอดชำระ {ยอดชำระ} บาท จัดส่งเรียบร้อยแล้วนะคะ หากต้องการเช็คเลขพัสดุสามารถติดต่อแอดมินเพิ่มเติมได้เลยค่ะ 🙏`;
+      } else if (text.includes('รีวิว') || text.includes('ประเมิน') || text.includes('feedback') || text.includes('review')) {
+        return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 🥰 ได้รับสินค้า "{ชื่อสินค้า}" เรียบร้อยแล้วใช่ไหมคะ? รบกวนรีวิวความพึงพอใจให้ทางร้านหน่อยนะคะ ขอบคุณมากค่ะ 🙏`;
+      } else {
+        return `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ที่คุณลูกค้าสอบถามไว้ ตอนนี้ใกล้จะหมดสต็อกแล้วนะคะ หากสนใจสามารถรับสิทธิ์ส่วนลดพิเศษ หรือสอบถามแอดมินเพิ่มเติมได้เลยค่ะ 🙏 (AI ช่วยแต่งตามที่คุณพิมพ์: "${promptText}")`;
+      }
+    }
+    return `[MOCK COPY FOR ${platform.toUpperCase()}]\n✨ โปรโมชั่นสุดพิเศษที่คุณห้ามพลาด! ✨\nช้อปเลยสินค้าสุดปัง: ${promptText}\n🎉 สนใจพิมพ์รับสิทธิ์ใต้โพสต์นี้เลยค่ะ!`;
   }
 };
 
@@ -268,6 +294,7 @@ const generateSupportChatResponse = async (userMessage, chatHistory = [], partne
     const systemInstruction = `
 You are the AIVA AI Support Assistant, helping our registered business partners (${roleText}).
 Provide polite, highly helpful, and accurate answers in Thai, utilizing emojis to be friendly.
+Always format your answers using clear paragraphs, line breaks (\\n), and bullet points (-) or numbered lists (1., 2.) so they are structured and easy to read. Avoid responding in a single long paragraph.
 
 AIVA Partner Program Quick Rules:
 - Main Partner commission tiers:

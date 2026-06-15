@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding mock database data...');
 
+  console.log('Cleaning up existing database data...');
+  await prisma.payout.deleteMany({});
+  await prisma.referral.deleteMany({});
+  await prisma.client.deleteMany({});
+  await prisma.user.deleteMany({});
+  console.log('Cleanup finished.');
+
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash('password', salt);
 
@@ -82,6 +89,25 @@ async function main() {
   });
   console.log('Client Workspace seeded:', client.name);
 
+  // Seed integrations to enable LINE and FACEBOOK chats
+  await prisma.integration.createMany({
+    data: [
+      {
+        clientId: client.id,
+        platform: 'LINE',
+        status: 'CONNECTED',
+        config: '{}'
+      },
+      {
+        clientId: client.id,
+        platform: 'FACEBOOK',
+        status: 'CONNECTED',
+        config: '{}'
+      }
+    ]
+  });
+  console.log('Integrations seeded.');
+
   // 5. Add Client Owner as Admin in team member relation
   await prisma.teamMember.create({
     data: {
@@ -137,6 +163,62 @@ async function main() {
     ]
   });
   console.log('CRM Leads seeded.');
+  
+  // 7.5 Seed mock chats for Global Tech Solution client
+  await prisma.chat.create({
+    data: {
+      clientId: client.id,
+      customerName: 'Khun Praew (VIP)',
+      customerContact: '0812345678',
+      platform: 'LINE',
+      status: 'BOT_HANDLING',
+      messages: {
+        create: [
+          { sender: 'CUSTOMER', content: 'สอบถามเดรสสีแดง รุ่นที่พส.ใส่รีวิวเมื่อคืนค่ะ' },
+          { sender: 'BOT', content: 'สวัสดีค่ะคุณลูกค้า 🙏 เดรสสีแดงรุ่น Ruby ตอนนี้พร้อมส่งไซส์ S และ M ค่ะ ราคา 1,290 บาท จัดส่งฟรีนะคะ' },
+          { sender: 'CUSTOMER', content: 'รุ่นที่ไลฟ์เมื่อคืนยังมีของไหมคะ?' },
+          { sender: 'BOT', content: 'ยังมีพร้อมส่งทั้ง 2 ไซส์เลยค่ะ! รับไซส์อะไรดีคะ แอดมินจะได้สรุปยอดให้ค่ะ 💕' },
+          { sender: 'BOT', content: 'รายละเอียดสินค้าเพิ่มเติม:\n- **วัสดุ**: ผ้าคอตตอนพรีเมียม\n- **สไตล์**: ทรงเอ สวยหรูหรา\n* **การจัดส่ง**: ฟรี EMS ทั่วไทย\n• **การรับประกัน**: เปลี่ยนคืนใน 7 วัน' }
+        ]
+      }
+    }
+  });
+
+  await prisma.chat.create({
+    data: {
+      clientId: client.id,
+      customerName: 'Katty',
+      customerContact: '0898765432',
+      platform: 'LINE',
+      status: 'BOT_HANDLING',
+      messages: {
+        create: [
+          { sender: 'CUSTOMER', content: 'เอาไซส์ M ค่ะ โอนเลย' },
+          { sender: 'BOT', content: 'รับทราบค่ะ เดรส Ruby ไซส์ M 1 ชุด ยอดรวม 1,290 บาท รบกวนโอนเข้าบัญชี: กสิกรไทย 012-345-6789 ชื่อบจก. สแปร์เอ็กซ์ ค่ะ' },
+          { sender: 'CUSTOMER', content: 'ส่งสลิปโอนเงิน ยอด 1,290 บาท' },
+          { sender: 'BOT', content: 'ได้รับยอดเงินเรียบร้อยค่ะ 🎉 ขอบคุณที่อุดหนุนนะคะ ทางเราจะจัดส่งสินค้าให้ในวันพรุ่งนี้ค่ะ' }
+        ]
+      }
+    }
+  });
+
+  await prisma.chat.create({
+    data: {
+      clientId: client.id,
+      customerName: 'MewMew',
+      customerContact: 'mew@facebook.com',
+      platform: 'FACEBOOK',
+      status: 'ADMIN_HANDLING',
+      messages: {
+        create: [
+          { sender: 'CUSTOMER', content: 'ได้รับของแล้วแต่ไซส์ไม่พอดี ขอเปลี่ยนค่ะ' },
+          { sender: 'BOT', content: 'ต้องขออภัยในความไม่สะดวกด้วยนะคะ 🙏 ทางเรามีนโยบายรับเปลี่ยนสินค้าภายใน 7 วันค่ะ รบกวนคุณลูกค้าถ่ายรูปสินค้าและป้ายแท็กส่งมาให้ทางเราหน่อยนะคะ เดี๋ยวจะมีแอดมินเข้ามาดูแลให้ทันทีเลยค่ะ' },
+          { sender: 'BOT', content: 'ระหว่างรอแอดมิน คุณลูกค้าสนใจดูคอลเลกชันใหม่ล่าสุดเพิ่มเติมไหมคะ? 👗' }
+        ]
+      }
+    }
+  });
+  console.log('Chats and messages seeded.');
   
   // 8. Seed Referrals for Main Partner P88942
   const mainPartner = await prisma.user.findUnique({ where: { email: 'P88942' } });

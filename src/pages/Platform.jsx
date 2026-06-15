@@ -109,9 +109,9 @@ const MOCK_STATS = {
   }
 };
 const MOCK_KNOWLEDGE = [
-  { id: 1, type: 'pdf', name: 'PriceList_Summer2026.pdf', size: '2.4 MB', status: 'Trained', date: '05/06/2026', tokens: '1,250' },
-  { id: 2, type: 'pdf', name: 'Promotion_Rules.pdf', size: '1.1 MB', status: 'Trained', date: '02/06/2026', tokens: '840' },
-  { id: 3, type: 'url', name: 'https://sparexth.com/shipping-policy', size: '-', status: 'Trained', date: '01/06/2026', tokens: '320' },
+  { id: 1, type: 'pdf', name: 'PriceList_Summer2026.pdf', size: '2.4 MB', status: 'Trained', date: '05/06/2026', tokens: '1,250', content: 'รายการราคาสินค้า คอลเลคชันฤดูร้อนปี 2026: เสื้อยืด 390 บาท, กางเกงขาสั้น 590 บาท, หมวกกันแดด 290 บาท มีโปรโมชั่นซื้อ 2 แถม 1 ฟรี!', sourceUrl: 'https://sparex-storage.s3.amazonaws.com/PriceList_Summer2026.pdf' },
+  { id: 2, type: 'pdf', name: 'Promotion_Rules.pdf', size: '1.1 MB', status: 'Trained', date: '02/06/2026', tokens: '840', content: 'กฎเกณฑ์โปรโมชัน: 1. ส่วนลดสมาชิกสูงสุด 10% 2. คูปองส่งฟรีใช้ได้เมื่อซื้อสินค้าครบ 1,000 บาทขึ้นไป 3. ไม่สามารถใช้ร่วมกับส่วนลดอื่นๆ ได้', sourceUrl: 'https://sparex-storage.s3.amazonaws.com/Promotion_Rules.pdf' },
+  { id: 3, type: 'url', name: 'https://sparexth.com/shipping-policy', size: '-', status: 'Trained', date: '01/06/2026', tokens: '320', content: 'นโยบายการจัดส่งสินค้า: จัดส่งฟรีทั่วประเทศทาง Kerry/Flash เมื่อมียอดสั่งซื้อครบ 500 บาทขึ้นไป (หากไม่ถึง ค่าจัดส่ง 50 บาท) สินค้าถึงใน 1-3 วันทำการ', sourceUrl: 'https://sparexth.com/shipping-policy' },
 ];
 const MOCK_INBOX_LIST = [
   { id: 'C-001', user: 'Khun Praew (VIP)', platform: 'Line OA', query: 'รุ่นที่ไลฟ์เมื่อคืนยังมีของไหมคะ?', status: 'AI Replied', time: '10:05 AM', unreadCount: 0 },
@@ -123,7 +123,8 @@ const MOCK_CHATS = {
     { sender: 'user', text: 'สอบถามเดรสสีแดง รุ่นที่พส.ใส่รีวิวเมื่อคืนค่ะ', time: '10:00 AM' },
     { sender: 'ai', text: 'สวัสดีค่ะคุณลูกค้า 🙏 เดรสสีแดงรุ่น Ruby ตอนนี้พร้อมส่งไซส์ S และ M ค่ะ ราคา 1,290 บาท จัดส่งฟรีนะคะ', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=400&fit=crop', time: '10:01 AM' },
     { sender: 'user', text: 'รุ่นที่ไลฟ์เมื่อคืนยังมีของไหมคะ?', time: '10:05 AM' },
-    { sender: 'ai', text: 'ยังมีพร้อมส่งทั้ง 2 ไซส์เลยค่ะ! รับไซส์อะไรดีคะ แอดมินจะได้สรุปยอดให้ค่ะ 💕', buttons: ['รับไซส์ S', 'รับไซส์ M'], time: '10:05 AM' }
+    { sender: 'ai', text: 'ยังมีพร้อมส่งทั้ง 2 ไซส์เลยค่ะ! รับไซส์อะไรดีคะ แอดมินจะได้สรุปยอดให้ค่ะ 💕', buttons: ['รับไซส์ S', 'รับไซส์ M'], time: '10:05 AM' },
+    { sender: 'ai', text: 'รายละเอียดสินค้าเพิ่มเติม:\n- **วัสดุ**: ผ้าคอตตอนพรีเมียม\n- **สไตล์**: ทรงเอ สวยหรูหรา\n* **การจัดส่ง**: ฟรี EMS ทั่วไทย\n• **การรับประกัน**: เปลี่ยนคืนใน 7 วัน', time: '10:06 AM' }
   ],
   'C-002': [
     { sender: 'user', text: 'เอาไซส์ M ค่ะ โอนเลย', time: '09:10 AM' },
@@ -141,8 +142,10 @@ const MOCK_CHATS = {
   ]
 };
 const MOCK_LEADS = [
-  { id: 1, date: '07/06/2026', name: 'คุณแพรว (VIP)', contact: '081-999-8888', intent: 'CF เดรสรุ่น Summer (Size M)', status: 'Converted' },
-  { id: 2, date: '06/06/2026', name: 'คุณนิว', contact: 'new.fashion@gmail.com', intent: 'สนใจสมัครตัวแทนจำหน่าย', status: 'New' },
+  { id: 1, date: '07/06/2026', name: 'คุณแพรว (VIP)', contact: '081-999-8888', intent: 'CF เดรสรุ่น Summer (Size M)', status: 'Converted', stage: 'Pending Payment', value: 1290, score: 'Hot', time: '10 นาทีที่แล้ว' },
+  { id: 2, date: '06/06/2026', name: 'คุณนิว', contact: 'new.fashion@gmail.com', intent: 'สนใจสมัครตัวแทนจำหน่าย', status: 'New', stage: 'New Leads', value: 0, score: 'Warm', time: 'เพิ่งอัปเดต' },
+  { id: 3, date: '05/06/2026', name: 'MewMew', contact: 'mewmew@gmail.com', intent: 'CF เซ็ตบำรุงผิว', status: 'Converted', stage: 'Pending Payment', value: 3210, score: 'Hot', time: '1 ชม. ที่แล้ว' },
+  { id: 4, date: '04/06/2026', name: 'คุณตูน', contact: 'toon.run@gmail.com', intent: 'ถามไซส์เสื้อ', status: 'Contacted', stage: 'Contacted', value: 1290, score: 'Warm', time: '1 วันที่แล้ว' }
 ];
 const MOCK_RULES = [
   { id: 1, name: 'ลูกค้าถามแล้วเงียบ (ทวงตะกร้า)', delay: '24h', message: 'คุณลูกค้ายังสนใจสินค้ารายการนี้อยู่ไหมคะ? วันนี้ทาง...', active: true },
@@ -286,9 +289,60 @@ function PlatformAuth({ onLogin }) {
   );
 }
 
-// ==========================================
-// MAIN PLATFORM APP
-// ==========================================
+const formatMessageText = (text) => {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const elements = [];
+  let currentList = [];
+
+  const formatBoldText = (str) => {
+    const parts = str.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={idx} className="font-extrabold">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  lines.forEach((line, lineIdx) => {
+    const trimmed = line.trim();
+    const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ');
+    if (isBullet) {
+      const cleanText = trimmed.replace(/^[\-\*•]\s?/, '');
+      currentList.push(
+        <li key={`li-${lineIdx}`} className="list-disc ml-4 pl-1 text-sm text-slate-100">
+          {formatBoldText(cleanText)}
+        </li>
+      );
+    } else {
+      if (currentList.length > 0) {
+        elements.push(
+          <ul key={`ul-${lineIdx}`} className="list-disc pl-4 space-y-1 my-1.5">
+            {[...currentList]}
+          </ul>
+        );
+        currentList = [];
+      }
+      elements.push(
+        <div key={`div-${lineIdx}`} className="min-h-[1.25rem]">
+          {formatBoldText(line)}
+        </div>
+      );
+    }
+  });
+
+  if (currentList.length > 0) {
+    elements.push(
+      <ul key="ul-end" className="list-disc pl-4 space-y-1 my-1.5">
+        {[...currentList]}
+      </ul>
+    );
+  }
+
+  return elements;
+};
+
 export default function Platform() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('aiva_access_token'));
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -347,7 +401,7 @@ export default function Platform() {
   const [growthActionLoading, setGrowthActionLoading] = useState(false);
   const [growthActionSuccess, setGrowthActionSuccess] = useState(false);
   const [showCreateRule, setShowCreateRule] = useState(false);
-  const [newRule, setNewRule] = useState({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false });
+  const [newRule, setNewRule] = useState({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false, couponType: 'percentage', couponValue: '5' });
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const [rulesList, setRulesList] = useState([]);
   const [knowledgeList, setKnowledgeList] = useState(USE_MOCK ? MOCK_KNOWLEDGE : []);
@@ -360,6 +414,7 @@ export default function Platform() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [newKnowledge, setNewKnowledge] = useState({ type: 'text', title: '', content: '', url: '' });
   const [isSubmittingKnowledge, setIsSubmittingKnowledge] = useState(false);
+  const [viewingKnowledgeItem, setViewingKnowledgeItem] = useState(null);
   const [knowledgeSearch, setKnowledgeSearch] = useState('');
   const [inboxList, setInboxList] = useState(USE_MOCK ? MOCK_INBOX_LIST : []);
   const [chatMessages, setChatMessages] = useState({});
@@ -370,14 +425,34 @@ export default function Platform() {
 
 
   // Workspace Settings
-  const [workspaceSettings, setWorkspaceSettings] = useState({
-    aiName: 'แอดมิน AIVA', aiPersona: 'friendly', customPrompt: '', notifyHotLead: true, notifyDailyReport: true
+  const [workspaceSettings, setWorkspaceSettings] = useState(() => {
+    const saved = localStorage.getItem('aiva_local_workspace_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.workspaceSettings) return parsed.workspaceSettings;
+      } catch (e) {}
+    }
+    return {
+      aiName: 'แอดมิน AIVA', aiPersona: 'friendly', customPrompt: '', notifyHotLead: true, notifyDailyReport: true
+    };
   });
   const [showReplySettings, setShowReplySettings] = useState(false);
-  const [replySettings, setReplySettings] = useState({
-    autoReplyComments: true, autoReplyReviews: true, hideSpam: true,
-    aiTone: 'ตอบด้วยความสุภาพ เป็นกันเอง มีอีโมจิเล็กน้อย และลงท้ายด้วย "ค่ะ" เสมอ พร้อมแนะนำให้ลูกค้าทัก Inbox'
+  const [replySettings, setReplySettings] = useState(() => {
+    const saved = localStorage.getItem('aiva_reply_settings');
+    return saved ? JSON.parse(saved) : {
+      autoReplyComments: true,
+      autoReplyReviews: true,
+      hideSpam: true,
+      aiTone: 'ตอบด้วยความสุภาพ เป็นกันเอง มีอีโมจิเล็กน้อย และลงท้ายด้วย "ค่ะ" เสมอ พร้อมแนะนำให้ลูกค้าทัก Inbox'
+    };
   });
+
+  const handleSaveReplySettings = () => {
+    localStorage.setItem('aiva_reply_settings', JSON.stringify(replySettings));
+    showToast('บันทึกการตั้งค่า AI Reply สำเร็จแล้วค่ะ!', 'success');
+    setShowReplySettings(false);
+  };
 
   // Pipeline & Leads State
   const [leadsData, setLeadsData] = useState(USE_MOCK ? MOCK_LEADS : []);
@@ -388,23 +463,58 @@ export default function Platform() {
   const [newDeal, setNewDeal] = useState({ name: '', intent: '', score: 'Warm', stage: 'New Leads', value: '' });
   const [pipelineFilter, setPipelineFilter] = useState('All Stages');
 
-  const [leadScores, setLeadScores] = useState(USE_MOCK ? [
-    { id: 1, name: 'Khun Praew', score: 98, reason: 'สอบถามช่องทางการโอนเงินและระยะเวลาส่ง แนะนำให้รีบส่งเลขบัญชี', aiEnabled: true },
-    { id: 2, name: 'MewMew', score: 95, reason: 'ต้องการสั่งซื้อเซ็ตบำรุงผิว แต่ลังเลเรื่องไซส์ แนะนำให้เสนอโปรแถมฟรี', aiEnabled: false },
-    { id: 3, name: 'คุณตูน', score: 88, reason: 'ถามรายละเอียดสินค้าครบแล้ว เงียบไป 1 ชม. น่าจะรอตัดสินใจ', aiEnabled: true }
-  ] : []);
+  const [leadScores, setLeadScores] = useState(() => {
+    const defaultData = [
+      { id: 1, name: 'Khun Praew', score: 98, reason: 'สอบถามช่องทางการโอนเงินและระยะเวลาส่ง แนะนำให้รีบส่งเลขบัญชี', aiEnabled: true },
+      { id: 2, name: 'MewMew', score: 95, reason: 'ต้องการสั่งซื้อเซ็ตบำรุงผิว แต่ลังเลเรื่องไซส์ แนะนำให้เสนอโปรแถมฟรี', aiEnabled: false },
+      { id: 3, name: 'คุณตูน', score: 88, reason: 'ถามรายละเอียดสินค้าครบแล้ว เงียบไป 1 ชม. น่าจะรอตัดสินใจ', aiEnabled: true }
+    ];
+    try {
+      const savedStates = JSON.parse(localStorage.getItem('aiva_lead_ai_states') || '{}');
+      return defaultData.map(lead => {
+        if (savedStates[lead.id] !== undefined) {
+          return { ...lead, aiEnabled: savedStates[lead.id] };
+        }
+        return lead;
+      });
+    } catch (e) {
+      return defaultData;
+    }
+  });
 
-  const [lostRevenues, setLostRevenues] = useState(USE_MOCK ? [
-    { id: 1, name: 'คุณนิว', product: 'เดรส Summer', value: 1290, reason: 'บ่นว่าค่าส่ง 50 บาทแพงไป แล้วเงียบหาย', action: 'ส่งโค้ดส่งฟรี', btnColor: 'bg-emerald-600', autoEnabled: false },
-    { id: 2, name: 'Khun May', product: 'เซ็ตบำรุงผิว', value: 3210, reason: 'บอกว่ารอเงินเดือนออกสิ้นเดือน (อีก 3 วัน)', action: 'ตั้งแจ้งเตือนทักแชท', btnColor: 'bg-indigo-600', autoEnabled: true },
-    { id: 3, name: 'Katty', product: 'กระเป๋าหนัง', value: 2500, reason: 'สินค้าหมดสต็อกตอนนั้น (ตอนนี้ของเข้าแล้ว)', action: 'แจ้งของเข้า', btnColor: 'bg-amber-600', autoEnabled: false }
-  ] : []);
+  const [lostRevenues, setLostRevenues] = useState(() => {
+    const defaultData = [
+      { id: 1, name: 'คุณนิว', product: 'เดรส Summer', value: 1290, reason: 'บ่นว่าค่าส่ง 50 บาทแพงไป แล้วเงียบหาย', action: 'ส่งโค้ดส่งฟรี', btnColor: 'bg-emerald-600', autoEnabled: false },
+      { id: 2, name: 'Khun May', product: 'เซ็ตบำรุงผิว', value: 3210, reason: 'บอกว่ารอเงินเดือนออกสิ้นเดือน (อีก 3 วัน)', action: 'ตั้งแจ้งเตือนทักแชท', btnColor: 'bg-indigo-600', autoEnabled: true },
+      { id: 3, name: 'Katty', product: 'กระเป๋าหนัง', value: 2500, reason: 'สินค้าหมดสต็อกตอนนั้น (ตอนนี้ของเข้าแล้ว)', action: 'แจ้งของเข้า', btnColor: 'bg-amber-600', autoEnabled: false }
+    ];
+    try {
+      const savedStates = JSON.parse(localStorage.getItem('aiva_lost_revenue_auto_states') || '{}');
+      return defaultData.map(item => {
+        if (savedStates[item.id] !== undefined) {
+          return { ...item, autoEnabled: savedStates[item.id] };
+        }
+        return item;
+      });
+    } catch (e) {
+      return defaultData;
+    }
+  });
 
-  const [editProfile, setEditProfile] = useState({
-    bossName: 'สมชาย ใจดี',
-    bossEmail: 'owner@globaltech.com',
-    brandName: 'GlobalTech Official',
-    businessType: 'ecommerce'
+  const [editProfile, setEditProfile] = useState(() => {
+    const saved = localStorage.getItem('aiva_local_workspace_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.editProfile) return parsed.editProfile;
+      } catch (e) {}
+    }
+    return {
+      bossName: 'สมชาย ใจดี',
+      bossEmail: 'owner@globaltech.com',
+      brandName: 'GlobalTech Official',
+      businessType: 'ecommerce'
+    };
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -498,8 +608,60 @@ export default function Platform() {
   const hasActivePlan = currentPlan === 'Basic' || currentPlan === 'Pro' || currentPlan === 'Advanced';
 
   // Handlers
-  const toggleLeadAi = (id) => setLeadScores(leadScores.map(lead => lead.id === id ? { ...lead, aiEnabled: !lead.aiEnabled } : lead));
-  const toggleLostRevenueAuto = (id) => setLostRevenues(lostRevenues.map(item => item.id === id ? { ...item, autoEnabled: !item.autoEnabled } : item));
+  const toggleLeadAi = async (id) => {
+    // Optimistic UI update
+    setLeadScores(prev => prev.map(lead => lead.id === id ? { ...lead, aiEnabled: !lead.aiEnabled } : lead));
+
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch(`/api/client/chats/${id}/toggle-ai`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showToast('อัปเดตการทำงานของ AI เรียบร้อยแล้วค่ะ!', 'success');
+        fetchLeadScores();
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'ไม่สามารถตั้งค่า AI ทักแชทได้', 'danger');
+        // Rollback state
+        fetchLeadScores();
+      }
+    } catch (err) {
+      console.warn('Backend offline, saving lead score AI state locally:', err);
+      // Persist offline state in localStorage
+      try {
+        const savedStates = JSON.parse(localStorage.getItem('aiva_lead_ai_states') || '{}');
+        const currentLead = leadScores.find(lead => lead.id === id);
+        if (currentLead) {
+          savedStates[id] = !currentLead.aiEnabled;
+          localStorage.setItem('aiva_lead_ai_states', JSON.stringify(savedStates));
+        }
+      } catch (e) {}
+      showToast('บันทึกการตั้งค่า AI ทักแชทในโหมดออฟไลน์แล้ว', 'info');
+    }
+  };
+
+  const toggleLostRevenueAuto = async (id) => {
+    // Optimistic UI update
+    setLostRevenues(prev => prev.map(item => item.id === id ? { ...item, autoEnabled: !item.autoEnabled } : item));
+
+    try {
+      // Save it locally to localStorage which acts as the persistence mechanism
+      const savedStates = JSON.parse(localStorage.getItem('aiva_lost_revenue_auto_states') || '{}');
+      const currentItem = lostRevenues.find(item => item.id === id);
+      if (currentItem) {
+        savedStates[id] = !currentItem.autoEnabled;
+        localStorage.setItem('aiva_lost_revenue_auto_states', JSON.stringify(savedStates));
+        showToast('อัปเดตระบบติดตาม Lost Revenue อัตโนมัติสำเร็จ!', 'success');
+      }
+    } catch (err) {
+      console.error('Failed to save lost revenue auto state:', err);
+    }
+  };
   
   // --- API METHODS ---
   const fetchRules = async () => {
@@ -592,9 +754,19 @@ export default function Platform() {
       });
       if (res.ok) {
         fetchLeads();
+      } else {
+        throw new Error('API request failed');
       }
     } catch (err) {
-      console.error('Failed to update deal stage:', err);
+      console.error('Failed to update deal stage, updating locally:', err);
+      setLeadsData(prev => prev.map(l => {
+        if (l.id === dealId) {
+          const status = newStage === 'New Leads' ? 'New' : newStage === 'Contacted' ? 'Contacted' : 'Converted';
+          return { ...l, stage: newStage, status };
+        }
+        return l;
+      }));
+      showToast('อัปเดตสถานะดีล (โหมดออฟไลน์) เรียบร้อยแล้วค่ะ', 'info');
     }
   };
 
@@ -649,7 +821,9 @@ export default function Platform() {
             date: new Date(item.createdAt).toLocaleDateString('th-TH'),
             tokens: item.tokens,
             status: item.status === 'TRAINED' ? 'Trained' : (item.status === 'FAILED' ? 'Failed' : 'Training'),
-            errorMsg: item.status === 'FAILED' ? item.content : null
+            errorMsg: item.status === 'FAILED' ? item.content : null,
+            content: item.content,
+            sourceUrl: item.sourceUrl
           };
           const idx = list.findIndex(e => e.id === formatted.id || e.name === formatted.name);
           if (idx > -1) {
@@ -662,6 +836,34 @@ export default function Platform() {
       }
     } catch (err) {
       console.warn('Failed to fetch knowledge:', err);
+    }
+  };
+
+  const handleDeleteKnowledge = async (id) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลนี้ออกจากสมอง AI?')) return;
+    
+    if (USE_MOCK) {
+      setKnowledgeList(prev => prev.filter(item => item.id !== id));
+      showToast('ลบข้อมูลสำเร็จแล้ว', 'success');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch(`/api/client/knowledge/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('ลบข้อมูลสำเร็จแล้ว', 'success');
+        fetchKnowledge();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'ลบข้อมูลล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
 
@@ -944,6 +1146,33 @@ export default function Platform() {
     document.body.removeChild(link);
   };
 
+  const handleExportLeadScores = () => {
+    if (!leadScores || leadScores.length === 0) {
+      showToast('ไม่มีข้อมูลลูกค้าพร้อมโอนสำหรับส่งออก', 'danger');
+      return;
+    }
+    showToast('ส่งออกข้อมูลลูกค้าพร้อมโอนเรียบร้อยแล้วค่ะ!', 'success');
+    const headers = ['ชื่อลูกค้า', 'คะแนน', 'เหตุผลจาก AI (Intent Insight)', 'สถานะ AI ทักแชท'];
+    const rows = leadScores.map(lead => [
+      lead.name,
+      lead.score,
+      lead.reason || '',
+      lead.aiEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'
+    ]);
+    
+    const csvContent = "\uFEFF"
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(','))].join('\n');
+      
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `aiva_lead_scores_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // --- API METHODS ---
   const fetchSettings = async () => {
     const formatPlanName = (plan) => {
@@ -985,6 +1214,15 @@ export default function Platform() {
       }
     } catch (err) {
       console.warn('Failed to fetch settings:', err);
+      // Offline fallback
+      try {
+        const saved = localStorage.getItem('aiva_local_workspace_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.workspaceSettings) setWorkspaceSettings(parsed.workspaceSettings);
+          if (parsed.editProfile) setEditProfile(parsed.editProfile);
+        }
+      } catch (e) {}
     }
   };
 
@@ -1013,10 +1251,27 @@ export default function Platform() {
       if (res.ok) {
         setSettingsSaved(true);
         setTimeout(() => setSettingsSaved(false), 2000);
+        showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้วค่ะ!', 'success');
         fetchSettings();
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'ไม่สามารถบันทึกการตั้งค่าระบบได้', 'danger');
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
+      // Save locally
+      try {
+        const localSettings = {
+          editProfile,
+          workspaceSettings
+        };
+        localStorage.setItem('aiva_local_workspace_settings', JSON.stringify(localSettings));
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 2000);
+        showToast('บันทึกการตั้งค่าระบบ (โหมดออฟไลน์) เรียบร้อยแล้วค่ะ!', 'info');
+      } catch (e) {
+        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'danger');
+      }
     }
   };
 
@@ -1046,7 +1301,8 @@ export default function Platform() {
               const year = d.getFullYear();
               return `${day}/${month}/${year}`;
             })() : 'เพิ่งอัปเดต',
-            status: lead.stage === 'NEW' ? 'New' : lead.stage === 'CONTACTED' ? 'Contacted' : 'Converted'
+            status: lead.stage === 'NEW' ? 'New' : lead.stage === 'CONTACTED' ? 'Contacted' : 'Converted',
+            stage: lead.stage === 'NEW' ? 'New Leads' : lead.stage === 'CONTACTED' ? 'Contacted' : lead.stage === 'OFFER' ? 'Contacted' : 'Pending Payment'
           };
           const idx = list.findIndex(item => item.id === formattedLead.id || item.name === formattedLead.name);
           if (idx > -1) {
@@ -1071,7 +1327,18 @@ export default function Platform() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLeadScores(data);
+        try {
+          const savedStates = JSON.parse(localStorage.getItem('aiva_lead_ai_states') || '{}');
+          const merged = data.map(lead => {
+            if (savedStates[lead.id] !== undefined) {
+              return { ...lead, aiEnabled: savedStates[lead.id] };
+            }
+            return lead;
+          });
+          setLeadScores(merged);
+        } catch (e) {
+          setLeadScores(data);
+        }
       }
     } catch (err) {
       console.warn('Failed to fetch lead scores:', err);
@@ -1087,7 +1354,18 @@ export default function Platform() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLostRevenues(data);
+        try {
+          const savedStates = JSON.parse(localStorage.getItem('aiva_lost_revenue_auto_states') || '{}');
+          const merged = data.map(item => {
+            if (savedStates[item.id] !== undefined) {
+              return { ...item, autoEnabled: savedStates[item.id] };
+            }
+            return item;
+          });
+          setLostRevenues(merged);
+        } catch (e) {
+          setLostRevenues(data);
+        }
       }
     } catch (err) {
       console.warn('Failed to fetch lost revenues:', err);
@@ -1194,7 +1472,20 @@ export default function Platform() {
         showToast(errData.error || 'ไม่สามารถเพิ่มสาขาได้', 'danger');
       }
     } catch (err) {
-      console.warn('Failed to add branch:', err);
+      console.warn('Failed to add branch, adding locally:', err);
+      const added = {
+        id: Date.now().toString(),
+        name: newBranch.name,
+        manager: newBranch.manager || 'ไม่มีข้อมูล',
+        status: newBranch.status || 'Active',
+        revenue: 0,
+        chats: 0,
+        customAi: newBranch.customAi
+      };
+      setBranchData(prev => [...prev, added]);
+      setShowAddBranch(false);
+      setNewBranch({ name: '', manager: '', status: 'Active', customAi: false });
+      showToast('เพิ่มสาขาในโหมดออฟไลน์เรียบร้อยแล้วค่ะ!', 'info');
     }
   };
 
@@ -1233,15 +1524,56 @@ export default function Platform() {
     setNewLead({ name: '', contact: '', intent: '', status: 'New' });
   };
   
-  const handleGenerateFollowUpMessage = () => {
+  const handleGenerateFollowUpMessage = async () => {
     setIsGeneratingMessage(true);
-    setTimeout(() => {
+    const userPrompt = newRule.message ? newRule.message.trim() : '';
+    const finalPrompt = userPrompt || 'ตามลูกค้าที่ถามแล้วเงียบไป หรือเสนอโปรโมชัน';
+    
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/client/ai/content-gen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          platform: 'Follow-up'
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setNewRule(prev => ({
+          ...prev,
+          message: data.result || ''
+        }));
+        showToast('AI ช่วยแต่งข้อความเสร็จสิ้นแล้วค่ะ!', 'success');
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'เกิดข้อผิดพลาดในการแต่งข้อความ', 'danger');
+      }
+    } catch (err) {
+      console.warn('Backend offline, using fallback for Follow-up message generation:', err);
+      const text = finalPrompt.toLowerCase();
+      let fallbackText = '';
+      if (text.includes('ส่งของ') || text.includes('พัสดุ') || text.includes('tracking') || text.includes('delivery') || text.includes('ship')) {
+        fallbackText = `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ยอดชำระ {ยอดชำระ} บาท จัดส่งเรียบร้อยแล้วนะคะ หากต้องการเช็คเลขพัสดุสามารถติดต่อแอดมินเพิ่มเติมได้เลยค่ะ 🙏`;
+      } else if (text.includes('รีวิว') || text.includes('ประเมิน') || text.includes('feedback') || text.includes('review')) {
+        fallbackText = `สวัสดีค่ะคุณ {ชื่อลูกค้า} 🥰 ได้รับสินค้า "{ชื่อสินค้า}" เรียบร้อยแล้วใช่ไหมคะ? รบกวนรีวิวความพึงพอใจให้ทางร้านหน่อยนะคะ ขอบคุณมากค่ะ 🙏`;
+      } else {
+        fallbackText = `สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ที่คุณลูกค้าสอบถามไว้ ตอนนี้ใกล้จะหมดสต็อกแล้วนะคะ หากสนใจสามารถรับสิทธิ์ส่วนลดพิเศษ หรือสอบถามแอดมินเพิ่มเติมได้เลยค่ะ 🙏 (แต่งตาม: "${finalPrompt}")`;
+      }
+      
       setNewRule(prev => ({
         ...prev,
-        message: 'สวัสดีค่ะคุณ {ชื่อลูกค้า} 💕 สินค้ารายการ "{ชื่อสินค้า}" ที่คุณลูกค้าสอบถามไว้ ตอนนี้ใกล้จะหมดสต็อกแล้วนะคะ หากสนใจสามารถรับสิทธิ์ส่วนลดพิเศษ หรือสอบถามแอดมินเพิ่มเติมได้เลยค่ะ 🙏'
+        message: fallbackText
       }));
+      showToast('AI ช่วยแต่งข้อความสำเร็จแล้วค่ะ (ระบบจำลอง)!', 'info');
+    } finally {
       setIsGeneratingMessage(false);
-    }, 1500);
+    }
   };
 
   const handleCreateRule = async () => {
@@ -1261,9 +1593,17 @@ export default function Platform() {
         })
       });
       if (res.ok) {
+        const ruleData = await res.json();
+        if (newRule.includeCoupon) {
+          localStorage.setItem(`aiva_rule_coupon_${ruleData.id}`, JSON.stringify({
+            includeCoupon: true,
+            couponType: newRule.couponType,
+            couponValue: newRule.couponValue
+          }));
+        }
         fetchRules();
         setShowCreateRule(false);
-        setNewRule({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false });
+        setNewRule({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false, couponType: 'percentage', couponValue: '5' });
         showToast('สร้างกฎการติดตามเรียบร้อยแล้วค่ะ!', 'success');
       } else {
         const errData = await res.json();
@@ -1271,6 +1611,27 @@ export default function Platform() {
       }
     } catch (err) {
       console.warn('Failed to create rule:', err);
+      // Local fallback for offline demo
+      const mockId = 'local_' + Date.now();
+      const localRule = {
+        id: mockId,
+        name: newRule.name,
+        delay: newRule.delay || '24h',
+        message: newRule.message,
+        active: true,
+        createdAt: new Date().toISOString()
+      };
+      if (newRule.includeCoupon) {
+        localStorage.setItem(`aiva_rule_coupon_${mockId}`, JSON.stringify({
+          includeCoupon: true,
+          couponType: newRule.couponType,
+          couponValue: newRule.couponValue
+        }));
+      }
+      setRulesList(prev => [localRule, ...prev]);
+      setShowCreateRule(false);
+      setNewRule({ name: '', delay: '24h', smartTiming: false, message: '', includeCoupon: false, couponType: 'percentage', couponValue: '5' });
+      showToast('สร้างกฎการติดตามเรียบร้อยแล้วค่ะ (ระบบจำลอง)!', 'info');
     }
   };
   const handleAddDeal = async () => {
@@ -1303,7 +1664,23 @@ export default function Platform() {
         showToast(errData.error || 'ไม่สามารถเพิ่มดีลลูกค้าได้', 'danger');
       }
     } catch (err) {
-      console.warn('Failed to add deal:', err);
+      console.warn('Failed to add deal, adding locally:', err);
+      const added = {
+        id: Date.now(),
+        name: newDeal.name,
+        contact: 'No contact',
+        intent: newDeal.intent || '',
+        value: Number(newDeal.value) || 0,
+        score: newDeal.score || 'Warm',
+        stage: newDeal.stage,
+        status: newDeal.stage === 'New Leads' ? 'New' : newDeal.stage === 'Contacted' ? 'Contacted' : 'Converted',
+        time: 'เพิ่งเพิ่มเมื่อสักครู่',
+        date: new Date().toLocaleDateString('th-TH')
+      };
+      setLeadsData(prev => [added, ...prev]);
+      setShowAddDeal(false);
+      setNewDeal({ name: '', intent: '', score: 'Warm', stage: 'New Leads', value: '' });
+      showToast('เพิ่มดีลในโหมดออฟไลน์เรียบร้อยแล้วค่ะ!', 'info');
     }
   };
   const handleGrowthAction = () => {
@@ -1595,7 +1972,22 @@ export default function Platform() {
   }, []);
 
   useEffect(() => {
-    setPipelineData(leadsData);
+    const mapped = leadsData.map(lead => {
+      let stage = lead.stage;
+      if (!stage) {
+        if (lead.status === 'New') stage = 'New Leads';
+        else if (lead.status === 'Contacted') stage = 'Contacted';
+        else if (lead.status === 'Converted') stage = 'Pending Payment';
+        else stage = 'New Leads';
+      }
+      return {
+        ...lead,
+        stage,
+        time: lead.time || 'เพิ่งอัปเดต',
+        value: lead.value !== undefined ? lead.value : (lead.estValue || 0)
+      };
+    });
+    setPipelineData(mapped);
   }, [leadsData]);
 
   // Auto scroll chat when chatMessages changes
@@ -1731,9 +2123,9 @@ export default function Platform() {
 
           <div className="px-3 py-6 flex-1 overflow-y-auto custom-scrollbar space-y-1">
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-3 mt-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('workspace')}</div>
-            <NavItem icon={LayoutDashboard} label={t('dashboard')} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isLocked={!hasActivePlan} isDark={isDarkMode} />
-            <NavItem icon={BookOpen} label={t('knowledge')} isActive={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} isLocked={!hasActivePlan} isDark={isDarkMode} />
-            <NavItem icon={MessageSquare} label={t('inbox')} isActive={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={(() => {
+            <NavItem id="btn-nav-dashboard" icon={LayoutDashboard} label={t('dashboard')} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isLocked={!hasActivePlan} isDark={isDarkMode} />
+            <NavItem id="btn-nav-knowledge" icon={BookOpen} label={t('knowledge')} isActive={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} isLocked={!hasActivePlan} isDark={isDarkMode} />
+            <NavItem id="btn-nav-inbox" icon={MessageSquare} label={t('inbox')} isActive={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={(() => {
               const count = inboxList.reduce((sum, chat) => {
                 const platformId = Object.keys(PLATFORM_MAP).find(k => PLATFORM_MAP[k] === chat.platform);
                 if (!connectedApps.includes(platformId)) return sum;
@@ -2012,11 +2404,12 @@ export default function Platform() {
                   <table className="w-full text-left text-sm table-fixed min-w-[700px]">
                     <thead className={`text-[10px] uppercase tracking-widest font-bold border-b sticky top-0 z-10 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-100'}`}>
                       <tr>
-                        <th className="px-4 py-3 w-[45%]">ชื่อข้อมูล / แหล่งที่มา</th>
-                        <th className="px-4 py-3 w-[15%] text-center">ขนาด</th>
-                        <th className="px-4 py-3 w-[15%] text-center">วันที่อัปเดต</th>
+                        <th className="px-4 py-3 w-[35%]">ชื่อข้อมูล / แหล่งที่มา</th>
+                        <th className="px-4 py-3 w-[12%] text-center">ขนาด</th>
+                        <th className="px-4 py-3 w-[13%] text-center">วันที่อัปเดต</th>
                         <th className="px-4 py-3 w-[10%] text-center">Tokens</th>
                         <th className="px-4 py-3 w-[15%] text-center">สถานะ AI</th>
+                        <th className="px-4 py-3 w-[15%] text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${isDarkMode ? 'divide-slate-700/50' : 'divide-slate-100'}`}>
@@ -2060,6 +2453,25 @@ export default function Platform() {
                                 <RefreshCw className="w-3 h-3 animate-spin"/> กำลังสอนอยู่
                               </span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button 
+                                onClick={() => setViewingKnowledgeItem(item)}
+                                className={`p-1.5 rounded-lg hover:scale-105 transition-transform flex items-center justify-center cursor-pointer ${isDarkMode ? 'bg-slate-700/60 hover:bg-slate-600 text-indigo-400' : 'bg-slate-100 hover:bg-indigo-50 text-indigo-600'}`}
+                                title="ดูรายละเอียดข้อความที่ AI เรียนรู้"
+                              >
+                                <Eye className="w-4.5 h-4.5" />
+                              </button>
+                              <button 
+                                id={`btn-delete-knowledge-${item.id}`}
+                                onClick={() => handleDeleteKnowledge(item.id)}
+                                className={`btn-delete-knowledge p-1.5 rounded-lg hover:scale-105 transition-transform flex items-center justify-center cursor-pointer ${isDarkMode ? 'bg-slate-700/60 hover:bg-rose-950/40 text-rose-400' : 'bg-slate-100 hover:bg-rose-50 text-rose-600'}`}
+                                title="ลบข้อมูลออกจากสมอง AI"
+                              >
+                                <Trash2 className="w-4.5 h-4.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -2271,7 +2683,7 @@ export default function Platform() {
                                       ? (isDarkMode ? 'bg-slate-700 text-slate-100 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm') 
                                       : (isDarkMode ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-indigo-600 text-white rounded-tr-sm')
                                   }`}>
-                                    {msg.text}
+                                    {formatMessageText(msg.text)}
                                   </div>
                                 )}
                                 {msg.image && (
@@ -2376,8 +2788,8 @@ export default function Platform() {
                            className={`text-xs border rounded-lg px-3 py-1.5 outline-none font-bold shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
                          >
                            <option value="All">ทุกช่องทาง (All)</option>
-                           {connectedApps.includes('facebook') && <option value=""></option>}
-                           {connectedApps.includes('instagram') && <option value=""></option>}
+                           {connectedApps.includes('facebook') && <option value="Facebook">Facebook</option>}
+                           {connectedApps.includes('instagram') && <option value="Instagram">Instagram</option>}
                            {connectedApps.includes('lazada') && <option value="Lazada">Lazada</option>}
                            {connectedApps.includes('tiktok') && <option value="TikTok Shop">TikTok Shop</option>}
                            {connectedApps.includes('youtube') && <option value="YouTube Comments">YouTube</option>}
@@ -2491,7 +2903,7 @@ export default function Platform() {
                             <p className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AI จะพยายามใช้บริบทหรือลักษณะภาษาตามที่คุณพิมพ์ไว้ที่นี่เพื่อตอบกลับลูกค้า</p>
                           </div>
 
-                          <button onClick={() => setShowReplySettings(false)} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
+                          <button onClick={handleSaveReplySettings} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
                             บันทึกการตั้งค่า
                           </button>
                         </div>
@@ -2790,6 +3202,28 @@ export default function Platform() {
                                     <td className="px-4 py-4">
                                       <p className={`font-bold truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{rule.name}</p>
                                       <p className={`text-[10px] truncate mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{rule.message}</p>
+                                      {(() => {
+                                        const stored = localStorage.getItem(`aiva_rule_coupon_${rule.id}`);
+                                        if (stored) {
+                                          try {
+                                            const coupon = JSON.parse(stored);
+                                            if (coupon.includeCoupon) {
+                                              let label = '';
+                                              if (coupon.couponType === 'percentage') label = `ส่วนลด ${coupon.couponValue}%`;
+                                              else if (coupon.couponType === 'amount') label = `ส่วนลด ฿${coupon.couponValue}`;
+                                              else if (coupon.couponType === 'shipping') label = `ส่งฟรี (${coupon.couponValue})`;
+                                              return (
+                                                <div className="mt-1.5 flex">
+                                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                                    <Tag className="w-2.5 h-2.5 text-rose-500" /> {label}
+                                                  </span>
+                                                </div>
+                                              );
+                                            }
+                                          } catch (e) {}
+                                        }
+                                        return null;
+                                      })()}
                                     </td>
                                     <td className="px-4 py-4 text-center">
                                       <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-flex items-center gap-1">
@@ -2915,17 +3349,64 @@ export default function Platform() {
                             </div>
                           </div>
 
-                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}><Tag className="w-4 h-4"/></div>
-                              <div>
-                                <p className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>แนบโค้ดส่วนลด (Discount Booster)</p>
-                                <p className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>ให้ AI เสนอส่วนลด Flash Sale 5% เพื่อกระตุ้นให้โอนเงิน</p>
+                          <div className={`p-4 rounded-xl border flex flex-col gap-4 ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}><Tag className="w-4 h-4"/></div>
+                                <div>
+                                  <p className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>แนบโค้ดส่วนลด (Discount Booster)</p>
+                                  <p className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>ให้ AI เสนอส่วนลดเพื่อกระตุ้นให้โอนเงิน</p>
+                                </div>
+                              </div>
+                              <div onClick={()=>setNewRule({...newRule, includeCoupon: !newRule.includeCoupon})} className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${newRule.includeCoupon ? 'bg-indigo-500' : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`}>
+                                <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${newRule.includeCoupon ? 'translate-x-5' : 'translate-x-1'}`}></div>
                               </div>
                             </div>
-                            <div onClick={()=>setNewRule({...newRule, includeCoupon: !newRule.includeCoupon})} className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${newRule.includeCoupon ? 'bg-indigo-500' : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`}>
-                              <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${newRule.includeCoupon ? 'translate-x-5' : 'translate-x-1'}`}></div>
-                            </div>
+                            
+                            {newRule.includeCoupon && (
+                              <div className={`p-3 rounded-lg border space-y-3 animate-in slide-in-from-top-2 duration-200 ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewRule({...newRule, couponType: 'percentage', couponValue: '5'})}
+                                    className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${newRule.couponType === 'percentage' ? 'bg-indigo-600 text-white border-indigo-600' : (isDarkMode ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100')}`}
+                                  >
+                                    เปอร์เซ็นต์ (%)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewRule({...newRule, couponType: 'amount', couponValue: '50'})}
+                                    className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${newRule.couponType === 'amount' ? 'bg-indigo-600 text-white border-indigo-600' : (isDarkMode ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100')}`}
+                                  >
+                                    จำนวนเงิน (฿)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewRule({...newRule, couponType: 'shipping', couponValue: 'FREESHIP'})}
+                                    className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${newRule.couponType === 'shipping' ? 'bg-indigo-600 text-white border-indigo-600' : (isDarkMode ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100')}`}
+                                  >
+                                    ส่งฟรี (Free)
+                                  </button>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {newRule.couponType === 'percentage' && 'ระบุเปอร์เซ็นต์ส่วนลด (%)'}
+                                    {newRule.couponType === 'amount' && 'ระบุจำนวนเงินส่วนลด (฿)'}
+                                    {newRule.couponType === 'shipping' && 'ระบุโค้ดส่งฟรี'}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newRule.couponValue || ''}
+                                    onChange={(e) => setNewRule({...newRule, couponValue: e.target.value})}
+                                    placeholder={
+                                      newRule.couponType === 'percentage' ? 'เช่น 5, 10, 15' :
+                                      newRule.couponType === 'amount' ? 'เช่น 50, 100, 150' : 'เช่น FREESHIP, SHIPFREE'
+                                    }
+                                    className={`w-full px-2.5 py-1.5 border rounded-lg text-xs outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           <button onClick={handleCreateRule} disabled={!newRule.name || !newRule.message} className={`w-full py-3 rounded-xl text-sm font-bold transition-all shadow-sm ${!newRule.name || !newRule.message ? (isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400') : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>บันทึกและเปิดใช้งาน</button>
@@ -2944,10 +3425,14 @@ export default function Platform() {
                                  </div>
                                )}
                                {newRule.includeCoupon && (
-                                 <div className="bg-gradient-to-r from-rose-500 to-pink-500 p-3.5 rounded-xl text-white shadow-sm mt-1">
+                                 <div className="bg-gradient-to-r from-rose-500 to-pink-500 p-3.5 rounded-xl text-white shadow-sm mt-1 animate-in zoom-in-95 duration-200">
                                    <p className="text-[10px] font-bold uppercase opacity-80 mb-0.5">Flash Sale Offer</p>
                                    <div className="flex justify-between items-end mb-1">
-                                     <p className="text-xl font-black leading-none">ลด 5%</p>
+                                     <p className="text-xl font-black leading-none">
+                                       {newRule.couponType === 'percentage' && `ลด ${newRule.couponValue || '5'}%`}
+                                       {newRule.couponType === 'amount' && `ลด ฿${newRule.couponValue || '50'}`}
+                                       {newRule.couponType === 'shipping' && `ส่งฟรี (${newRule.couponValue || 'FREESHIP'})`}
+                                     </p>
                                      <button className="bg-white text-rose-500 text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">ใช้งาน</button>
                                    </div>
                                    <p className="text-[9px] opacity-90 flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> โค้ดจะหมดอายุใน 24 ชม.</p>
@@ -2982,7 +3467,7 @@ export default function Platform() {
                   <div className={`rounded-2xl border shadow-sm flex flex-col flex-1 overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} min-h-0`}>
                     <div className={`p-4 border-b flex justify-between items-center shrink-0 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50/50 border-slate-100'}`}>
                       <h3 className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>ชี้เป้าลูกค้าพร้อมโอน (Top Hot Leads)</h3>
-                      <button className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${isDarkMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'}`}>Export รายชื่อ</button>
+                      <button onClick={handleExportLeadScores} className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${isDarkMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'}`}>Export รายชื่อ</button>
                     </div>
                     <div className="overflow-auto custom-scrollbar flex-1 p-0">
                       <table className="w-full text-left text-sm table-fixed min-w-[700px]">
@@ -4346,12 +4831,12 @@ export default function Platform() {
               <div className={`p-4 h-72 overflow-y-auto flex flex-col gap-3 custom-scrollbar ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
                  {supportChatHistory.map((msg, idx) => (
                    <div key={idx} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                     <div className={`text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed max-w-[85%] ${
+                     <div className={`text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed max-w-[85%] whitespace-pre-wrap ${
                        msg.sender === 'user'
                          ? 'bg-indigo-600 text-white rounded-tr-sm shadow-sm'
                          : (isDarkMode ? 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm')
                      }`}>
-                       {msg.text}
+                       {formatMessageText(msg.text)}
                      </div>
                      <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 px-1">{msg.time}</span>
                    </div>
@@ -4428,16 +4913,95 @@ export default function Platform() {
                 <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   {newKnowledge.type === 'pdf' ? 'ชื่อเอกสาร / ไฟล์' : newKnowledge.type === 'url' ? 'ชื่อหน้าเว็บ / หัวข้อ' : 'หัวข้อ / คำถาม'}
                 </label>
-                <input type="text" value={newKnowledge.title} onChange={(e)=>setNewKnowledge({...newKnowledge, title: e.target.value})} placeholder="เช่น คู่มือสินค้าสีใหม่" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`} />
+                <input id="input-knowledge-title" type="text" value={newKnowledge.title} onChange={(e)=>setNewKnowledge({...newKnowledge, title: e.target.value})} placeholder="เช่น คู่มือสินค้าสีใหม่" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`} />
               </div>
               <div className="space-y-1.5">
                 <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>เนื้อหาข้อมูลรายละเอียด</label>
-                <textarea rows="5" value={newKnowledge.content} onChange={(e)=>setNewKnowledge({...newKnowledge, content: e.target.value})} placeholder="พิมพ์คำอธิบายรายละเอียดที่ต้องการให้บอทจำ..." className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}></textarea>
+                <textarea id="input-knowledge-content" rows="5" value={newKnowledge.content} onChange={(e)=>setNewKnowledge({...newKnowledge, content: e.target.value})} placeholder="พิมพ์คำอธิบายรายละเอียดที่ต้องการให้บอทจำ..." className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}></textarea>
               </div>
-              <button onClick={handleAddKnowledge} disabled={isSubmittingKnowledge} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl mt-4 flex items-center justify-center gap-2">
+              <button id="btn-save-knowledge" onClick={handleAddKnowledge} disabled={isSubmittingKnowledge} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl mt-4 flex items-center justify-center gap-2">
                 {isSubmittingKnowledge ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4"/>}
                 {isSubmittingKnowledge ? 'กำลังบันทึก...' : 'สอนข้อมูล AIVA'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Knowledge Modal */}
+      {viewingKnowledgeItem && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className={`rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+            <div className={`p-5 border-b flex justify-between items-center ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-slate-50'}`}>
+              <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate pr-4`}>
+                รายละเอียดข้อมูลในสมอง AI
+              </h3>
+              <button onClick={() => setViewingKnowledgeItem(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">ชื่อข้อมูล / หัวข้อ</p>
+                <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{viewingKnowledgeItem.name}</h4>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">ประเภท</p>
+                  <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                    {viewingKnowledgeItem.type === 'pdf' ? 'เอกสาร (PDF/Word/TXT)' : viewingKnowledgeItem.type === 'url' ? 'เว็บไซต์ (URL)' : 'ข้อความโดยตรง (Text)'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">ขนาดไฟล์ / ความยาว</p>
+                  <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{viewingKnowledgeItem.size}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tokens</p>
+                  <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{viewingKnowledgeItem.tokens}</p>
+                </div>
+              </div>
+
+              {viewingKnowledgeItem.sourceUrl && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">แหล่งที่มาของข้อมูล (Source Link)</p>
+                  <a 
+                    href={viewingKnowledgeItem.sourceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-xs text-indigo-500 hover:underline flex items-center gap-1 font-semibold break-all"
+                  >
+                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                    {viewingKnowledgeItem.sourceUrl}
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">เนื้อหาที่ดึงมาวิเคราะห์ (Extracted Content)</p>
+                <div className={`text-xs p-4 rounded-xl border max-h-60 overflow-y-auto leading-relaxed whitespace-pre-wrap font-sans ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                  {viewingKnowledgeItem.content || 'ไม่มีเนื้อหาข้อมูล'}
+                </div>
+              </div>
+              
+              <div className="pt-2 flex justify-end gap-2">
+                <button 
+                  onClick={() => setViewingKnowledgeItem(null)} 
+                  className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer ${isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                >
+                  ปิดหน้าต่าง
+                </button>
+                <button 
+                  onClick={() => {
+                    const idToDelete = viewingKnowledgeItem.id;
+                    setViewingKnowledgeItem(null);
+                    handleDeleteKnowledge(idToDelete);
+                  }} 
+                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> ลบข้อมูลนี้
+                </button>
+              </div>
             </div>
           </div>
         </div>

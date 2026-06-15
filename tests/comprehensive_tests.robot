@@ -25,6 +25,15 @@ Navigate To Portal
     Click Element    xpath=//button[contains(., '${portal_name}')]
     Sleep    1s
 
+Wait For Dashboard Status Banner
+    Wait Until Keyword Succeeds    15s    0.5s    Verify Dashboard Status Banner
+
+Verify Dashboard Status Banner
+    ${ready}=    Run Keyword And Return Status    Page Should Contain    AIVA Agent ของคุณพร้อมทำงานแล้ว!
+    IF    ${ready}    RETURN
+    Page Should Contain    AIVA เชื่อมต่อช่องทางสำเร็จแล้ว!
+
+
 *** Test Cases ***
 Scenario 1: Landing Page Billing Switcher & Checkout Integration
     [Tags]    e2e    landing
@@ -84,9 +93,9 @@ Scenario 2: Client Platform Dashboard & Management Features
     Input Text    xpath=(//input[@type='password'])[1]    password
     Click Element    xpath=//button[contains(., 'เข้าสู่ระบบ AIVA Platform')]
     
-    # Check Dashboard loads
-    Wait Until Page Contains    AIVA Agent ของคุณพร้อมทำงานแล้ว!    timeout=10s
-    Wait Until Page Contains    ภาพรวม    timeout=5s
+    # Wait for dashboard to load
+    Wait Until Page Contains    ภาพรวม    timeout=10s
+    Wait For Dashboard Status Banner
     
     # Switch to "สอน AIVA" (Knowledge Base)
     Click Element    xpath=//*[contains(text(), 'สอน AIVA')]
@@ -104,8 +113,8 @@ Scenario 2: Client Platform Dashboard & Management Features
     Click Element    xpath=//button[contains(., 'ส่งคำเชิญ')]
     
     # Check that new team member was added to list
-    Page Should Contain    น้องมะลิ แอดมิน
-    Page Should Contain    mali@example.com
+    Wait Until Page Contains    น้องมะลิ แอดมิน    timeout=10s
+    Wait Until Page Contains    mali@example.com    timeout=5s
     
     # Cycle Language
     Page Should Contain    จัดการทีม
@@ -183,3 +192,112 @@ Scenario 4: Super Admin Portal KYC Approval and Partner Center
     # Logout
     Click Element    xpath=//p[contains(., 'System Logout')]
     Wait Until Page Contains    SuperAdmin    timeout=5s
+
+Scenario 5: Super Admin SMTP Configuration and Connection Test
+    [Tags]    feature    admin    smtp
+    Navigate To Portal    Super Admin
+    
+    # Login to Super Admin
+    Wait Until Page Contains    SuperAdmin    timeout=5s
+    Input Text    xpath=(//input[@type='text'])[1]    ROOT-01
+    Input Text    xpath=(//input[@type='password'])[1]    password
+    Click Element    xpath=//button[contains(., 'Authorize Access')]
+    
+    # Wait for dashboard to load
+    Wait Until Page Contains    Partners    timeout=10s
+    
+    # Click SMTP Settings tab
+    Wait Until Element Is Visible    id=btn-nav-smtp    timeout=10s
+    Click Element    id=btn-nav-smtp
+    
+    # Verify SMTP fields are visible
+    Wait Until Element Is Visible    id=smtp-host    timeout=5s
+    Wait Until Element Is Visible    id=smtp-port    timeout=5s
+    Wait Until Element Is Visible    id=smtp-user    timeout=5s
+    Wait Until Element Is Visible    id=smtp-pass    timeout=5s
+    Wait Until Element Is Visible    id=smtp-from    timeout=5s
+    
+    # Input SMTP settings
+    Input Text    id=smtp-host    smtp.ethereal.email
+    Input Text    id=smtp-port    587
+    Input Text    id=smtp-user    test_admin@ethereal.email
+    Input Text    id=smtp-pass    test_password123
+    Input Text    id=smtp-from    "AIVA Test" <test_admin@ethereal.email>
+    
+    # Save settings
+    Click Button    id=btn-save-smtp
+    Wait Until Page Contains    บันทึกการตั้งค่า SMTP สำเร็จแล้วค่ะ!    timeout=5s
+    
+    # Input test recipient and test connection
+    Input Text    id=smtp-test-email    recipient@gmail.com
+    Click Button    id=btn-test-smtp
+    Wait Until Page Contains    ส่งอีเมลทดสอบไปยัง recipient@gmail.com สำเร็จแล้วค่ะ!    timeout=15s
+    
+    # Logout
+    Click Element    xpath=//p[contains(., 'System Logout')]
+    Wait Until Page Contains    SuperAdmin    timeout=5s
+
+Scenario 6: Client Platform AI Chat Bullets & Knowledge Deletion
+    [Tags]    feature    platform    knowledge    chat
+    Navigate To Portal    Client Platform
+    
+    # Login to Client Platform
+    Wait Until Page Contains    เข้าสู่ระบบการจัดการ    timeout=5s
+    Input Text    xpath=(//input[@type='email'])[1]    admin@globaltech.com
+    Input Text    xpath=(//input[@type='password'])[1]    password
+    Click Element    xpath=//button[contains(., 'เข้าสู่ระบบ AIVA Platform')]
+    
+    # Wait for dashboard to load
+    Wait Until Page Contains    ภาพรวม    timeout=10s
+    Wait For Dashboard Status Banner
+    
+    # Go to "สอน AIVA" (Knowledge Base)
+    Click Element    id=btn-nav-knowledge
+    Wait Until Page Contains    รายการข้อมูลในสมอง AI    timeout=5s
+    
+    # Generate random suffix
+    ${rand}=    Evaluate    random.randint(100000, 999999)    random
+    
+    # Add new text knowledge item
+    Click Element    xpath=//button[contains(., 'พิมพ์ข้อความโดยตรง (Text)')]
+    Wait Until Element Is Visible    id=input-knowledge-title    timeout=5s
+    Input Text    id=input-knowledge-title    นโยบายการคืนสินค้า_${rand}
+    Input Text    id=input-knowledge-content    - คืนสินค้าได้ภายใน 7 วัน\n- สินค้าต้องไม่ผ่านการใช้งาน\n* ต้องมีใบเสร็จรับเงิน
+    Click Button    id=btn-save-knowledge
+    
+    # Verify the new item is listed
+    Wait Until Page Contains    นโยบายการคืนสินค้า_${rand}    timeout=5s
+    
+    # Mock window.confirm to auto-approve deletion
+    Execute Javascript    window.confirm = function() { return true; }
+    
+    # Delete the new item
+    Wait Until Element Is Visible    xpath=//span[contains(text(), 'นโยบายการคืนสินค้า_${rand}')]/ancestor::tr//button[contains(@class, 'btn-delete-knowledge')]    timeout=5s
+    Click Element    xpath=//span[contains(text(), 'นโยบายการคืนสินค้า_${rand}')]/ancestor::tr//button[contains(@class, 'btn-delete-knowledge')]
+    
+    # Verify deletion message/removal
+    Wait Until Page Contains    ลบข้อมูลสำเร็จแล้ว    timeout=5s
+    Wait Until Page Does Not Contain    นโยบายการคืนสินค้า_${rand}    timeout=5s
+    
+    # Go to "AIVA Inbox & Chat"
+    Click Element    id=btn-nav-inbox
+    Wait Until Page Contains    AIVA Inbox & Chat    timeout=5s
+    
+    # Click on the first chat (Khun Praew (VIP))
+    Wait Until Element Is Visible    xpath=//*[contains(text(), 'Khun Praew (VIP)')]    timeout=5s
+    Click Element    xpath=//*[contains(text(), 'Khun Praew (VIP)')]
+    
+    # Verify bullet point message renders correctly in HTML structure
+    Wait Until Element Is Visible    xpath=//ul[contains(@class, 'list-disc')]/li    timeout=5s
+    Page Should Contain Element    xpath=//ul[contains(@class, 'list-disc')]/li/strong[contains(text(), 'วัสดุ')]
+    Page Should Contain Element    xpath=//ul[contains(@class, 'list-disc')]/li/strong[contains(text(), 'สไตล์')]
+    Page Should Contain Element    xpath=//ul[contains(@class, 'list-disc')]/li/strong[contains(text(), 'การจัดส่ง')]
+    Page Should Contain Element    xpath=//ul[contains(@class, 'list-disc')]/li/strong[contains(text(), 'การรับประกัน')]
+    
+    # Logout
+    Click Element    id=btn-nav-settings
+    Wait Until Page Contains    ตั้งค่าระบบ    timeout=5s
+    Click Element    id=btn-logout-platform
+    Wait Until Page Contains    เข้าสู่ระบบการจัดการ    timeout=5s
+
+
