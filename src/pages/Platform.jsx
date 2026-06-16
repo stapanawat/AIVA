@@ -602,6 +602,14 @@ export default function Platform() {
   const tokenPercentage = (stats.tokensUsed / stats.tokenLimit) * 100;
   const isSidebarVisible = isSidebarPinned || isSidebarHovered;
   
+  const hotCount = (leadScores || []).filter(l => l.score >= 90).length;
+  const warmCount = (leadScores || []).filter(l => l.score >= 70 && l.score < 90).length;
+  const coldCount = (leadScores || []).filter(l => l.score < 70).length;
+
+  const lostSum = (lostRevenues || []).reduce((sum, item) => sum + (item.value || 0), 0);
+  const recoveredSum = (lostRevenues || []).filter(item => item.autoEnabled).reduce((sum, item) => sum + (item.value || 0), 0);
+  const recoverableSum = lostSum - recoveredSum;
+  
   // --- FEATURE ACCESS LOGIC (LOCK SYSTEM) ---
   const isProOrAbove = currentPlan === 'Pro' || currentPlan === 'Advanced';
   const isAdvancedOnly = currentPlan === 'Advanced';
@@ -3499,9 +3507,9 @@ export default function Platform() {
                   <div className="mb-6 shrink-0"><h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><Flame className="w-6 h-6 text-rose-500" /> AIVA Lead Score</h2></div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 mb-6">
-                     <StatCard title="HOT LEADS (พร้อมโอน)" value={USE_MOCK ? "12" : "0"} icon={Flame} color="rose" isDark={isDarkMode} />
-                     <StatCard title="WARM LEADS (ลังเล)" value={USE_MOCK ? "45" : "0"} icon={Sun} color="amber" isDark={isDarkMode} />
-                     <StatCard title="COLD LEADS (ถามเฉยๆ)" value={USE_MOCK ? "89" : "0"} icon={Moon} color="blue" isDark={isDarkMode} />
+                     <StatCard title="HOT LEADS (พร้อมโอน)" value={USE_MOCK ? "12" : hotCount.toString()} icon={Flame} color="rose" isDark={isDarkMode} />
+                     <StatCard title="WARM LEADS (ลังเล)" value={USE_MOCK ? "45" : warmCount.toString()} icon={Sun} color="amber" isDark={isDarkMode} />
+                     <StatCard title="COLD LEADS (ถามเฉยๆ)" value={USE_MOCK ? "89" : coldCount.toString()} icon={Moon} color="blue" isDark={isDarkMode} />
                   </div>
 
                   <div className={`rounded-2xl border shadow-sm flex flex-col flex-1 overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} min-h-0`}>
@@ -3569,9 +3577,9 @@ export default function Platform() {
                 <>
                   <div className="mb-6 shrink-0"><h2 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><AlertOctagon className="w-6 h-6 text-rose-600" /> AIVA Lost Revenue Detector</h2></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 mb-6">
-                     <StatCard title="💰 ยอดขายที่เสียไป" value={USE_MOCK ? "฿142,500" : "฿0"} icon={TrendingDown} color="rose" isDark={isDarkMode} />
-                     <StatCard title="🎯 โอกาสที่กู้คืนได้" value={USE_MOCK ? "฿85,400" : "฿0"} icon={RefreshCcw} color="amber" isDark={isDarkMode} />
-                     <StatCard title="✅ กู้คืนสำเร็จแล้ว" value={USE_MOCK ? "฿45,600" : "฿0"} icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
+                     <StatCard title="💰 ยอดขายที่เสียไป" value={USE_MOCK ? "฿142,500" : "฿" + lostSum.toLocaleString()} icon={TrendingDown} color="rose" isDark={isDarkMode} />
+                     <StatCard title="🎯 โอกาสที่กู้คืนได้" value={USE_MOCK ? "฿85,400" : "฿" + recoverableSum.toLocaleString()} icon={RefreshCcw} color="amber" isDark={isDarkMode} />
+                     <StatCard title="✅ กู้คืนสำเร็จแล้ว" value={USE_MOCK ? "฿45,600" : "฿" + recoveredSum.toLocaleString()} icon={CheckCircle2} color="emerald" isDark={isDarkMode} />
                   </div>
                   <div className={`bg-white rounded-2xl shadow-sm border flex flex-col flex-1 overflow-hidden saas-card min-h-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'border-slate-200'}`}>
                     <div className={`p-5 border-b flex justify-between items-center shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50'}`}>
