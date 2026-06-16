@@ -99,17 +99,23 @@ const createCheckoutSession = async (req, res, next) => {
     const method = paymentMethod === 'promptpay' ? 'promptpay' : 'card';
     const checkoutMode = method === 'promptpay' ? 'payment' : 'subscription';
 
-    // If method is promptpay, construct one-time pricing to prevent Stripe errors with recurring price IDs
-    const lineItems = method === 'promptpay' ? [{
+    // Construct unified VAT 7% inclusive pricing for both promptpay (one-time) and card (subscription)
+    const lineItems = [{
       price_data: {
         currency: 'thb',
         product_data: {
-          name: `AIVA ${plan} Plan - ${billingCycle === 'monthly' ? '1 Month' : billingCycle === 'halfYear' ? '6 Months' : '1 Year'}`,
+          name: `AIVA ${plan} Plan - ${billingCycle === 'monthly' ? 'รายเดือน' : billingCycle === 'halfYear' ? 'ราย 6 เดือน' : 'รายปี'} (รวม VAT 7%)`,
         },
         unit_amount: Math.round(MOCK_PRICES[plan][billingCycle] * 1.07 * 100),
+        ...(method === 'card' ? {
+          recurring: {
+            interval: billingCycle === 'yearly' ? 'year' : 'month',
+            interval_count: billingCycle === 'halfYear' ? 6 : 1
+          }
+        } : {})
       },
       quantity: 1
-    }] : [{ price: priceId, quantity: 1 }];
+    }];
 
     // Create session
     const session = await stripe.checkout.sessions.create({

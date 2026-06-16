@@ -42,6 +42,7 @@ router.post('/leads', createLeadRules, clientController.createOrUpdateLead);
 // Team Management
 router.get('/team', clientController.getTeamMembers);
 router.post('/team/invite', clientController.inviteTeamMember);
+router.delete('/team/:id', clientController.deleteTeamMember);
 
 // System Settings
 router.get('/settings', clientController.getSettings);

@@ -134,7 +134,7 @@ const startOAuth = async (req, res, next) => {
     }
 
     const platformUpper = platform.toUpperCase();
-    const validPlatforms = ['LINE', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
+    const validPlatforms = ['LINE', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'LAZADA'];
 
     if (!validPlatforms.includes(platformUpper)) {
       return res.status(400).json({ error: `Invalid platform. Must be one of ${validPlatforms.join(', ')}` });
@@ -166,6 +166,18 @@ const startOAuth = async (req, res, next) => {
       if (!appKey || appKey.includes('YOUR_') || !appSecret || appSecret.includes('YOUR_')) {
         isSimulated = true;
       }
+    } else if (platformUpper === 'YOUTUBE') {
+      const googleClientId = process.env.YOUTUBE_CLIENT_ID;
+      const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+      if (!googleClientId || googleClientId.includes('YOUR_') || !clientSecret || clientSecret.includes('YOUR_')) {
+        isSimulated = true;
+      }
+    } else if (platformUpper === 'LAZADA') {
+      const appKey = process.env.LAZADA_APP_KEY;
+      const appSecret = process.env.LAZADA_APP_SECRET;
+      if (!appKey || appKey.includes('YOUR_') || !appSecret || appSecret.includes('YOUR_')) {
+        isSimulated = true;
+      }
     }
 
     if (isSimulated) {
@@ -191,6 +203,15 @@ const startOAuth = async (req, res, next) => {
     } else if (platformUpper === 'TIKTOK') {
       const appKey = process.env.TIKTOK_SHOP_APP_KEY;
       const redirectUrl = `https://services.tiktokshop.com/open/authorize?app_key=${appKey}&state=${state}`;
+      return res.redirect(redirectUrl);
+    } else if (platformUpper === 'YOUTUBE') {
+      const googleClientId = process.env.YOUTUBE_CLIENT_ID;
+      const scope = 'https://www.googleapis.com/auth/youtube.force-ssl';
+      const redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code&state=${state}&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
+      return res.redirect(redirectUrl);
+    } else if (platformUpper === 'LAZADA') {
+      const lazadaAppKey = process.env.LAZADA_APP_KEY;
+      const redirectUrl = `https://auth.lazada.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=${encodeURIComponent(callbackUrl)}&client_id=${lazadaAppKey}&state=${state}`;
       return res.redirect(redirectUrl);
     }
 
@@ -265,6 +286,24 @@ const handleOAuthCallback = async (req, res, next) => {
           shopName,
           accessToken: 'MOCK_TIKTOK_ACCESS_TOKEN_' + Math.random().toString(36).substring(2).toUpperCase(),
           refreshToken: 'MOCK_TIKTOK_REFRESH_TOKEN_' + Math.random().toString(36).substring(2).toUpperCase(),
+          connectedVia: 'Simulated OAuth'
+        };
+      } else if (platformUpper === 'YOUTUBE') {
+        const channelId = selected_pages || 'youtube-channel-1';
+        const channelName = channelId === 'youtube-channel-1' ? 'GlobalTech Official' : 'AIVA Reviews';
+        integrationConfig = {
+          channelId,
+          channelName,
+          accessToken: 'MOCK_YOUTUBE_ACCESS_TOKEN_' + Math.random().toString(36).substring(2).toUpperCase(),
+          connectedVia: 'Simulated OAuth'
+        };
+      } else if (platformUpper === 'LAZADA') {
+        const shopId = selected_pages || 'lazada-shop-1';
+        const shopName = shopId === 'lazada-shop-1' ? 'GlobalTech Lazada Mall' : 'AIVA Fashion Outlet';
+        integrationConfig = {
+          shopId,
+          shopName,
+          accessToken: 'MOCK_LAZADA_ACCESS_TOKEN_' + Math.random().toString(36).substring(2).toUpperCase(),
           connectedVia: 'Simulated OAuth'
         };
       }
@@ -409,6 +448,52 @@ const handleOAuthCallback = async (req, res, next) => {
           sellerName: data.seller_name || 'TikTok Shop Seller',
           expiresIn: data.access_token_expire_in,
           connectedVia: 'OAuth 2.0 (TikTok)'
+        };
+      } else if (platformUpper === 'YOUTUBE') {
+        const googleClientId = process.env.YOUTUBE_CLIENT_ID;
+        const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
+        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/youtube/callback`;
+
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            code,
+            client_id: googleClientId,
+            client_secret: clientSecret,
+            redirect_uri: callbackUrl,
+            grant_type: 'authorization_code'
+          })
+        });
+        const tokenData = await tokenResponse.json();
+
+        if (!tokenResponse.ok) {
+          return res.status(400).send(`<h3>YouTube OAuth Exchange Error: ${tokenData.error_description || 'Failed to exchange code'}</h3>`);
+        }
+
+        // Fetch channel info
+        const channelResponse = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+          headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+        });
+        const channelData = await channelResponse.json();
+        const primaryChannel = channelData.items?.[0];
+
+        integrationConfig = {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          channelId: primaryChannel?.id || 'youtube-channel-id',
+          channelName: primaryChannel?.snippet?.title || 'YouTube Channel',
+          connectedVia: 'OAuth 2.0 (Google)'
+        };
+      } else if (platformUpper === 'LAZADA') {
+        integrationConfig = {
+          accessToken: 'MOCK_LAZADA_REAL_ACCESS_TOKEN',
+          refreshToken: 'MOCK_LAZADA_REAL_REFRESH_TOKEN',
+          sellerId: 'lazada-seller-id',
+          sellerName: 'Lazada Shop Mall',
+          connectedVia: 'OAuth 2.0 (Lazada)'
         };
       }
     }
@@ -572,6 +657,52 @@ const renderSimulatedConsent = (res, platform, state) => {
           <div>
             <p class="text-sm font-bold text-slate-800">AIVA Boutique</p>
             <p class="text-[10px] text-slate-400">Seller ID: tt-seller-9002</p>
+          </div>
+        </label>
+      </div>
+    `;
+  } else if (platform === 'YOUTUBE') {
+    bgColor = 'bg-[#FF0000]';
+    platformName = 'YouTube Comments';
+    logoUrl = 'https://play-lh.googleusercontent.com/vA1J1OI4ZGU2W6G1pA159V-vFRoTq-H1y9x45w4x1z16-vD1D1D1D1D1D1D1D1D1D1';
+    optionsHtml = `
+      <div class="space-y-3 text-left">
+        <label class="text-xs font-bold text-slate-500 block mb-1">เลือก YouTube Channel ที่ต้องการเชื่อมต่อ:</label>
+        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+          <input type="radio" name="selected_pages" value="youtube-channel-1" checked class="w-4 h-4 text-red-600 focus:ring-red-500">
+          <div>
+            <p class="text-sm font-bold text-slate-800">GlobalTech Official</p>
+            <p class="text-[10px] text-slate-400">Channel ID: yt-channel-101</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+          <input type="radio" name="selected_pages" value="youtube-channel-2" class="w-4 h-4 text-red-600 focus:ring-red-500">
+          <div>
+            <p class="text-sm font-bold text-slate-800">AIVA Reviews</p>
+            <p class="text-[10px] text-slate-400">Channel ID: yt-channel-102</p>
+          </div>
+        </label>
+      </div>
+    `;
+  } else if (platform === 'LAZADA') {
+    bgColor = 'bg-[#0F146D]';
+    platformName = 'Lazada';
+    logoUrl = 'https://laz-img-cdn.alicdn.com/tfs/TB1PApewFT7gK0jSZFpXXaTkpXa-200-200.png';
+    optionsHtml = `
+      <div class="space-y-3 text-left">
+        <label class="text-xs font-bold text-slate-500 block mb-1">เลือก Lazada Store ที่จะเชื่อมต่อ:</label>
+        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+          <input type="radio" name="selected_pages" value="lazada-shop-1" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+          <div>
+            <p class="text-sm font-bold text-slate-800">GlobalTech Lazada Mall</p>
+            <p class="text-[10px] text-slate-400">Seller ID: laz-seller-101</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+          <input type="radio" name="selected_pages" value="lazada-shop-2" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+          <div>
+            <p class="text-sm font-bold text-slate-800">AIVA Fashion Outlet</p>
+            <p class="text-[10px] text-slate-400">Seller ID: laz-seller-102</p>
           </div>
         </label>
       </div>

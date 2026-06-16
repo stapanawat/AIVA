@@ -646,6 +646,39 @@ const inviteTeamMember = async (req, res, next) => {
   }
 };
 
+const deleteTeamMember = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { id } = req.params;
+
+    // Check if the team member exists and belongs to the client
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        id,
+        clientId
+      }
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: 'ไม่พบสมาชิกทีมที่ต้องการลบค่ะ' });
+    }
+
+    // Check if the user is attempting to delete themselves
+    if (member.userId === req.user.id) {
+      return res.status(400).json({ error: 'คุณไม่สามารถลบตัวเองออกจากทีมได้ค่ะ' });
+    }
+
+    await prisma.teamMember.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'ลบสมาชิกทีมเรียบร้อยแล้วค่ะ' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 // 6. Settings Operations
 const updateSettings = async (req, res, next) => {
   try {
@@ -725,7 +758,19 @@ const getSettings = async (req, res, next) => {
         }
       }
     });
-    res.json(client);
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        name: true,
+        email: true
+      }
+    });
+
+    res.json({
+      ...client,
+      currentUser
+    });
   } catch (error) {
     next(error);
   }
@@ -1039,6 +1084,7 @@ module.exports = {
   createOrUpdateLead,
   getTeamMembers,
   inviteTeamMember,
+  deleteTeamMember,
   updateSettings,
   getSettings,
   generateAIContent,

@@ -692,6 +692,34 @@ export default function Partner() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    
+    if (!profileSettings.name || !profileSettings.name.trim()) {
+      showToast('กรุณากรอกชื่อ - นามสกุลด้วยค่ะ', 'danger');
+      return;
+    }
+    
+    const cleanPhone = profileSettings.phone ? profileSettings.phone.replace(/\D/g, '') : '';
+    if (cleanPhone.length !== 10) {
+      showToast('กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลักค่ะ', 'danger');
+      return;
+    }
+    
+    if (!profileSettings.bankName || !profileSettings.bankName.trim()) {
+      showToast('กรุณากรอกชื่อธนาคารด้วยค่ะ', 'danger');
+      return;
+    }
+    
+    const cleanAccount = profileSettings.bankAccount ? profileSettings.bankAccount.replace(/\D/g, '') : '';
+    if (!cleanAccount) {
+      showToast('กรุณากรอกเลขบัญชีธนาคารด้วยค่ะ', 'danger');
+      return;
+    }
+    
+    if (!profileSettings.bankAccountName || !profileSettings.bankAccountName.trim()) {
+      showToast('กรุณากรอกชื่อบัญชีธนาคารด้วยค่ะ', 'danger');
+      return;
+    }
+
     try {
       const res = await fetch('/api/partner/profile', {
         method: 'POST',

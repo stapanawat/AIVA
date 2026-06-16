@@ -280,34 +280,46 @@ export default function LandingPage({ onLogin, onOpenCheckout, onContactSales })
     const taxIdInput = document.getElementById('input-tax-id');
     const addressInput = document.getElementById('input-address');
     
-    let finalName = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : '';
-    let finalEmail = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : '';
-    let finalTaxId = (taxIdInput && taxIdInput.value.replace(/\D/g, '')) ? taxIdInput.value.replace(/\D/g, '') : '';
-    let finalAddress = (addressInput && addressInput.value.trim()) ? addressInput.value.trim() : '';
+    let finalName = nameInput ? nameInput.value.trim() : '';
+    let finalEmail = emailInput ? emailInput.value.trim() : '';
+    let finalTaxId = taxIdInput ? taxIdInput.value.replace(/\D/g, '') : '';
+    let finalAddress = addressInput ? addressInput.value.trim() : '';
 
-    // Fallbacks for test/mock environment if fields are left empty
-    if (!finalName) finalName = 'Anonymous Client';
-    if (!finalEmail) finalEmail = `client_${Date.now()}@aiva.com`;
-    if (!finalTaxId) finalTaxId = '1234567890123';
-    if (!finalAddress) finalAddress = '123 AIVA Street, Bangkok, Thailand';
+    if (!finalName) {
+      showToast('กรุณากรอกชื่อ - นามสกุลด้วยค่ะ', 'danger');
+      return;
+    }
 
-    setIsPaymentProcessing(true);
-    const referralCode = sessionStorage.getItem('aiva_referral_code') || null;
+    if (!finalEmail) {
+      showToast('กรุณากรอกอีเมลด้วยค่ะ', 'danger');
+      return;
+    }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(finalEmail)) {
       showToast('กรุณากรอกอีเมลให้ถูกต้องตามรูปแบบมาตรฐาน (เช่น example@email.com)', 'danger');
-      setIsPaymentProcessing(false);
+      return;
+    }
+
+    if (!finalTaxId) {
+      showToast(taxType === 'personal' ? 'กรุณากรอกเลขประจำตัวประชาชนด้วยค่ะ' : 'กรุณากรอกเลขประจำตัวผู้เสียภาษีด้วยค่ะ', 'danger');
       return;
     }
 
     // Validate tax ID length
     if (finalTaxId.length !== 13) {
       showToast(taxType === 'personal' ? 'เลขประจำตัวประชาชนต้องครบ 13 หลัก' : 'เลขประจำตัวผู้เสียภาษีต้องครบ 13 หลัก', 'danger');
-      setIsPaymentProcessing(false);
       return;
     }
+
+    if (!finalAddress) {
+      showToast('กรุณากรอกที่อยู่สำหรับออกใบกำกับภาษีด้วยค่ะ', 'danger');
+      return;
+    }
+
+    setIsPaymentProcessing(true);
+    const referralCode = sessionStorage.getItem('aiva_referral_code') || null;
 
     try {
       // 1. Register User

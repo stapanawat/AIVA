@@ -432,6 +432,17 @@ export default function SuperAdmin() {
   };
 
   const handleCalculateGoal = async () => {
+    const targetVal = Number(goalTarget);
+    const monthsVal = Number(goalMonths);
+    if (isNaN(targetVal) || targetVal <= 0) {
+      showToast('กรุณาระบุเป้าหมายยอดขายที่ถูกต้อง (ต้องมากกว่า 0)', 'danger');
+      return;
+    }
+    if (isNaN(monthsVal) || monthsVal <= 0) {
+      showToast('กรุณาระบุระยะเวลาที่ถูกต้อง (ต้องมากกว่า 0)', 'danger');
+      return;
+    }
+
     setIsCalculatingGoal(true);
     try {
       const token = localStorage.getItem('aiva_access_token');
@@ -670,6 +681,30 @@ export default function SuperAdmin() {
 
   const handleSaveSmtpSettings = async (e) => {
     if (e) e.preventDefault();
+    
+    if (!smtpForm.host || !smtpForm.host.trim()) {
+      showToast('กรุณากรอก SMTP Host ด้วยค่ะ', 'danger');
+      return;
+    }
+    const portNum = parseInt(smtpForm.port);
+    if (isNaN(portNum) || portNum <= 0) {
+      showToast('กรุณากรอก SMTP Port ที่ถูกต้องด้วยค่ะ', 'danger');
+      return;
+    }
+    if (!smtpForm.user || !smtpForm.user.trim()) {
+      showToast('กรุณากรอก SMTP Username ด้วยค่ะ', 'danger');
+      return;
+    }
+    if (!smtpForm.from || !smtpForm.from.trim()) {
+      showToast('กรุณากรอกอีเมลผู้ส่งด้วยค่ะ', 'danger');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(smtpForm.from.trim())) {
+      showToast('กรุณากรอกอีเมลผู้ส่งให้ถูกต้องตามรูปแบบมาตรฐาน', 'danger');
+      return;
+    }
+
     setIsSavingSmtp(true);
     try {
       const token = localStorage.getItem('aiva_access_token');

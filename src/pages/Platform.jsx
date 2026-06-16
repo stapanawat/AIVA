@@ -311,7 +311,7 @@ const formatMessageText = (text) => {
     if (isBullet) {
       const cleanText = trimmed.replace(/^[\-\*•]\s?/, '');
       currentList.push(
-        <li key={`li-${lineIdx}`} className="list-disc ml-4 pl-1 text-sm text-slate-100">
+        <li key={`li-${lineIdx}`} className="list-disc ml-4 pl-1 text-sm">
           {formatBoldText(cleanText)}
         </li>
       );
@@ -611,6 +611,22 @@ export default function Platform() {
   const toggleLeadAi = async (id) => {
     // Optimistic UI update
     setLeadScores(prev => prev.map(lead => lead.id === id ? { ...lead, aiEnabled: !lead.aiEnabled } : lead));
+
+    // Handle mock/fallback data locally without API call
+    if (id && id.toString().startsWith('ls-')) {
+      try {
+        const savedStates = JSON.parse(localStorage.getItem('aiva_lead_ai_states') || '{}');
+        const currentLead = leadScores.find(lead => lead.id === id);
+        if (currentLead) {
+          savedStates[id] = !currentLead.aiEnabled;
+          localStorage.setItem('aiva_lead_ai_states', JSON.stringify(savedStates));
+        }
+        showToast('อัปเดตการทำงานของ AI เรียบร้อยแล้วค่ะ!', 'success');
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
 
     try {
       const token = localStorage.getItem('aiva_access_token');
@@ -1200,8 +1216,8 @@ export default function Platform() {
             notifyDailyReport: client.notifyDailyReport !== null ? client.notifyDailyReport : false
           });
           setEditProfile({
-            bossName: client.owner?.name || 'สมชาย ใจดี',
-            bossEmail: client.owner?.email || 'owner@globaltech.com',
+            bossName: client.currentUser?.name || client.owner?.name || 'สมชาย ใจดี',
+            bossEmail: client.currentUser?.email || client.owner?.email || 'owner@globaltech.com',
             brandName: client.name || 'GlobalTech Official',
             businessType: client.businessType || 'ecommerce'
           });
@@ -1437,13 +1453,37 @@ export default function Platform() {
     setShowAddMember(false);
     setNewMember({ name: '', email: '', role: 'ADMIN', branch: 'HQ' });
   };
-  const handleRemoveMember = (id) => {
+  const handleRemoveMember = async (id) => {
     const memberToDelete = teamMembers.find(m => m.id === id);
     if (memberToDelete?.email === currentUserObj?.email) {
       showToast('คุณไม่สามารถลบตัวเองออกจากทีมได้ค่ะ', 'danger');
       return;
     }
-    setTeamMembers(teamMembers.filter(m => m.id !== id));
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบ ${memberToDelete?.name || 'สมาชิก'} ออกจากทีม?`)) return;
+
+    if (USE_MOCK) {
+      setTeamMembers(teamMembers.filter(m => m.id !== id));
+      showToast('ลบสมาชิกทีมสำเร็จแล้วค่ะ', 'success');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch(`/api/client/team/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('ลบสมาชิกทีมเรียบร้อยแล้วค่ะ!', 'success');
+        fetchTeamMembers();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'ลบสมาชิกทีมล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
+    }
   };
   
   const handleAddBranch = async () => {
@@ -4178,10 +4218,10 @@ export default function Platform() {
                   { id: 'line', name: 'LINE Official', desc: 'ตอบแชทลูกค้าอัตโนมัติ 24 ชม.', btn: 'bg-[#00B900]' },
                   { id: 'facebook', name: ' Messenger', desc: 'ตอบ Inbox แฟนเพจทันที', btn: 'bg-[#0084FF]' },
                   { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]' },
-                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900', disabled: true },
-                  { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]', disabled: true },
-                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]', disabled: true },
-                  { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600', disabled: true },
+                  { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900' },
+                  { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]' },
+                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]' },
+                  { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600' },
                 ].map((app) => (
                   <div key={app.id} className={`rounded-2xl p-5 border flex flex-col transition-all saas-card ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-indigo-200'}`}>
                     <div className="flex justify-between items-start mb-4">
@@ -4236,7 +4276,7 @@ export default function Platform() {
                       <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
                       <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
                       
-                      {['facebook', 'instagram', 'tiktok'].includes(connectingApp) && (
+                      {['facebook', 'instagram', 'tiktok', 'youtube', 'lazada'].includes(connectingApp) && (
                         <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
                           <button
                             type="button"
@@ -4831,7 +4871,7 @@ export default function Platform() {
               <div className={`p-4 h-72 overflow-y-auto flex flex-col gap-3 custom-scrollbar ${isDarkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
                  {supportChatHistory.map((msg, idx) => (
                    <div key={idx} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                     <div className={`text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed max-w-[85%] whitespace-pre-wrap ${
+                     <div className={`text-xs px-3 py-2 rounded-2xl shadow-sm leading-relaxed max-w-[85%] whitespace-pre-wrap ${
                        msg.sender === 'user'
                          ? 'bg-indigo-600 text-white rounded-tr-sm shadow-sm'
                          : (isDarkMode ? 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm')
