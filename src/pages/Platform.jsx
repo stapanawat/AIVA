@@ -4423,7 +4423,7 @@ export default function Platform() {
                   { id: 'instagram', name: ' Direct', desc: 'ตอบแชทและคอมเมนต์ IG', btn: 'bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040]' },
                   { id: 'tiktok', name: 'TikTok Shop', desc: 'ซิงค์ออเดอร์และตอบแชทลูกค้า', btn: isDarkMode ? 'bg-slate-700' : 'bg-slate-900' },
                   { id: 'youtube', name: 'YouTube Comments', desc: 'ให้ AI ช่วยตอบคอมเมนต์คลิป', btn: 'bg-[#FF0000]' },
-                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]' },
+                  { id: 'lazada', name: 'Lazada', desc: 'ซิงค์สต็อกและสถานะออเดอร์', btn: 'bg-[#0F146D]', disabled: true },
                   { id: 'website', name: 'Website Chat Widget', desc: 'ติดกล่องแชท AI บนเว็บไซต์คุณ', btn: 'bg-indigo-600' },
                 ].map((app) => (
                   <div key={app.id} className={`rounded-2xl p-5 border flex flex-col transition-all saas-card ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-indigo-200'}`}>
