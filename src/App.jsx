@@ -3,9 +3,13 @@ import LandingPage from './pages/LandingPage';
 import Platform from './pages/Platform';
 import Partner from './pages/Partner';
 import SuperAdmin from './pages/SuperAdmin';
+import PublicChat from './pages/PublicChat';
 
 export default function App() {
   const [route, setRoute] = useState(() => {
+    if (window.location.pathname.startsWith('/chat') || window.location.pathname === '/chat') {
+      return 'public-chat';
+    }
     const token = localStorage.getItem('aiva_access_token');
     const userStr = localStorage.getItem('aiva_user');
     if (token && userStr) {
@@ -119,9 +123,10 @@ export default function App() {
       {route === 'platform' && <Platform onLogout={() => setRoute('landing')} />}
       {route === 'partner' && <Partner onLogout={() => setRoute('landing')} />}
       {route === 'super-admin' && <SuperAdmin onLogout={() => setRoute('landing')} />}
+      {route === 'public-chat' && <PublicChat />}
 
       {/* Floating Developer Portal Switcher */}
-      {isSwitcherExpanded ? (
+      {route !== 'public-chat' && (isSwitcherExpanded ? (
         <div className="fixed bottom-4 right-4 z-[9999] bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/50 flex flex-wrap items-center gap-3 text-xs font-bold transition-all">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -177,7 +182,7 @@ export default function App() {
             Open Switcher
           </span>
         </button>
-      )}
+      ))}
     </div>
   );
 }

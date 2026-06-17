@@ -3,7 +3,7 @@ import { USE_MOCK } from '../config';
 import { 
   Bot, LayoutDashboard, BookOpen, MessageSquare, Plug, Settings, 
   CreditCard, Bell, Search, Zap, UploadCloud, Link as LinkIcon, 
-  FileText, Trash2, CheckCircle2, ChevronRight, BarChart3, Users, 
+  FileText, Trash2, CheckCircle2, ChevronRight, ChevronDown, BarChart3, Users, 
   Clock, RefreshCw, Smartphone, Globe, ExternalLink, PlayCircle,
   Hash, LogOut, BrainCircuit, Unlock, Lock, ShoppingCart, Tag, Send,
   Store, MapPin, Code, Key, Webhook, TrendingUp, Lightbulb, Flame,
@@ -352,6 +352,20 @@ export default function Platform() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(true);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   
+  const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
+  const workspaceDropdownRef = useRef(null);
+
+  // Close workspace dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (workspaceDropdownRef.current && !workspaceDropdownRef.current.contains(event.target)) {
+        setIsWorkspaceDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
   const [currentPlan, setCurrentPlan] = useState('None'); 
   const [billingCycle, setBillingCycle] = useState('monthly'); 
 
@@ -381,6 +395,7 @@ export default function Platform() {
   })();
   const clientId = currentUserObj?.clientId || 'c-123456';
   const workspaces = currentUserObj?.workspaces || [];
+  const currentWorkspace = workspaces.find(ws => ws.id === clientId);
 
   // Inbox & Chat State
   const [selectedChat, setSelectedChat] = useState('C-001');
@@ -1840,24 +1855,51 @@ export default function Platform() {
           </ol>
         )}
         {appId === 'website' && (
-          <div className="space-y-2">
-            <p>นำโค้ดสำหรับฝัง (Widget Script) ด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณ:</p>
-            <div className="relative">
-              <textarea
-                readOnly
-                rows="3"
-                value={`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`}
-                className={`w-full font-mono text-[10px] p-2 pr-20 rounded-lg border outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-500'}`}
-              />
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`);
-                  showToast('คัดลอกโค้ด Widget แล้วค่ะ!', 'success');
-                }}
-                className="absolute right-2 bottom-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold shadow-sm"
-              >
-                คัดลอกโค้ด
-              </button>
+          <div className="space-y-4">
+            <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-700/60' : 'bg-indigo-50/50 border-indigo-100'}`}>
+              <p className={`text-xs font-bold mb-1.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>วิธีที่ 1: ลิงก์แชทสำเร็จรูป (ง่ายที่สุด - แชร์/เชื่อมปุ่มได้ทันที)</p>
+              <p className={`text-[11px] mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>คัดลอกลิงก์นี้ไปใส่ที่ปุ่มบนหน้าเว็บ แชร์ทางไลน์ โซเชียลมีเดีย หรือส่งให้ลูกค้าคุยได้ทันทีโดยไม่ต้องเขียนโค้ด:</p>
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}/chat/${clientId}`}
+                  className={`w-full font-mono text-[10px] p-2.5 pr-24 rounded-lg border outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/chat/${clientId}`);
+                    showToast('คัดลอกลิงก์แชทแล้วค่ะ!', 'success');
+                  }}
+                  className="absolute right-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-3 py-1.5 rounded-md transition-colors font-bold shadow-sm"
+                >
+                  คัดลอกลิงก์
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 dark:border-slate-700/60 my-2"></div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold">วิธีที่ 2: โค้ดสำหรับฝังบนเว็บไซต์ (Widget Script)</p>
+              <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>นำโค้ดสำหรับฝังด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณเพื่อแสดงกล่องแชทลอยตัว:</p>
+              <div className="relative">
+                <textarea
+                  readOnly
+                  rows="2"
+                  value={`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`}
+                  className={`w-full font-mono text-[10px] p-2.5 pr-24 rounded-lg border outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-500'}`}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`);
+                    showToast('คัดลอกโค้ด Widget แล้วค่ะ!', 'success');
+                  }}
+                  className="absolute right-2 bottom-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-3 py-1.5 rounded-md transition-colors font-bold shadow-sm"
+                >
+                  คัดลอกโค้ด
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2340,26 +2382,112 @@ export default function Platform() {
 
           {/* Workspace Switcher */}
           {workspaces.length > 1 && (
-            <div className={`px-5 py-3 border-b shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-100 bg-slate-50/30'}`}>
+            <div className={`px-4 py-3 border-b shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-100 bg-slate-50/30'}`} ref={workspaceDropdownRef}>
               <div className="relative">
-                <select
-                  value={clientId}
-                  onChange={(e) => handleSwitchWorkspace(e.target.value)}
-                  className={`w-full text-xs font-bold pl-3 pr-8 py-2 rounded-xl border outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none ${
+                <button
+                  type="button"
+                  onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
+                  className={`w-full text-left px-3 py-2 rounded-xl border outline-none transition-all flex items-center justify-between gap-2 shadow-sm ${
                     isDarkMode 
-                      ? 'bg-slate-800 border-slate-700 text-slate-200 focus:bg-slate-800' 
-                      : 'bg-white border-slate-200 text-slate-700 focus:bg-white'
+                      ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-750' 
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-55'
                   }`}
                 >
-                  {workspaces.map(ws => (
-                    <option key={ws.id} value={ws.id}>
-                      🏢 {ws.name} ({ws.isOwner ? 'Owner' : (ws.role === 'ADMIN' ? 'Admin' : (ws.role === 'MANAGER' ? 'Manager' : 'Staff'))})
-                    </option>
-                  ))}
-                </select>
-                <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  ▼
-                </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">🏢</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className={`text-xs font-black truncate leading-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {currentWorkspace?.name || 'Select Workspace'}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[8px] px-1.5 py-0.25 rounded font-bold uppercase border ${
+                          currentWorkspace?.isOwner || currentWorkspace?.role === 'OWNER'
+                            ? (isDarkMode ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                            : currentWorkspace?.role === 'ADMIN'
+                            ? (isDarkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' : 'bg-blue-50 text-blue-700 border-blue-200')
+                            : currentWorkspace?.role === 'MANAGER'
+                            ? (isDarkMode ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-700 border-amber-200')
+                            : (isDarkMode ? 'bg-slate-500/15 text-slate-400 border-slate-500/30' : 'bg-slate-50 text-slate-700 border-slate-200')
+                        }`}>
+                          {currentWorkspace?.isOwner ? 'Owner' : (currentWorkspace?.role === 'ADMIN' ? 'Admin' : (currentWorkspace?.role === 'MANAGER' ? 'Manager' : 'Staff'))}
+                        </span>
+                        {currentWorkspace?.plan && currentWorkspace.plan !== 'NONE' && (
+                          <span className={`text-[8px] px-1.5 py-0.25 rounded font-bold uppercase border ${
+                            currentWorkspace.plan === 'Advanced'
+                              ? (isDarkMode ? 'bg-purple-500/15 text-purple-400 border-purple-500/30' : 'bg-purple-50 text-purple-700 border-purple-200')
+                              : currentWorkspace.plan === 'Pro'
+                              ? (isDarkMode ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200')
+                              : (isDarkMode ? 'bg-sky-500/15 text-sky-400 border-sky-500/30' : 'bg-sky-50 text-sky-700 border-sky-200')
+                          }`}>
+                            {currentWorkspace.plan}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isWorkspaceDropdownOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} />
+                </button>
+
+                {isWorkspaceDropdownOpen && (
+                  <div className={`absolute top-full left-0 right-0 mt-1.5 rounded-xl border shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-150 ${
+                    isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                  }`}>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 border-b mb-1 ${isDarkMode ? 'text-slate-500 border-slate-700/50' : 'text-slate-400 border-slate-100'}`}>
+                      {t('workspace')} ({workspaces.length})
+                    </div>
+                    {workspaces.map(ws => {
+                      const isSelected = ws.id === clientId;
+                      return (
+                        <button
+                          key={ws.id}
+                          type="button"
+                          onClick={() => {
+                            handleSwitchWorkspace(ws.id);
+                            setIsWorkspaceDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors ${
+                            isSelected 
+                              ? (isDarkMode ? 'bg-indigo-950/40 text-indigo-300' : 'bg-indigo-50/70 text-indigo-700') 
+                              : (isDarkMode ? 'hover:bg-slate-700/50 text-slate-200' : 'hover:bg-slate-50 text-slate-750')
+                          }`}
+                        >
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold truncate">
+                              🏢 {ws.name}
+                            </span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {/* Role Tag */}
+                              <span className={`text-[8px] px-1 py-0.25 rounded font-bold uppercase border ${
+                                ws.isOwner || ws.role === 'OWNER'
+                                  ? (isDarkMode ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                  : ws.role === 'ADMIN'
+                                  ? (isDarkMode ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' : 'bg-blue-50 text-blue-700 border-blue-200')
+                                  : ws.role === 'MANAGER'
+                                  ? (isDarkMode ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-700 border-amber-200')
+                                  : (isDarkMode ? 'bg-slate-500/15 text-slate-400 border-slate-500/30' : 'bg-slate-50 text-slate-700 border-slate-200')
+                              }`}>
+                                {ws.isOwner ? 'Owner' : (ws.role === 'ADMIN' ? 'Admin' : (ws.role === 'MANAGER' ? 'Manager' : 'Staff'))}
+                              </span>
+                              {/* Plan Tag */}
+                              {ws.plan && ws.plan !== 'NONE' && (
+                                <span className={`text-[8px] px-1 py-0.25 rounded font-bold uppercase border ${
+                                  ws.plan === 'Advanced'
+                                    ? (isDarkMode ? 'bg-purple-500/15 text-purple-400 border-purple-500/30' : 'bg-purple-50 text-purple-700 border-purple-200')
+                                    : ws.plan === 'Pro'
+                                    ? (isDarkMode ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200')
+                                    : (isDarkMode ? 'bg-sky-500/15 text-sky-400 border-sky-500/30' : 'bg-sky-50 text-sky-700 border-sky-200')
+                                }`}>
+                                  {ws.plan}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -4798,7 +4926,7 @@ export default function Platform() {
                        </span>
                        <span className={`font-medium mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/{billingCycle === 'monthly' ? 'เดือน' : billingCycle === 'halfYear' ? '6 เดือน' : 'ปี'}</span>
                      </div>
-                     <button onClick={()=>handleUpgradePlan('Basic')} disabled={currentPlan==='Basic'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Basic' ? (isDarkMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default' : 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}`}>{currentPlan==='Basic' ? 'แพ็กเกจปัจจุบัน' : 'ดาวน์เกรด'}</button>
+                     <button onClick={()=>handleUpgradePlan('Basic')} disabled={currentPlan==='Basic'} className={`w-full py-3 rounded-xl font-bold text-sm mb-8 transition-colors ${currentPlan==='Basic' ? (isDarkMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default' : 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default') : (isDarkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}`}>{currentPlan==='Basic' ? 'แพ็กเกจปัจจุบัน' : 'อัปเกรดเป็น Basic'}</button>
                      <div className="space-y-3 flex-1">
                         <p className={`text-xs font-bold mb-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>สิ่งที่ได้รับ:</p>
                         <PricingFeature text="เลือกเชื่อมต่อ 1 ช่องทาง" included isDark={isDarkMode} />
