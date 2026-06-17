@@ -1739,6 +1739,101 @@ export default function Platform() {
       setTimeout(() => setGrowthActionSuccess(false), 3000);
     }, 1500);
   };
+
+  const renderWebhookUrlBlock = (appId) => {
+    if (!['line', 'facebook', 'instagram', 'tiktok', 'lazada'].includes(appId)) return null;
+    return (
+      <div className="space-y-2 text-left mb-4">
+        <label className={`text-[11px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>Webhook URL</label>
+        <div className="flex gap-2">
+          <input type="text" readOnly value={`${window.location.origin}/api/webhooks/${appId}/${clientId}`} className={`flex-1 border rounded-xl text-xs px-3 py-2.5 font-mono outline-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} />
+          <button onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/${appId}/${clientId}`);
+            showToast('คัดลอก Webhook URL แล้วค่ะ!', 'success');
+          }} className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSetupInstructions = (appId) => {
+    return (
+      <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-2.5 text-left ${isDarkMode ? 'bg-slate-900/40 border-slate-700/60 text-slate-300' : 'bg-slate-50 border-slate-200/60 text-slate-600'}`}>
+        <div className="font-bold flex items-center gap-1.5 mb-1 text-indigo-500 dark:text-indigo-400">
+          <BookOpen className="w-4 h-4" /> วิธีตั้งค่าการใช้งาน (Setup Guide)
+        </div>
+        {appId === 'line' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+            <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Developers Console</a> และเลือก Channel (Messaging API) ของบอทคุณ</li>
+            <li>ในแท็บ <strong>Messaging API</strong> หัวข้อ Webhook settings ให้วาง URL ในช่อง Webhook URL แล้วกด <strong>Verify</strong></li>
+            <li>เปิดสวิตช์ <strong>Use webhook</strong></li>
+            <li>ในหน้า <a href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Official Account Manager</a> ไปที่ <em>ตั้งค่าการตอบกลับ (Response settings)</em> และปิด <em>ข้อความตอบกลับอัตโนมัติ</em></li>
+          </ol>
+        )}
+        {appId === 'facebook' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+            <li>ไปที่หน้าตั้งค่าแอปของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
+            <li>ในหัวข้อ Webhook ให้วาง URL ข้างต้น เพื่อเปิดรับสัญญาณข้อความแชท</li>
+            <li>เปิดใช้งานสิทธิ์ในการรับส่งข้อความสำหรับ Page Messenger</li>
+          </ol>
+        )}
+        {appId === 'instagram' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+            <li>ไปที่หน้าตั้งค่าบัญชีเชื่อมโยงของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
+            <li>เพิ่ม Webhook URL สำหรับรับสัญญาณข้อความแชทจาก Instagram Direct</li>
+          </ol>
+        )}
+        {appId === 'tiktok' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+            <li>ไปที่ระบบ <a href="https://partner.tiktokshop.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">TikTok Shop Partner Center</a></li>
+            <li>เข้าไปที่การตั้งค่าแอปพลิเคชันของคุณ และเปิดใช้งาน Webhook</li>
+            <li>วาง Webhook URL เพื่อให้ระบบซิงค์ข้อความแชทและยอดคำสั่งซื้อสินค้ามาให้ AI ตอบกลับโดยอัตโนมัติ</li>
+          </ol>
+        )}
+        {appId === 'youtube' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>การเชื่อมโยงได้รับการอนุมัติสิทธิ์ (OAuth) เรียบร้อยแล้ว</li>
+            <li>ระบบ AI AIVA จะทำการติดตามและอ่านคอมเมนต์บนคลิปวิดีโอ YouTube ของคุณโดยอัตโนมัติ</li>
+            <li>หากต้องการยกเลิกการเชื่อมโยง สามารถกดปุ่ม <strong>Disconnect</strong> ในหน้าจัดการการตั้งค่าได้เลยครับ</li>
+          </ol>
+        )}
+        {appId === 'lazada' && (
+          <ol className="list-decimal pl-4 space-y-2">
+            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
+            <li>ไปที่ระบบร้านค้าของ <a href="https://open.lazada.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Lazada Open Platform</a></li>
+            <li>ป้อน Webhook URL ในส่วนของการแจ้งเตือนร้านค้า (Push Notifications)</li>
+            <li>ระบบจะซิงค์สต็อกสินค้า ออเดอร์ และนำ AI เข้าไปสแตนด์บายคอยช่วยเหลือลูกค้าทันที</li>
+          </ol>
+        )}
+        {appId === 'website' && (
+          <div className="space-y-2">
+            <p>นำโค้ดสำหรับฝัง (Widget Script) ด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณ:</p>
+            <div className="relative">
+              <textarea
+                readOnly
+                rows="3"
+                value={`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`}
+                className={`w-full font-mono text-[10px] p-2 pr-20 rounded-lg border outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-500'}`}
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`);
+                  showToast('คัดลอกโค้ด Widget แล้วค่ะ!', 'success');
+                }}
+                className="absolute right-2 bottom-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold shadow-sm"
+              >
+                คัดลอกโค้ด
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   const handleConnect = (appId) => { 
     if (connectedApps.length >= maxChannels) {
       showToast(`คุณใช้โควต้าเชื่อมต่อครบแล้ว (${maxChannels} ช่องทาง) กรุณาอัปเกรดแพ็กเกจ`, 'danger');
@@ -4271,105 +4366,113 @@ export default function Platform() {
               {/* OAuth Modal */}
               {connectingApp && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                  <div className={`rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                    <div className="p-6 text-center">
-                      <div className="flex justify-center items-center gap-4 mb-6">
-                        <div className={`w-20 h-20 border rounded-2xl shadow-sm flex items-center justify-center p-2 bg-white ${isDarkMode ? 'border-slate-600' : 'border-slate-200'}`}>
-                           <img src="https://i.postimg.cc/9fvVLjRT/AIVA-Trasparent.png" alt="AIVA Logo" className="w-16 h-16 object-contain" />
+                  <div className={`rounded-3xl w-full max-w-md sm:max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className="p-6">
+                      <div className="text-center mb-6">
+                        <div className="flex justify-center items-center gap-4 mb-4">
+                          <div className={`w-20 h-20 border rounded-2xl shadow-sm flex items-center justify-center p-2 bg-white ${isDarkMode ? 'border-slate-600' : 'border-slate-200'}`}>
+                             <img src="https://i.postimg.cc/9fvVLjRT/AIVA-Trasparent.png" alt="AIVA Logo" className="w-16 h-16 object-contain" />
+                          </div>
+                          <RefreshCw className="w-6 h-6 text-slate-300" />
+                          <AppIcon appId={connectingApp} size="lg" />
                         </div>
-                        <RefreshCw className="w-6 h-6 text-slate-300" />
-                        <AppIcon appId={connectingApp} size="lg" />
+                        
+                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
+                        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
                       </div>
                       
-                      <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Authorize Access</h3>
-                      <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AIVA requires permission to access your account to read and send messages.</p>
-                      
-                      {['facebook', 'instagram', 'tiktok', 'youtube', 'lazada'].includes(connectingApp) && (
-                        <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => handleOAuthPopup(connectingApp)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs cursor-pointer"
-                          >
-                            <Plug className="w-4 h-4" /> เชื่อมต่ออัตโนมัติด้วย OAuth (แนะนำ)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOAuthPopup(connectingApp, true)}
-                            className={`w-full mt-2 border font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer ${
-                              isDarkMode 
-                                ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/50' 
-                                : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                            }`}
-                          >
-                            <Settings className="w-4 h-4" /> เชื่อมต่อด้วย Sandbox (Simulated OAuth)
-                          </button>
-                          <div className="flex items-center gap-3 my-4">
-                            <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">หรือกรอกค่าด้วยตนเอง</span>
-                            <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                      <div className="max-h-[50vh] overflow-y-auto pr-1.5 space-y-4 mb-6">
+                        {renderWebhookUrlBlock(connectingApp)}
+                        
+                        {['facebook', 'instagram', 'tiktok', 'youtube', 'lazada'].includes(connectingApp) && (
+                          <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOAuthPopup(connectingApp)}
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs cursor-pointer"
+                            >
+                              <Plug className="w-4 h-4" /> เชื่อมต่ออัตโนมัติด้วย OAuth (แนะนำ)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOAuthPopup(connectingApp, true)}
+                              className={`w-full mt-2 border font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer ${
+                                isDarkMode 
+                                  ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/50' 
+                                  : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                              }`}
+                            >
+                              <Settings className="w-4 h-4" /> เชื่อมต่อด้วย Sandbox (Simulated OAuth)
+                            </button>
+                            <div className="flex items-center gap-3 my-4">
+                              <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">หรือกรอกค่าด้วยตนเอง</span>
+                              <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      {connectingApp === 'line' && (
-                        <div className="space-y-3 mb-6 text-left">
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Access Token</label>
-                            <input type="text" value={lineConfig.channelAccessToken} onChange={e => setLineConfig({ ...lineConfig, channelAccessToken: e.target.value })} placeholder="ey..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                        )}
+                        
+                        {connectingApp === 'line' && (
+                          <div className="space-y-3 text-left">
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Access Token</label>
+                              <input type="text" value={lineConfig.channelAccessToken} onChange={e => setLineConfig({ ...lineConfig, channelAccessToken: e.target.value })} placeholder="ey..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Secret</label>
+                              <input type="password" value={lineConfig.channelSecret} onChange={e => setLineConfig({ ...lineConfig, channelSecret: e.target.value })} placeholder="xxxx" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
                           </div>
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LINE Channel Secret</label>
-                            <input type="password" value={lineConfig.channelSecret} onChange={e => setLineConfig({ ...lineConfig, channelSecret: e.target.value })} placeholder="xxxx" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {connectingApp === 'facebook' && (
-                        <div className="space-y-3 mb-6 text-left">
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page Access Token</label>
-                            <input type="text" value={fbConfig.pageAccessToken} onChange={e => setFbConfig({ ...fbConfig, pageAccessToken: e.target.value })} placeholder="EAAB..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                        {connectingApp === 'facebook' && (
+                          <div className="space-y-3 text-left">
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page Access Token</label>
+                              <input type="text" value={fbConfig.pageAccessToken} onChange={e => setFbConfig({ ...fbConfig, pageAccessToken: e.target.value })} placeholder="EAAB..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page ID</label>
+                              <input type="text" value={fbConfig.pageId} onChange={e => setFbConfig({ ...fbConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
                           </div>
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Facebook Page ID</label>
-                            <input type="text" value={fbConfig.pageId} onChange={e => setFbConfig({ ...fbConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {connectingApp === 'instagram' && (
-                        <div className="space-y-3 mb-6 text-left">
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Access Token</label>
-                            <input type="text" value={igConfig.pageAccessToken} onChange={e => setIgConfig({ ...igConfig, pageAccessToken: e.target.value })} placeholder="IG..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                        {connectingApp === 'instagram' && (
+                          <div className="space-y-3 text-left">
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Access Token</label>
+                              <input type="text" value={igConfig.pageAccessToken} onChange={e => setIgConfig({ ...igConfig, pageAccessToken: e.target.value })} placeholder="IG..." className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Business Page ID</label>
+                              <input type="text" value={igConfig.pageId} onChange={e => setIgConfig({ ...igConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
                           </div>
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Instagram Business Page ID</label>
-                            <input type="text" value={igConfig.pageId} onChange={e => setIgConfig({ ...igConfig, pageId: e.target.value })} placeholder="123456789" className={`w-full text-xs px-3 py-2.5 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {connectingApp === 'website' && (
-                        <div className="space-y-3 mb-6 text-left">
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Widget Theme Color</label>
-                            <input type="color" value={webConfig.themeColor} onChange={e => setWebConfig({ ...webConfig, themeColor: e.target.value })} className={`w-full h-8 cursor-pointer rounded-xl border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} />
+                        {connectingApp === 'website' && (
+                          <div className="space-y-3 text-left">
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Widget Theme Color</label>
+                              <input type="color" value={webConfig.themeColor} onChange={e => setWebConfig({ ...webConfig, themeColor: e.target.value })} className={`w-full h-8 cursor-pointer rounded-xl border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} />
+                            </div>
+                            <div>
+                              <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Greeting Message</label>
+                              <input type="text" value={webConfig.greeting} onChange={e => setWebConfig({ ...webConfig, greeting: e.target.value })} className={`w-full text-xs px-3 py-2 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
+                            </div>
                           </div>
-                          <div>
-                            <label className={`text-xs font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Greeting Message</label>
-                            <input type="text" value={webConfig.greeting} onChange={e => setWebConfig({ ...webConfig, greeting: e.target.value })} className={`w-full text-xs px-3 py-2 border rounded-xl outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`} />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {!['line', 'facebook', 'instagram', 'website'].includes(connectingApp) && (
-                        <div className={`space-y-3 mb-8 text-left p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                          <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Read incoming messages</span></div>
-                          <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Send messages as your page</span></div>
-                        </div>
-                      )}
+                        {!['line', 'facebook', 'instagram', 'website'].includes(connectingApp) && (
+                          <div className={`space-y-3 text-left p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Read incoming messages</span></div>
+                            <div className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Send messages as your page</span></div>
+                          </div>
+                        )}
+                        
+                        {renderSetupInstructions(connectingApp)}
+                      </div>
 
                       <div className="flex gap-3">
                         <button onClick={() => setConnectingApp(null)} disabled={isAuthorizing} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Cancel</button>
@@ -4405,71 +4508,9 @@ export default function Platform() {
                       <button onClick={() => setManagingApp(null)} className={`p-2 rounded-lg border shadow-sm transition-colors ${isDarkMode ? 'text-slate-400 border-slate-600 hover:bg-slate-700' : 'text-slate-400 border-slate-200 bg-white hover:bg-slate-50'}`}><X className="w-4 h-4"/></button>
                     </div>
                     
-                    <div className="p-6 space-y-5">
-                      <div className="space-y-2">
-                        <label className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>Webhook URL</label>
-                        <div className="flex gap-2">
-                          <input type="text" readOnly value={`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`} className={`flex-1 border rounded-xl text-xs px-3 py-2.5 font-mono outline-none ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} />
-                          <button onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/${managingApp}/${clientId}`);
-                            showToast('คัดลอก Webhook URL แล้วค่ะ!', 'success');
-                          }} className={`px-3 rounded-xl text-xs font-bold transition-colors border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-100'}`} title="Copy"><Copy className="w-4 h-4"/></button>
-                        </div>
-                      </div>
-
-                      {/* Setup Instructions */}
-                      <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-2.5 ${isDarkMode ? 'bg-slate-900/40 border-slate-700/60 text-slate-300' : 'bg-slate-50 border-slate-200/60 text-slate-600'}`}>
-                        <div className="font-bold flex items-center gap-1.5 mb-1 text-indigo-500 dark:text-indigo-400">
-                          <BookOpen className="w-4 h-4" /> วิธีตั้งค่าการใช้งาน (Setup Guide)
-                        </div>
-                        {managingApp === 'line' && (
-                          <ol className="list-decimal pl-4 space-y-2">
-                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Developers Console</a> และเลือก Channel (Messaging API) ของบอทคุณ</li>
-                            <li>ในแท็บ <strong>Messaging API</strong> หัวข้อ Webhook settings ให้วาง URL ในช่อง Webhook URL แล้วกด <strong>Verify</strong></li>
-                            <li>เปิดสวิตช์ <strong>Use webhook</strong></li>
-                            <li>ในหน้า <a href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">LINE Official Account Manager</a> ไปที่ <em>ตั้งค่าการตอบกลับ (Response settings)</em> และปิด <em>ข้อความตอบกลับอัตโนมัติ</em></li>
-                          </ol>
-                        )}
-                        {managingApp === 'facebook' && (
-                          <ol className="list-decimal pl-4 space-y-2">
-                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่หน้าตั้งค่าแอปของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
-                            <li>ในหัวข้อ Webhook ให้วาง URL ข้างต้น เพื่อเปิดรับสัญญาณข้อความแชท</li>
-                            <li>เปิดใช้งานสิทธิ์ในการรับส่งข้อความสำหรับ Page Messenger</li>
-                          </ol>
-                        )}
-                        {managingApp === 'instagram' && (
-                          <ol className="list-decimal pl-4 space-y-2">
-                            <li>คัดลอก <strong>Webhook URL</strong> ด้านบน</li>
-                            <li>ไปที่หน้าตั้งค่าบัญชีเชื่อมโยงของคุณบน <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline font-bold">Meta for Developers</a></li>
-                            <li>เพิ่ม Webhook URL สำหรับรับสัญญาณข้อความแชทจาก Instagram Direct</li>
-                          </ol>
-                        )}
-
-                        {managingApp === 'website' && (
-                          <div className="space-y-2">
-                            <p>นำโค้ดสำหรับฝัง (Widget Script) ด้านล่างนี้ไปวางไว้ก่อนปิดแท็ก <code>&lt;/body&gt;</code> ในหน้าเว็บไซต์ของคุณ:</p>
-                            <div className="relative">
-                              <textarea
-                                readOnly
-                                rows="3"
-                                value={`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`}
-                                className={`w-full font-mono text-[10px] p-2 pr-20 rounded-lg border outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-500'}`}
-                              />
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`<script src="${window.location.origin}/api/widget/script.js?clientId=${clientId}"></script>`);
-                                  showToast('คัดลอกโค้ด Widget แล้วค่ะ!', 'success');
-                                }}
-                                className="absolute right-2 bottom-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold shadow-sm"
-                              >
-                                คัดลอกโค้ด
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto pr-1.5">
+                      {renderWebhookUrlBlock(managingApp)}
+                      {renderSetupInstructions(managingApp)}
 
                       <div className={`pt-4 border-t flex justify-between items-center ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                         <button onClick={() => handleDisconnect(managingApp)} className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${isDarkMode ? 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10' : 'text-rose-500 hover:text-rose-600 hover:bg-rose-50/10'}`}><Trash2 className="w-4 h-4" /> Disconnect</button>

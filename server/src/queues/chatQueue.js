@@ -2,6 +2,8 @@ const { Queue, Worker } = require('bullmq');
 const IORedis = require('ioredis');
 const prisma = require('../config/db');
 const { generateResponse } = require('../services/geminiService');
+const youtubeService = require('../services/youtubeService');
+const tiktokService = require('../services/tiktokService');
 
 const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -154,24 +156,30 @@ async function processChatJob(data) {
       
       if (accessToken && customerContact) {
         try {
-          const ttResponse = await fetch(`https://open-api.tiktok.com/message/send/`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Access-Token': accessToken
-            },
-            body: JSON.stringify({
-              recipient_open_id: customerContact,
-              message_content: { text: aiReply }
-            })
-          });
-
-          if (!ttResponse.ok) {
-            const errText = await ttResponse.text();
-            console.error('[Queue TikTok API Error]', errText);
-          }
+          await tiktokService.sendMessage(accessToken, customerContact, aiReply);
+          console.log(`[Queue TikTok SUCCESS] Sent reply to customer ID: ${customerContact}`);
         } catch (ttErr) {
-          console.error('[Queue TikTok Fetch Error]', ttErr);
+          console.error('[Queue TikTok API Error]', ttErr);
+        }
+      }
+    } else if (platform === 'YOUTUBE') {
+      const integration = await prisma.integration.findUnique({
+        where: {
+          clientId_platform: {
+            clientId,
+            platform: 'YOUTUBE'
+          }
+        }
+      });
+      const accessToken = integration?.config?.accessToken;
+
+      if (accessToken && customerContact) {
+        try {
+          // In YouTube, customerContact stores the parent comment ID
+          await youtubeService.replyToComment(accessToken, customerContact, aiReply);
+          console.log(`[Queue YouTube SUCCESS] Replied to comment ID: ${customerContact}`);
+        } catch (ytErr) {
+          console.error('[Queue YouTube API Error]', ytErr);
         }
       }
     }

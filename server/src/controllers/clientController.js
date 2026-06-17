@@ -4,6 +4,8 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const storageService = require('../services/storageService');
 const emailService = require('../services/emailService');
+const youtubeService = require('../services/youtubeService');
+const tiktokService = require('../services/tiktokService');
 
 // 1. Get Dashboard Stats
 const getDashboardStats = async (req, res, next) => {
@@ -413,6 +415,44 @@ const sendChatMessage = async (req, res, next) => {
             }
           } catch (igErr) {
             console.error('[Instagram Push Fetch Error]', igErr);
+          }
+        }
+      } else if (platform === 'YOUTUBE') {
+        const integration = await prisma.integration.findUnique({
+          where: {
+            clientId_platform: {
+              clientId,
+              platform: 'YOUTUBE'
+            }
+          }
+        });
+        const accessToken = integration?.config?.accessToken;
+
+        if (accessToken) {
+          try {
+            await youtubeService.replyToComment(accessToken, customerContact, content);
+            console.log(`[YouTube Reply SUCCESS] Sent manual reply to comment ID: ${customerContact}`);
+          } catch (ytErr) {
+            console.error('[YouTube Reply Error]', ytErr);
+          }
+        }
+      } else if (platform === 'TIKTOK') {
+        const integration = await prisma.integration.findUnique({
+          where: {
+            clientId_platform: {
+              clientId,
+              platform: 'TIKTOK'
+            }
+          }
+        });
+        const accessToken = integration?.config?.accessToken;
+
+        if (accessToken) {
+          try {
+            await tiktokService.sendMessage(accessToken, customerContact, content);
+            console.log(`[TikTok Reply SUCCESS] Sent manual reply to customer ID: ${customerContact}`);
+          } catch (ttErr) {
+            console.error('[TikTok Reply Error]', ttErr);
           }
         }
       }
