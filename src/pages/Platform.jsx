@@ -380,6 +380,7 @@ export default function Platform() {
     }
   })();
   const clientId = currentUserObj?.clientId || 'c-123456';
+  const workspaces = currentUserObj?.workspaces || [];
 
   // Inbox & Chat State
   const [selectedChat, setSelectedChat] = useState('C-001');
@@ -1493,6 +1494,35 @@ export default function Platform() {
       showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
     }
   };
+
+  const handleUpdateMemberRole = async (id, newRole) => {
+    if (USE_MOCK) {
+      setTeamMembers(teamMembers.map(m => m.id === id ? { ...m, role: newRole } : m));
+      showToast('เปลี่ยนบทบาทสำเร็จแล้วค่ะ', 'success');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch(`/api/client/team/${id}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        showToast('เปลี่ยนบทบาทของสมาชิกทีมเรียบร้อยแล้วค่ะ!', 'success');
+        fetchTeamMembers();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'เปลี่ยนบทบาทล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
+    }
+  };
   
   const handleAddBranch = async () => {
     if(!newBranch.name) return;
@@ -2217,6 +2247,50 @@ export default function Platform() {
     setIsAuthenticated(false);
   };
 
+  const handleSwitchWorkspace = async (newClientId) => {
+    if (newClientId === clientId) return;
+    try {
+      const token = localStorage.getItem('aiva_access_token');
+      const res = await fetch('/api/auth/switch-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ clientId: newClientId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('aiva_access_token', data.accessToken);
+        localStorage.setItem('aiva_user', JSON.stringify(data.user));
+        showToast('สลับพื้นที่ทำงานสำเร็จแล้วค่ะ!', 'success');
+        
+        // Refresh all workspace data
+        fetchLeads();
+        fetchTeamMembers();
+        fetchRules();
+        fetchBranches();
+        fetchFeedbacks();
+        fetchKnowledge();
+        fetchInbox();
+        fetchStats();
+        fetchSettings();
+        fetchIntegrations();
+        fetchLeadScores();
+        fetchLostRevenues();
+        
+        setSelectedChat(null);
+        setActiveTab('dashboard');
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'สลับพื้นที่ทำงานล้มเหลว', 'danger');
+      }
+    } catch (err) {
+      console.error('Failed to switch workspace:', err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'danger');
+    }
+  };
+
   // Render Component for Locked Features
   const UpgradeOverlay = ({ requiredPlan, title, icon: Icon, description }) => (
     <div className="h-full flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto animate-in fade-in zoom-in-95 duration-300">
@@ -2263,6 +2337,32 @@ export default function Platform() {
               <span className={`text-[9px] font-bold tracking-widest uppercase mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('poweredBy')}</span>
             </div>
           </div>
+
+          {/* Workspace Switcher */}
+          {workspaces.length > 1 && (
+            <div className={`px-5 py-3 border-b shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-100 bg-slate-50/30'}`}>
+              <div className="relative">
+                <select
+                  value={clientId}
+                  onChange={(e) => handleSwitchWorkspace(e.target.value)}
+                  className={`w-full text-xs font-bold pl-3 pr-8 py-2 rounded-xl border outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none ${
+                    isDarkMode 
+                      ? 'bg-slate-800 border-slate-700 text-slate-200 focus:bg-slate-800' 
+                      : 'bg-white border-slate-200 text-slate-700 focus:bg-white'
+                  }`}
+                >
+                  {workspaces.map(ws => (
+                    <option key={ws.id} value={ws.id}>
+                      🏢 {ws.name} ({ws.isOwner ? 'Owner' : (ws.role === 'ADMIN' ? 'Admin' : (ws.role === 'MANAGER' ? 'Manager' : 'Staff'))})
+                    </option>
+                  ))}
+                </select>
+                <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  ▼
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="px-3 py-6 flex-1 overflow-y-auto custom-scrollbar space-y-1">
             <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-3 mt-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('workspace')}</div>
@@ -4393,17 +4493,6 @@ export default function Platform() {
                             >
                               <Plug className="w-4 h-4" /> เชื่อมต่ออัตโนมัติด้วย OAuth (แนะนำ)
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOAuthPopup(connectingApp, true)}
-                              className={`w-full mt-2 border font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer ${
-                                isDarkMode 
-                                  ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/50' 
-                                  : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                              }`}
-                            >
-                              <Settings className="w-4 h-4" /> เชื่อมต่อด้วย Sandbox (Simulated OAuth)
-                            </button>
                             <div className="flex items-center gap-3 my-4">
                               <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
                               <span className="text-[10px] font-bold text-slate-400 uppercase">หรือกรอกค่าด้วยตนเอง</span>
@@ -4576,7 +4665,23 @@ export default function Platform() {
                                  </span>
                                </td>
                                <td className="px-5 py-4">
-                                 <span className={`text-[10px] font-bold px-2 py-1 rounded ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{member.role}</span>
+                                  {member.role === 'OWNER' || member.email === currentUserObj?.email ? (
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{member.role}</span>
+                                  ) : (
+                                    <select
+                                      value={member.role}
+                                      onChange={(e) => handleUpdateMemberRole(member.id, e.target.value)}
+                                      className={`text-[10px] font-bold px-2 py-1 rounded border outline-none focus:border-indigo-500 transition-colors cursor-pointer ${
+                                        isDarkMode 
+                                          ? 'bg-slate-700 border-slate-600 text-slate-300 focus:bg-slate-800' 
+                                          : 'bg-slate-100 border-slate-200 text-slate-600 focus:bg-white'
+                                      }`}
+                                    >
+                                      <option value="ADMIN">ADMIN</option>
+                                      <option value="MANAGER">MANAGER</option>
+                                      <option value="STAFF">STAFF</option>
+                                    </select>
+                                  )}
                                </td>
                                <td className="px-5 py-4">
                                  <span className={`text-[10px] font-bold px-2 py-1 rounded border ${member.status === 'Active' ? (isDarkMode ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-emerald-600 bg-emerald-50 border-emerald-100') : (isDarkMode ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-amber-600 bg-amber-50 border-amber-100')}`}>
@@ -4641,6 +4746,7 @@ export default function Platform() {
                           <select value={newMember.role} onChange={(e)=>setNewMember({...newMember, role: e.target.value})} className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
                             <option value="ADMIN">ADMIN (แอดมิน)</option>
                             <option value="MANAGER">MANAGER (ผู้จัดการ)</option>
+                            <option value="STAFF">STAFF (พนักงานทั่วไป)</option>
                           </select>
                         </div>
                       </div>

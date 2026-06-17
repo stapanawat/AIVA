@@ -366,6 +366,63 @@ const handleTikTokWebhook = async (req, res, next) => {
   }
 };
 
+// Lazada Webhook Handler Function
+const handleLazadaWebhook = async (req, res, next) => {
+  try {
+    const { message_id, content, buyer_id } = req.body;
+    if (!content || !buyer_id) {
+      return res.sendStatus(200);
+    }
+
+    let clientId = req.params.clientId;
+    if (!clientId) {
+      const firstClient = await prisma.client.findFirst();
+      if (!firstClient) return res.sendStatus(200);
+      clientId = firstClient.id;
+    }
+
+    // Retrieve or create chat session
+    let chat = await prisma.chat.findFirst({
+      where: { clientId, customerContact: buyer_id, platform: 'LAZADA' }
+    });
+
+    if (!chat) {
+      chat = await prisma.chat.create({
+        data: {
+          clientId,
+          customerName: 'Lazada Customer',
+          customerContact: buyer_id,
+          platform: 'LAZADA',
+          status: 'BOT_HANDLING'
+        }
+      });
+    }
+
+    // Save incoming customer message
+    await prisma.message.create({
+      data: {
+        chatId: chat.id,
+        sender: 'CUSTOMER',
+        content: content
+      }
+    });
+
+    // Queue the response processing asynchronously
+    await queueChatReply({
+      clientId,
+      chatId: chat.id,
+      userMessage: content,
+      platform: 'LAZADA',
+      customerContact: buyer_id
+    });
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('[Lazada Webhook Error]:', error);
+    res.sendStatus(500);
+  }
+};
+
 // Webhook verification endpoint for Facebook/Instagram
 const verifyFacebookWebhook = (req, res) => {
   const mode = req.query['hub.mode'];
@@ -402,6 +459,9 @@ router.post('/instagram/:clientId', handleInstagramWebhook);
 
 router.post('/tiktok', handleTikTokWebhook);
 router.post('/tiktok/:clientId', handleTikTokWebhook);
+
+router.post('/lazada', handleLazadaWebhook);
+router.post('/lazada/:clientId', handleLazadaWebhook);
 
 module.exports = router;
 

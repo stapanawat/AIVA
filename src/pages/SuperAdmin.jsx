@@ -699,7 +699,7 @@ export default function SuperAdmin() {
       showToast('กรุณากรอกอีเมลผู้ส่งด้วยค่ะ', 'danger');
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^([^\s@]+@[^\s@]+\.[^\s@]+|[^<>]+<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>)$/;
     if (!emailRegex.test(smtpForm.from.trim())) {
       showToast('กรุณากรอกอีเมลผู้ส่งให้ถูกต้องตามรูปแบบมาตรฐาน', 'danger');
       return;

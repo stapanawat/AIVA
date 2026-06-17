@@ -2,6 +2,15 @@ const prisma = require('../config/db');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
+const resolveCallbackUrl = (req, platform) => {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const dynamicBackendUrl = `${protocol}://${host}`;
+  const rawBackendUrl = process.env.BACKEND_URL || dynamicBackendUrl;
+  const backendUrl = rawBackendUrl.replace(/\/+$/, '');
+  return `${backendUrl}/api/client/integrations/oauth/${platform}/callback`;
+};
+
 
 // 1. Get integrations for current client
 const getIntegrations = async (req, res, next) => {
@@ -186,9 +195,7 @@ const startOAuth = async (req, res, next) => {
     }
 
     // Real OAuth redirects
-    const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const backendUrl = rawBackendUrl.replace(/\/+$/, '');
-    const callbackUrl = `${backendUrl}/api/client/integrations/oauth/${platform}/callback`;
+    const callbackUrl = resolveCallbackUrl(req, platform);
 
     if (platformUpper === 'FACEBOOK' || platformUpper === 'INSTAGRAM') {
       const appId = process.env.FACEBOOK_CLIENT_ID;
@@ -312,9 +319,7 @@ const handleOAuthCallback = async (req, res, next) => {
       if (platformUpper === 'FACEBOOK') {
         const fbClientId = process.env.FACEBOOK_CLIENT_ID;
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
-        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
-        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/facebook/callback`;
+        const callbackUrl = resolveCallbackUrl(req, 'facebook');
 
         const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&client_secret=${clientSecret}&code=${code}`);
         const tokenData = await tokenResponse.json();
@@ -342,9 +347,7 @@ const handleOAuthCallback = async (req, res, next) => {
       } else if (platformUpper === 'INSTAGRAM') {
         const fbClientId = process.env.FACEBOOK_CLIENT_ID;
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET;
-        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
-        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/instagram/callback`;
+        const callbackUrl = resolveCallbackUrl(req, 'instagram');
 
         const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${fbClientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&client_secret=${clientSecret}&code=${code}`);
         const tokenData = await tokenResponse.json();
@@ -395,9 +398,7 @@ const handleOAuthCallback = async (req, res, next) => {
       } else if (platformUpper === 'LINE') {
         const lineClientId = process.env.LINE_LOGIN_CHANNEL_ID;
         const clientSecret = process.env.LINE_LOGIN_CHANNEL_SECRET;
-        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
-        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/line/callback`;
+        const callbackUrl = resolveCallbackUrl(req, 'line');
 
         const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {
           method: 'POST',
@@ -452,9 +453,7 @@ const handleOAuthCallback = async (req, res, next) => {
       } else if (platformUpper === 'YOUTUBE') {
         const googleClientId = process.env.YOUTUBE_CLIENT_ID;
         const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-        const rawBackendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        const backendUrl = rawBackendUrl.replace(/\/+$/, '');
-        const callbackUrl = `${backendUrl}/api/client/integrations/oauth/youtube/callback`;
+        const callbackUrl = resolveCallbackUrl(req, 'youtube');
 
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',

@@ -71,10 +71,16 @@ const rotateRefreshToken = async (oldToken) => {
       where: { id: decoded.id },
       include: {
         clientsOwned: {
-          select: { id: true }
+          select: { id: true, name: true, plan: true }
         },
         teamAccess: {
-          select: { clientId: true }
+          select: {
+            clientId: true,
+            role: true,
+            client: {
+              select: { name: true, plan: true }
+            }
+          }
         }
       }
     });
@@ -84,12 +90,17 @@ const rotateRefreshToken = async (oldToken) => {
     }
     
     // Attach clientId to user object for payload
-    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+    const clientId = determineBestClientId(user);
     const userWithClient = { ...user, clientId };
     
     // Generate new pair of tokens
     const newAccessToken = generateAccessToken(userWithClient);
     const newRefreshToken = await generateRefreshToken(user.id);
+    
+    const workspaces = [
+      ...user.clientsOwned.map(c => ({ id: c.id, name: c.name, isOwner: true, plan: c.plan, role: 'OWNER' })),
+      ...user.teamAccess.map(t => ({ id: t.clientId, name: t.client?.name || 'Workspace', isOwner: false, plan: t.client?.plan, role: t.role }))
+    ];
     
     return {
       accessToken: newAccessToken,
@@ -99,12 +110,47 @@ const rotateRefreshToken = async (oldToken) => {
         email: user.email,
         role: user.role,
         name: user.name,
-        clientId
+        clientId,
+        workspaces
       }
     };
   } catch (error) {
     throw error;
   }
+};
+
+// Determine the best workspace/client ID based on active plan priority
+const determineBestClientId = (user) => {
+  if (!user) return null;
+  
+  const ownedClients = user.clientsOwned || [];
+  const teamClients = (user.teamAccess || []).map(t => ({
+    id: t.clientId,
+    plan: t.client?.plan || 'NONE'
+  }));
+  
+  const allClients = [
+    ...ownedClients.map(c => ({ id: c.id, plan: c.plan || 'NONE', isOwner: true })),
+    ...teamClients.map(c => ({ id: c.id, plan: c.plan || 'NONE', isOwner: false }))
+  ];
+  
+  if (allClients.length === 0) return null;
+  
+  const planPriority = { 'ADVANCED': 3, 'PRO': 2, 'BASIC': 1, 'NONE': 0 };
+  
+  allClients.sort((a, b) => {
+    const prioA = planPriority[a.plan] || 0;
+    const prioB = planPriority[b.plan] || 0;
+    if (prioA !== prioB) {
+      return prioB - prioA; // Higher plan priority first
+    }
+    // If plans are the same, prefer owned client
+    if (a.isOwner && !b.isOwner) return -1;
+    if (!a.isOwner && b.isOwner) return 1;
+    return 0;
+  });
+  
+  return allClients[0].id;
 };
 
 // Revoke a refresh token (e.g. on logout)
@@ -119,5 +165,6 @@ module.exports = {
   generateAccessToken,
   generateRefreshToken,
   rotateRefreshToken,
-  revokeRefreshToken
+  revokeRefreshToken,
+  determineBestClientId
 };

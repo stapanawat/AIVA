@@ -1,6 +1,16 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/db');
 const tokenService = require('../services/tokenService');
+const emailService = require('../services/emailService');
+
+const mapUserWorkspaces = (user) => {
+  const owned = user.clientsOwned || [];
+  const team = user.teamAccess || [];
+  return [
+    ...owned.map(c => ({ id: c.id, name: c.name, isOwner: true, plan: c.plan, role: 'OWNER' })),
+    ...team.map(t => ({ id: t.clientId, name: t.client?.name || 'Workspace', isOwner: false, plan: t.client?.plan, role: t.role }))
+  ];
+};
 
 const register = async (req, res, next) => {
   try {
@@ -87,6 +97,8 @@ const register = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
+    const workspaces = role === 'CLIENT_OWNER' && clientId ? [{ id: clientId, name: `${name}'s Brand`, isOwner: true, plan: 'NONE', role: 'OWNER' }] : [];
+
     res.status(201).json({
       accessToken,
       user: {
@@ -94,7 +106,8 @@ const register = async (req, res, next) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        clientId
+        clientId,
+        workspaces
       }
     });
   } catch (error) {
@@ -109,8 +122,14 @@ const login = async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        clientsOwned: { select: { id: true } },
-        teamAccess: { select: { clientId: true } }
+        clientsOwned: { select: { id: true, name: true, plan: true } },
+        teamAccess: {
+          select: {
+            clientId: true,
+            role: true,
+            client: { select: { name: true, plan: true } }
+          }
+        }
       }
     });
 
@@ -124,7 +143,7 @@ const login = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+    const clientId = tokenService.determineBestClientId(user);
     const userWithClient = { ...user, clientId };
 
     // Generate tokens
@@ -139,6 +158,8 @@ const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
+    const workspaces = mapUserWorkspaces(user);
+
     res.json({
       accessToken,
       user: {
@@ -146,7 +167,8 @@ const login = async (req, res, next) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        clientId
+        clientId,
+        workspaces
       }
     });
   } catch (error) {
@@ -251,8 +273,14 @@ const googleCallback = async (req, res, next) => {
     let user = await prisma.user.findUnique({
       where: { email },
       include: {
-        clientsOwned: { select: { id: true } },
-        teamAccess: { select: { clientId: true } }
+        clientsOwned: { select: { id: true, name: true, plan: true } },
+        teamAccess: {
+          select: {
+            clientId: true,
+            role: true,
+            client: { select: { name: true, plan: true } }
+          }
+        }
       }
     });
 
@@ -267,8 +295,14 @@ const googleCallback = async (req, res, next) => {
           status: 'ACTIVE'
         },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
 
@@ -294,8 +328,14 @@ const googleCallback = async (req, res, next) => {
       user = await prisma.user.findUnique({
         where: { id: user.id },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
     }
@@ -304,7 +344,7 @@ const googleCallback = async (req, res, next) => {
       return res.status(401).json({ error: 'Your account has been suspended.' });
     }
 
-    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+    const clientId = tokenService.determineBestClientId(user);
 
     if (clientId) {
       const knowledgeCount = await prisma.knowledge.count({ where: { clientId } });
@@ -338,12 +378,14 @@ const googleCallback = async (req, res, next) => {
 
     // Redirect to frontend settings or dashboard with the access token
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const workspaces = mapUserWorkspaces(user);
     const userJson = JSON.stringify({
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
-      clientId
+      clientId,
+      workspaces
     });
     
     res.redirect(`${frontendUrl}?token=${accessToken}&user=${encodeURIComponent(userJson)}`);
@@ -431,8 +473,14 @@ const lineCallback = async (req, res, next) => {
     let user = await prisma.user.findUnique({
       where: { email },
       include: {
-        clientsOwned: { select: { id: true } },
-        teamAccess: { select: { clientId: true } }
+        clientsOwned: { select: { id: true, name: true, plan: true } },
+        teamAccess: {
+          select: {
+            clientId: true,
+            role: true,
+            client: { select: { name: true, plan: true } }
+          }
+        }
       }
     });
 
@@ -447,8 +495,14 @@ const lineCallback = async (req, res, next) => {
           status: 'ACTIVE'
         },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
 
@@ -474,8 +528,14 @@ const lineCallback = async (req, res, next) => {
       user = await prisma.user.findUnique({
         where: { id: user.id },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
     }
@@ -484,7 +544,7 @@ const lineCallback = async (req, res, next) => {
       return res.status(401).json({ error: 'Your account has been suspended.' });
     }
 
-    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+    const clientId = tokenService.determineBestClientId(user);
 
     if (clientId) {
       const knowledgeCount = await prisma.knowledge.count({ where: { clientId } });
@@ -518,12 +578,14 @@ const lineCallback = async (req, res, next) => {
 
     // Redirect to frontend settings or dashboard
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const workspaces = mapUserWorkspaces(user);
     const userJson = JSON.stringify({
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
-      clientId
+      clientId,
+      workspaces
     });
     
     res.redirect(`${frontendUrl}?token=${accessToken}&user=${encodeURIComponent(userJson)}`);
@@ -584,8 +646,14 @@ const facebookCallback = async (req, res, next) => {
     let user = await prisma.user.findUnique({
       where: { email },
       include: {
-        clientsOwned: { select: { id: true } },
-        teamAccess: { select: { clientId: true } }
+        clientsOwned: { select: { id: true, name: true, plan: true } },
+        teamAccess: {
+          select: {
+            clientId: true,
+            role: true,
+            client: { select: { name: true, plan: true } }
+          }
+        }
       }
     });
 
@@ -600,8 +668,14 @@ const facebookCallback = async (req, res, next) => {
           status: 'ACTIVE'
         },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
 
@@ -627,8 +701,14 @@ const facebookCallback = async (req, res, next) => {
       user = await prisma.user.findUnique({
         where: { id: user.id },
         include: {
-          clientsOwned: { select: { id: true } },
-          teamAccess: { select: { clientId: true } }
+          clientsOwned: { select: { id: true, name: true, plan: true } },
+          teamAccess: {
+            select: {
+              clientId: true,
+              role: true,
+              client: { select: { name: true, plan: true } }
+            }
+          }
         }
       });
     }
@@ -637,7 +717,7 @@ const facebookCallback = async (req, res, next) => {
       return res.status(401).json({ error: 'Your account has been suspended.' });
     }
 
-    const clientId = user.clientsOwned[0]?.id || user.teamAccess[0]?.clientId || null;
+    const clientId = tokenService.determineBestClientId(user);
 
     if (clientId) {
       const knowledgeCount = await prisma.knowledge.count({ where: { clientId } });
@@ -671,12 +751,14 @@ const facebookCallback = async (req, res, next) => {
 
     // Redirect to frontend settings or dashboard
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const workspaces = mapUserWorkspaces(user);
     const userJson = JSON.stringify({
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
-      clientId
+      clientId,
+      workspaces
     });
     
     res.redirect(`${frontendUrl}?token=${accessToken}&user=${encodeURIComponent(userJson)}`);
@@ -710,6 +792,116 @@ const trackReferralClick = async (req, res, next) => {
   }
 };
 
+const verificationStore = new Map(); // email -> { code, expiresAt }
+
+const sendVerificationCode = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address format.' });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    verificationStore.set(email.toLowerCase(), { code, expiresAt });
+
+    await emailService.sendVerificationEmail(email, code);
+
+    res.json({ success: true, message: 'Verification code sent successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyCode = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and code are required.' });
+    }
+
+    const record = verificationStore.get(email.toLowerCase());
+    if (!record) {
+      return res.status(400).json({ error: 'Verification code not found or expired.' });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      verificationStore.delete(email.toLowerCase());
+      return res.status(400).json({ error: 'Verification code has expired.' });
+    }
+
+    if (record.code !== code.trim()) {
+      return res.status(400).json({ error: 'Invalid verification code.' });
+    }
+
+    verificationStore.delete(email.toLowerCase());
+
+    res.json({ success: true, message: 'Email verified successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const switchWorkspace = async (req, res, next) => {
+  try {
+    const { clientId } = req.body;
+    const userId = req.user.id;
+
+    if (!clientId) {
+      return res.status(400).json({ error: 'Client ID is required.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        clientsOwned: { select: { id: true, name: true, plan: true } },
+        teamAccess: {
+          select: {
+            clientId: true,
+            role: true,
+            client: { select: { name: true, plan: true } }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const isOwner = user.clientsOwned.some(c => c.id === clientId);
+    const isMember = user.teamAccess.some(t => t.clientId === clientId);
+
+    if (!isOwner && !isMember) {
+      return res.status(403).json({ error: 'Access denied. You do not have access to this workspace.' });
+    }
+
+    const userWithClient = { ...user, clientId };
+    const accessToken = tokenService.generateAccessToken(userWithClient);
+    const workspaces = mapUserWorkspaces(user);
+
+    res.json({
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        clientId,
+        workspaces
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -721,6 +913,10 @@ module.exports = {
   lineCallback,
   facebookLogin,
   facebookCallback,
-  trackReferralClick
+  trackReferralClick,
+  sendVerificationCode,
+  verifyCode,
+  switchWorkspace
 };
+
 

@@ -718,6 +718,53 @@ const deleteTeamMember = async (req, res, next) => {
   }
 };
 
+const updateTeamMemberRole = async (req, res, next) => {
+  try {
+    const clientId = req.user.clientId;
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !['ADMIN', 'STAFF', 'MANAGER'].includes(role)) {
+      return res.status(400).json({ error: 'บทบาทไม่ถูกต้องค่ะ' });
+    }
+
+    // Check if the team member exists and belongs to the client
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        id,
+        clientId
+      }
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: 'ไม่พบสมาชิกทีมที่ต้องการแก้ไขค่ะ' });
+    }
+
+    // Check if trying to change own role
+    if (member.userId === req.user.id) {
+      return res.status(400).json({ error: 'คุณไม่สามารถเปลี่ยนบทบาทของตัวเองได้ค่ะ' });
+    }
+
+    const updated = await prisma.teamMember.update({
+      where: { id },
+      data: { role },
+      include: { user: true }
+    });
+
+    res.json({
+      id: updated.id,
+      userId: updated.userId,
+      email: updated.user.email,
+      name: updated.user.name,
+      role: updated.role,
+      status: updated.user.status,
+      createdAt: updated.createdAt
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // 6. Settings Operations
 const updateSettings = async (req, res, next) => {
@@ -1125,6 +1172,7 @@ module.exports = {
   getTeamMembers,
   inviteTeamMember,
   deleteTeamMember,
+  updateTeamMemberRole,
   updateSettings,
   getSettings,
   generateAIContent,

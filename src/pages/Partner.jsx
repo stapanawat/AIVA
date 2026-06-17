@@ -54,6 +54,89 @@ function AuthScreen({ onLogin }) {
   const [bankAccountName, setBankAccountName] = useState('สมชาย ใจดี');
 
   const [generatedPartnerId, setGeneratedPartnerId] = useState('SP99201');
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef([]);
+
+  const handleGoToVerification = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'ไม่สามารถส่งอีเมลยืนยันได้', 'danger');
+        setIsLoading(false);
+        return;
+      }
+      showToast('ส่งรหัสยืนยัน 6 หลักไปที่อีเมลของคุณแล้ว', 'success');
+      setView('signup_step3');
+    } catch (err) {
+      console.warn('Send code offline fallback:', err);
+      showToast('ส่งรหัสยืนยัน 6 หลักไปที่อีเมลของคุณแล้ว (จำลอง)', 'info');
+      setView('signup_step3');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    const codeStr = verificationCode.join('');
+    if (codeStr.length < 6) {
+      showToast('กรุณากรอกรหัสยืนยันให้ครบ 6 หลัก', 'danger');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: codeStr })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'รหัสยืนยันไม่ถูกต้องหรือหมดอายุ', 'danger');
+        setIsLoading(false);
+        return;
+      }
+      showToast('ยืนยันอีเมลสำเร็จแล้ว!', 'success');
+      await handleRegister();
+    } catch (err) {
+      console.warn('Verify code offline fallback:', err);
+      showToast('ยืนยันอีเมลสำเร็จแล้ว! (จำลอง)', 'info');
+      await handleRegister();
+    }
+  };
+
+  const handleInputChange = (e, index) => {
+    const val = e.target.value;
+    const cleanVal = val.replace(/\D/g, '');
+    const nextCode = [...verificationCode];
+    nextCode[index] = cleanVal.substring(cleanVal.length - 1);
+    setVerificationCode(nextCode);
+
+    if (cleanVal && index < 5) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (!verificationCode[index] && index > 0) {
+        const nextCode = [...verificationCode];
+        nextCode[index - 1] = '';
+        setVerificationCode(nextCode);
+        inputRefs.current[index - 1].focus();
+      } else {
+        const nextCode = [...verificationCode];
+        nextCode[index] = '';
+        setVerificationCode(nextCode);
+      }
+    }
+  };
+
 
   const handleNextStep = (nextView) => {
     setIsLoading(true);
@@ -356,7 +439,7 @@ function AuthScreen({ onLogin }) {
               </div>
 
               <button 
-                onClick={() => handleNextStep('signup_step3')}
+                onClick={handleGoToVerification}
                 disabled={isLoading}
                 className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 mt-6"
               >
@@ -368,21 +451,25 @@ function AuthScreen({ onLogin }) {
           </div>
         )}
 
-        {/* ================= SIGNUP STEP 3: OTP VERIFICATION ================= */}
+        {/* ================= SIGNUP STEP 3: EMAIL VERIFICATION ================= */}
         {view === 'signup_step3' && (
           <div className="p-8 text-center animate-in slide-in-from-right-8 duration-300">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Phone className="w-8 h-8 text-indigo-600" />
+              <Mail className="w-8 h-8 text-indigo-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">ยืนยันเบอร์โทรศัพท์ของคุณ</h2>
-            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">{phone}</strong></p>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">ยืนยันอีเมลของคุณ</h2>
+            <p className="text-sm text-slate-500 mb-8">เราได้ส่งรหัสยืนยัน 6 หลักไปที่<br/><strong className="text-slate-800">{email}</strong></p>
 
             <div className="flex justify-center gap-2 mb-8">
-              {[1,2,3,4,5,6].map((idx) => (
+              {verificationCode.map((val, idx) => (
                 <input 
                   key={idx}
+                  ref={(el) => (inputRefs.current[idx] = el)}
                   type="text" 
                   maxLength={1}
+                  value={val}
+                  onChange={(e) => handleInputChange(e, idx)}
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
                   className="w-10 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 text-slate-900 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
                   placeholder="-"
                 />
@@ -390,7 +477,7 @@ function AuthScreen({ onLogin }) {
             </div>
 
             <button 
-              onClick={handleRegister}
+              onClick={handleVerifyAndRegister}
               disabled={isLoading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2"
             >
@@ -400,8 +487,8 @@ function AuthScreen({ onLogin }) {
             </button>
 
             <div className="mt-6 flex flex-col items-center gap-2">
-              <p className="text-xs text-slate-500">ไม่ได้รับรหัส OTP ใช่ไหม?</p>
-              <button className="text-sm font-bold text-indigo-600 hover:underline">ส่งรหัสใหม่อีกครั้ง</button>
+              <p className="text-xs text-slate-500">ไม่ได้รับรหัสยืนยันใช่ไหม?</p>
+              <button onClick={handleGoToVerification} className="text-sm font-bold text-indigo-600 hover:underline">ส่งรหัสใหม่อีกครั้ง</button>
               <button onClick={() => setView('signup_step2')} className="text-xs font-semibold text-slate-400 hover:text-slate-600 mt-2">กลับไปแก้ไขข้อมูล</button>
             </div>
           </div>

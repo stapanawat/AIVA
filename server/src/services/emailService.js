@@ -360,9 +360,139 @@ const sendTestEmail = async (toEmail) => {
   }
 };
 
+const sendVerificationEmail = async (toEmail, code) => {
+  try {
+    const transporter = await getTransporter();
+    const smtp = getSmtpConfig();
+    const fromAddress = smtp.from || '"AIVA Team" <noreply@aiva.sparexth.com>';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>รหัสยืนยันการสมัครสมาชิกพาร์ทเนอร์ - AIVA</title>
+        <style>
+          body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+          }
+          .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+          }
+          .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            padding: 40px;
+            text-align: center;
+            color: #ffffff;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+          }
+          .header p {
+            margin: 8px 0 0 0;
+            font-size: 15px;
+            opacity: 0.9;
+          }
+          .content {
+            padding: 40px;
+            text-align: center;
+          }
+          .welcome-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #334155;
+            margin-bottom: 24px;
+            text-align: left;
+          }
+          .code-container {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 32px 0;
+            border: 1px dashed #e2e8f0;
+            display: inline-block;
+            letter-spacing: 12px;
+            padding-left: 36px;
+          }
+          .code-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #4f46e5;
+            font-family: monospace;
+          }
+          .footer {
+            background-color: #f8fafc;
+            padding: 24px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #f1f5f9;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>AIVA Partner</h1>
+            <p>ระบบผู้ช่วยผู้จัดการโซเชียลมีเดียอัจฉริยะ</p>
+          </div>
+          <div class="content">
+            <p class="welcome-text">สวัสดีครับ,<br><br>คุณกำลังทำรายการสมัครสมาชิก AIVA Partner โปรดยืนยันอีเมลของคุณโดยใช้รหัสยืนยัน 6 หลักด้านล่างนี้ครับ:</p>
+            
+            <div class="code-container">
+              <span class="code-value">${code}</span>
+            </div>
+ 
+            <p class="welcome-text" style="font-size: 14px; color: #64748b; margin-top: 0; text-align: center;">*รหัสยืนยันนี้มีอายุการใช้งาน 5 นาที เพื่อความปลอดภัยโปรดอย่าเปิดเผยรหัสนี้แก่ผู้อื่น</p>
+          </div>
+          <div class="footer">
+            ส่งโดยทีมงาน AIVA
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: fromAddress,
+      to: toEmail,
+      subject: `[AIVA Partner] รหัสยืนยันอีเมลของคุณคือ ${code}`,
+      html: htmlContent,
+      text: `สวัสดีครับ,\n\nรหัสยืนยันสำหรับการสมัครสมาชิกพาร์ทเนอร์ AIVA คือ: ${code}\n\nรหัสนี้มีอายุการใช้งาน 5 นาที เพื่อความปลอดภัยโปรดอย่าเปิดเผยรหัสนี้แก่ผู้อื่น`
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Email Service] Verification email sent to ${toEmail}. MessageID: ${info.messageId}`);
+    
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`[Email Service] Ethereal Email Preview URL: ${previewUrl}`);
+    }
+
+    return info;
+  } catch (error) {
+    console.error(`[Email Service] Failed to send verification email to ${toEmail}:`, error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getSmtpConfig,
   saveSmtpConfig,
   sendInviteEmail,
-  sendTestEmail
+  sendTestEmail,
+  sendVerificationEmail
 };

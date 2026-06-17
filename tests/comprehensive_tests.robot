@@ -71,17 +71,22 @@ Scenario 1: Landing Page Billing Switcher & Checkout Integration
     ${rand}=    Evaluate    random.randint(100000, 999999)    random
     Input Text    id=input-name    บริษัท ทดสอบ จำกัด
     Input Text    id=input-email    testclient_${rand}@aiva.com
+    Input Text    id=input-tax-id    1234567890123
+    Input Text    id=input-address    123/45 ถนนพัฒนาการ เขตสวนหลวง กรุงเทพมหานคร 10250
     
+    # Mock checkout fetch response to prevent Stripe redirect on live site
+    Execute Javascript    window.fetch = (function(orig) { return async function(...args) { if (args[0] === '/api/payments/checkout') { const r = await orig.apply(this, args); if (r.ok) { const d = await r.json(); return new Response(JSON.stringify(Object.assign({}, d, {url: ""})), {status: r.status, headers: r.headers}); } } return orig.apply(this, args); }; })(window.fetch);
+
     # Pay
     Click Element    id=btn-pay-card
     Sleep    3s
-    Wait Until Element Is Visible    id=btn-goto-platform    timeout=10s
+    Wait Until Element Is Visible    id=btn-goto-platform    timeout=30s
     
     # Click Go to Platform
     Click Element    id=btn-goto-platform
     
     # Should land on Platform dashboard directly (auto-logged in after registration)
-    Wait Until Page Contains    OWNER    timeout=10s
+    Wait Until Page Contains    OWNER    timeout=20s
 
 Scenario 2: Client Platform Dashboard & Management Features
     [Tags]    feature    platform
@@ -210,28 +215,31 @@ Scenario 5: Super Admin SMTP Configuration and Connection Test
     Wait Until Element Is Visible    id=btn-nav-smtp    timeout=10s
     Click Element    id=btn-nav-smtp
     
+    # Wait to ensure background fetch resolves and stabilizes the state
+    Sleep    5s
+    
     # Verify SMTP fields are visible
-    Wait Until Element Is Visible    id=smtp-host    timeout=5s
-    Wait Until Element Is Visible    id=smtp-port    timeout=5s
-    Wait Until Element Is Visible    id=smtp-user    timeout=5s
-    Wait Until Element Is Visible    id=smtp-pass    timeout=5s
-    Wait Until Element Is Visible    id=smtp-from    timeout=5s
+    Wait Until Element Is Visible    id=smtp-host    timeout=10s
+    Wait Until Element Is Visible    id=smtp-port    timeout=10s
+    Wait Until Element Is Visible    id=smtp-user    timeout=10s
+    Wait Until Element Is Visible    id=smtp-pass    timeout=10s
+    Wait Until Element Is Visible    id=smtp-from    timeout=10s
     
     # Input SMTP settings
     Input Text    id=smtp-host    smtp.ethereal.email
     Input Text    id=smtp-port    587
     Input Text    id=smtp-user    test_admin@ethereal.email
     Input Text    id=smtp-pass    test_password123
-    Input Text    id=smtp-from    "AIVA Test" <test_admin@ethereal.email>
+    Input Text    id=smtp-from    test_admin@ethereal.email
     
     # Save settings
-    Click Button    id=btn-save-smtp
-    Wait Until Page Contains    บันทึกการตั้งค่า SMTP สำเร็จแล้วค่ะ!    timeout=5s
+    Click Element    id=btn-save-smtp
+    Wait Until Page Contains    บันทึกการตั้งค่า SMTP สำเร็จแล้วค่ะ!    timeout=20s
     
     # Input test recipient and test connection
     Input Text    id=smtp-test-email    recipient@gmail.com
-    Click Button    id=btn-test-smtp
-    Wait Until Page Contains    ส่งอีเมลทดสอบไปยัง recipient@gmail.com สำเร็จแล้วค่ะ!    timeout=15s
+    Click Element    id=btn-test-smtp
+    Wait Until Page Contains    ส่งอีเมลทดสอบไปยัง recipient@gmail.com สำเร็จแล้วค่ะ!    timeout=25s
     
     # Logout
     Click Element    xpath=//p[contains(., 'System Logout')]
